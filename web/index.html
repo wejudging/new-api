@@ -2,19 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
 
     <!-- Primary Meta Tags -->
-    <title>New API</title>
-    <meta name="title" content="New API" />
+    <title>HOHAI</title>
+    <meta name="title" content="HOHAI" />
     <meta
       name="description"
       content="Unified AI API gateway and admin dashboard."
     />
 
     <meta name="theme-color" content="#fff" />
+    <script>
+      // Apply the cached branding before the document starts painting so a
+      // refresh never flashes the bundled default title or logo while
+      // /api/status is still in flight.
+      ;(function () {
+        var title = 'HOHAI'
+        var logo = '/logo.png'
+        try {
+          var cached = window.localStorage.getItem('status')
+          if (cached) {
+            var status = JSON.parse(cached)
+            if (status && status.system_name) title = status.system_name
+            if (status && status.logo) logo = status.logo
+          }
+        } catch (error) {
+          /* keep the bundled defaults when the cache is missing or malformed */
+        }
+        document.title = title
+        var icon = document.createElement('link')
+        icon.rel = 'icon'
+        icon.href = logo
+        document.head.appendChild(icon)
+      })()
+    </script>
     <!--umami-->
     <!--Google Analytics-->
   </head>
