@@ -34,6 +34,20 @@ interface FeaturesProps {
   className?: string
 }
 
+// Shared card treatment for the bento grid: glass surface, soft ring and a
+// glow that fades in on hover.
+const BENTO_CARD_CLASS =
+  'group border-border/50 bg-card/40 hover:border-primary/30 relative overflow-hidden rounded-2xl border p-7 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 md:p-8'
+
+function BentoGlow() {
+  return (
+    <div
+      aria-hidden
+      className='bg-primary/10 pointer-events-none absolute -top-24 left-1/2 size-48 -translate-x-1/2 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100'
+    />
+  )
+}
+
 export function Features(_props: FeaturesProps) {
   const { t } = useTranslation()
 
@@ -46,14 +60,14 @@ export function Features(_props: FeaturesProps) {
         'Optimized network architecture ensures millisecond response times'
       ),
       span: 'md:col-span-2',
-      icon: <Zap className='size-4 text-blue-400' />,
+      icon: <Zap className='size-4 text-blue-500 dark:text-blue-400' />,
       visual: (
-        <div className='mt-4 grid grid-cols-3 gap-2'>
+        <div className='mt-5 grid grid-cols-3 gap-2'>
           {['OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Llama'].map(
             (name) => (
               <div
                 key={name}
-                className='border-border/30 bg-muted/20 text-muted-foreground flex items-center justify-center rounded-lg border px-3 py-2 text-xs transition-colors duration-300 hover:border-blue-500/30 hover:bg-blue-500/5'
+                className='border-border/40 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground flex items-center justify-center rounded-lg border px-3 py-2 text-xs transition-colors duration-300'
               >
                 {name}
               </div>
@@ -70,11 +84,13 @@ export function Features(_props: FeaturesProps) {
         'Enterprise-grade security with comprehensive permission management'
       ),
       span: 'md:col-span-1',
-      icon: <Shield className='size-4 text-emerald-400' />,
+      icon: (
+        <Shield className='size-4 text-emerald-500 dark:text-emerald-400' />
+      ),
       visual: (
-        <div className='mt-4 flex items-center justify-center'>
+        <div className='mt-5 flex items-center justify-center'>
           <div className='relative'>
-            <div className='flex size-16 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/5'>
+            <div className='flex size-16 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/5 transition-transform duration-300 group-hover:scale-105'>
               <Shield
                 className='size-7 text-emerald-500/70'
                 strokeWidth={1.5}
@@ -105,16 +121,16 @@ export function Features(_props: FeaturesProps) {
       title: t('Global Coverage'),
       desc: t('Multi-region deployment for stable global access'),
       span: 'md:col-span-1',
-      icon: <Globe className='size-4 text-violet-400' />,
+      icon: <Globe className='size-4 text-violet-500 dark:text-violet-400' />,
       visual: (
-        <div className='mt-4 space-y-2'>
+        <div className='mt-5 space-y-2'>
           {[t('Load Balancing'), t('Rate Limiting'), t('Cost Tracking')].map(
             (step, i) => (
               <div key={step} className='flex items-center gap-2'>
                 <div
                   className={`flex size-6 items-center justify-center rounded-full text-[10px] font-bold ${
                     i === 1
-                      ? 'border border-blue-500/30 bg-blue-500/20 text-blue-500'
+                      ? 'border border-violet-500/30 bg-violet-500/20 text-violet-500 dark:text-violet-300'
                       : 'border-border/40 bg-muted text-muted-foreground border'
                   }`}
                 >
@@ -134,9 +150,9 @@ export function Features(_props: FeaturesProps) {
       title: t('Developer Friendly'),
       desc: t('Compatible API routes for common AI application workflows'),
       span: 'md:col-span-2',
-      icon: <Code className='size-4 text-amber-400' />,
+      icon: <Code className='size-4 text-amber-500 dark:text-amber-400' />,
       visual: (
-        <div className='mt-4 flex items-center gap-3'>
+        <div className='mt-5 flex items-center gap-3'>
           <div className='flex -space-x-2'>
             {['API', 'SDK', 'CLI', 'Docs'].map((n) => (
               <div
@@ -148,7 +164,7 @@ export function Features(_props: FeaturesProps) {
             ))}
           </div>
           <div className='text-muted-foreground flex items-center gap-1.5 text-xs'>
-            <Code className='size-3.5 text-blue-500' />
+            <Code className='size-3.5 text-sky-500' />
             {t('Multi-protocol Compatible')}
           </div>
         </div>
@@ -180,57 +196,65 @@ export function Features(_props: FeaturesProps) {
   ]
 
   return (
-    <section className='relative z-10 px-6 py-24 md:py-32'>
+    <section className='relative z-10 px-6 py-20 md:py-28'>
       <div className='mx-auto max-w-6xl'>
-        <AnimateInView className='mb-16 max-w-lg'>
-          <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
+        <AnimateInView className='mb-14 max-w-2xl md:mb-16'>
+          <p className='text-primary mb-3 text-xs font-semibold tracking-[0.2em] uppercase'>
             {t('Core Features')}
           </p>
-          <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
+          <h2 className='text-3xl leading-tight font-bold tracking-tight md:text-4xl'>
             {t('Built for developers,')}
             <br />
-            {t('designed for scale')}
+            <span className='bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-500 bg-clip-text text-transparent'>
+              {t('designed for scale')}
+            </span>
           </h2>
         </AnimateInView>
 
         {/* Bento grid */}
-        <div className='border-border/40 bg-border/40 grid gap-px overflow-hidden rounded-xl border md:grid-cols-3'>
-          {features.map((f, i) => (
+        <div className='grid gap-4 md:grid-cols-3'>
+          {features.map((feature, index) => (
             <AnimateInView
-              key={f.id}
-              delay={i * 100}
+              key={feature.id}
+              delay={index * 100}
               animation='scale-in'
-              className={`bg-background group hover:bg-muted/20 p-7 transition-colors duration-300 md:p-8 ${f.span}`}
+              className={`${BENTO_CARD_CLASS} ${feature.span}`}
             >
-              <div className='mb-3 flex items-center gap-3'>
-                <span className='border-border/40 bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-md border text-[10px] font-semibold tabular-nums'>
-                  {f.num}
-                </span>
-                <h3 className='text-sm font-semibold'>{f.title}</h3>
+              <BentoGlow />
+              <div className='relative'>
+                <div className='mb-3 flex items-center gap-3'>
+                  <span className='border-border/50 bg-muted/50 text-muted-foreground flex size-8 items-center justify-center rounded-lg border text-[10px] font-semibold tabular-nums'>
+                    {feature.num}
+                  </span>
+                  <span className='border-border/40 bg-muted/30 flex size-7 items-center justify-center rounded-lg border'>
+                    {feature.icon}
+                  </span>
+                  <h3 className='text-sm font-semibold'>{feature.title}</h3>
+                </div>
+                <p className='text-muted-foreground text-sm leading-relaxed'>
+                  {feature.desc}
+                </p>
+                {feature.visual}
               </div>
-              <p className='text-muted-foreground text-sm leading-relaxed'>
-                {f.desc}
-              </p>
-              {f.visual}
             </AnimateInView>
           ))}
         </div>
 
         {/* Additional features row */}
-        <div className='mt-12 grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-12'>
-          {additionalFeatures.map((f, i) => (
+        <div className='mt-12 grid grid-cols-2 gap-6 md:mt-16 md:grid-cols-4 md:gap-8'>
+          {additionalFeatures.map((feature, index) => (
             <AnimateInView
-              key={f.title}
-              delay={i * 100}
+              key={feature.title}
+              delay={index * 100}
               animation='fade-up'
-              className='flex flex-col items-center text-center'
+              className='group flex flex-col items-center text-center'
             >
-              <div className='text-muted-foreground border-border/50 bg-muted/30 group-hover:text-foreground mb-3 flex size-12 items-center justify-center rounded-xl border transition-colors'>
-                {f.icon}
+              <div className='border-border/50 bg-card/40 text-muted-foreground group-hover:border-primary/30 group-hover:text-primary mb-3 flex size-12 items-center justify-center rounded-xl border shadow-sm backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-0.5'>
+                {feature.icon}
               </div>
-              <h3 className='mb-1.5 text-sm font-semibold'>{f.title}</h3>
+              <h3 className='mb-1.5 text-sm font-semibold'>{feature.title}</h3>
               <p className='text-muted-foreground max-w-[200px] text-xs leading-relaxed'>
-                {f.desc}
+                {feature.desc}
               </p>
             </AnimateInView>
           ))}

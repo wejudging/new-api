@@ -16,8 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Boxes, Cable, Route, SlidersHorizontal } from 'lucide-react'
 import { useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { AnimateInView } from '@/components/animate-in-view'
 
 interface CounterProps {
   end: number
@@ -94,6 +97,8 @@ interface StatItem {
   decimals?: number
 }
 
+const STAT_ICONS = [Cable, Boxes, Route, SlidersHorizontal]
+
 export function Stats(_props: StatsProps) {
   const { t } = useTranslation()
 
@@ -105,24 +110,37 @@ export function Stats(_props: StatsProps) {
   ]
 
   return (
-    <div className='border-border/40 bg-muted/10 relative z-10 border-y'>
-      <div className='mx-auto max-w-6xl px-6 py-10 md:py-12'>
-        <div className='grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-12'>
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className='flex flex-col items-center text-center'
-            >
-              <span className='text-2xl font-bold tracking-tight md:text-3xl'>
-                <Counter end={s.end} suffix={s.suffix} decimals={s.decimals} />
-              </span>
-              <span className='text-muted-foreground mt-1.5 text-xs'>
-                {s.label}
-              </span>
-            </div>
-          ))}
+    <section className='relative z-10 px-6 py-16 md:py-20'>
+      <div className='mx-auto max-w-6xl'>
+        <div className='grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6'>
+          {stats.map((stat, index) => {
+            const Icon = STAT_ICONS[index % STAT_ICONS.length]
+            return (
+              <AnimateInView
+                key={stat.label}
+                delay={index * 80}
+                className='group border-border/50 bg-card/40 hover:border-primary/30 hover:shadow-primary/5 relative overflow-hidden rounded-2xl border p-6 text-center shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg'
+              >
+                <div
+                  aria-hidden
+                  className='bg-primary/15 pointer-events-none absolute -top-16 left-1/2 size-32 -translate-x-1/2 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100'
+                />
+                <div className='relative flex flex-col items-center'>
+                  <span className='border-border/50 bg-muted/40 text-muted-foreground group-hover:text-primary mb-3 flex size-9 items-center justify-center rounded-xl border transition-colors duration-300'>
+                    <Icon className='size-4' strokeWidth={1.75} />
+                  </span>
+                  <span className='bg-gradient-to-r from-sky-500 via-violet-500 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent md:text-4xl'>
+                    <Counter end={stat.end} suffix={stat.suffix} />
+                  </span>
+                  <span className='text-muted-foreground mt-2 text-xs leading-relaxed'>
+                    {stat.label}
+                  </span>
+                </div>
+              </AnimateInView>
+            )
+          })}
         </div>
       </div>
-    </div>
+    </section>
   )
 }

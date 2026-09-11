@@ -36,47 +36,50 @@ export function CTA(props: CTAProps) {
   }
 
   return (
-    <section className='relative z-10 overflow-hidden px-6 py-24 md:py-32'>
-      {/* Gradient mesh background */}
-      <div
-        aria-hidden
-        className='absolute inset-0 -z-10 opacity-20 dark:opacity-[0.08]'
-        style={{
-          background: [
-            'radial-gradient(ellipse 50% 50% at 30% 50%, oklch(0.7 0.15 250 / 70%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 40% at 70% 40%, oklch(0.65 0.12 200 / 50%) 0%, transparent 70%)',
-          ].join(', '),
-        }}
-      />
-
+    <section className='relative z-10 px-6 pt-8 pb-24 md:pb-32'>
       <AnimateInView
-        className='mx-auto max-w-2xl text-center'
+        className='border-border/50 bg-card/40 shadow-primary/5 relative mx-auto max-w-4xl overflow-hidden rounded-3xl border px-6 py-16 text-center shadow-xl backdrop-blur-sm md:px-16 md:py-20'
         animation='scale-in'
       >
-        <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
-          <br />
-          <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            {t('your AI integration?')}
-          </span>
-        </h2>
-        <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
-          {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
-          )}
-        </p>
-        <div className='mt-8 flex items-center justify-center gap-3'>
-          <Button className='group rounded-lg' render={<Link to='/sign-up' />}>
-            {t('Get Started')}
-            <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
-          </Button>
-          <Button
-            variant='outline'
-            className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-            render={<Link to='/pricing' />}
-          >
-            {t('View Pricing')}
-          </Button>
+        {/* Ambient glow inside the panel */}
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -top-40 left-1/2 size-[32rem] -translate-x-1/2 rounded-full bg-radial from-sky-500/25 via-violet-500/10 to-transparent blur-3xl'
+        />
+        <div
+          aria-hidden
+          className='from-primary/60 via-primary/20 pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r to-transparent'
+        />
+
+        <div className='relative'>
+          <h2 className='text-3xl leading-tight font-bold tracking-tight md:text-5xl'>
+            {t('Ready to simplify')}
+            <br />
+            <span className='bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-500 bg-clip-text text-transparent'>
+              {t('your AI integration?')}
+            </span>
+          </h2>
+          <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
+            {t(
+              'Deploy your own gateway and start routing requests through your configured upstream services.'
+            )}
+          </p>
+          <div className='mt-9 flex flex-wrap items-center justify-center gap-3'>
+            <Button
+              className='group shadow-primary/25 hover:shadow-primary/35 h-11 rounded-lg px-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:brightness-105'
+              render={<Link to='/sign-up' />}
+            >
+              {t('Get Started')}
+              <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+            </Button>
+            <Button
+              variant='outline'
+              className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5'
+              render={<Link to='/pricing' />}
+            >
+              {t('View Pricing')}
+            </Button>
+          </div>
         </div>
       </AnimateInView>
     </section>

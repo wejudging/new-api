@@ -730,3 +730,50 @@ For commercial licensing, please contact support@quantumnous.com
     display: none;
   }
 }
+
+/* ── Landing ambience: aurora backdrop + provider marquee ── */
+@keyframes landing-aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.12);
+  }
+}
+
+.landing-aurora-orb {
+  animation: landing-aurora-drift 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.landing-aurora-orb-slow {
+  animation: landing-aurora-drift 28s ease-in-out infinite reverse;
+  will-change: transform;
+}
+
+@keyframes landing-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.landing-marquee-track {
+  animation: landing-marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.landing-marquee:hover .landing-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-aurora-orb,
+  .landing-aurora-orb-slow,
+  .landing-marquee-track {
+    animation: none !important;
+  }
+}
