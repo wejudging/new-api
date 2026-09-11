@@ -240,6 +240,11 @@ const PRESET_GROUPS: PresetGroup[] = [
     group: 'Time-based',
     presets: [
       {
+        key: 'peak-off-peak-tiers',
+        label: 'Peak / off-peak tiers (Mon-Fri 9-12, 14-18)',
+        expr: '(weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") <= 5 && (hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12 || hour("Asia/Shanghai") >= 14 && hour("Asia/Shanghai") < 18)) ? tier("peak", p * 0.8 + c * 3.2 + cr * 0.016) : tier("off_peak", p * 0.4 + c * 1.6 + cr * 0.008)',
+      },
+      {
         key: 'night-discount',
         label: 'Night discount (50%)',
         expr: 'tier("base", p * 3 + c * 15)',
