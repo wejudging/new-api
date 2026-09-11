@@ -22,14 +22,12 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 export interface EmptyStateProps {
-  searchQuery?: string
   hasActiveFilters: boolean
   onClearFilters: () => void
 }
 
 export function EmptyState(props: EmptyStateProps) {
   const { t } = useTranslation()
-  const hasSearch = Boolean(props.searchQuery?.trim())
 
   return (
     <div className='flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed px-6 py-12 text-center'>
@@ -40,15 +38,10 @@ export function EmptyState(props: EmptyStateProps) {
       </h3>
 
       <p className='text-muted-foreground mb-5 max-w-xs text-sm'>
-        {hasSearch
-          ? t(
-              'No results for "{{query}}". Try adjusting your search or filters.',
-              { query: props.searchQuery }
-            )
-          : t('No models match your current filters.')}
+        {t('No models match your current filters.')}
       </p>
 
-      {(props.hasActiveFilters || hasSearch) && (
+      {props.hasActiveFilters && (
         <Button variant='outline' size='sm' onClick={props.onClearFilters}>
           {t('Clear all filters')}
         </Button>

@@ -25,7 +25,6 @@ import { PageTransition } from '@/components/page-transition'
 import {
   LoadingSkeleton,
   EmptyState,
-  SearchBar,
   PricingTable,
   PricingSidebar,
   PricingToolbar,
@@ -55,7 +54,6 @@ export function Pricing() {
   } = usePricingData()
 
   const {
-    searchInput,
     sortBy,
     vendorFilter,
     groupFilter,
@@ -65,7 +63,6 @@ export function Pricing() {
     tokenUnit,
     viewMode,
     showRechargePrice,
-    setSearchInput,
     setSortBy,
     setVendorFilter,
     setGroupFilter,
@@ -80,7 +77,6 @@ export function Pricing() {
     activeFilterCount,
     availableTags,
     clearFilters,
-    clearSearch,
   } = useFilters(models || [])
 
   const handleModelClick = useCallback((modelName: string) => {
@@ -105,18 +101,12 @@ export function Pricing() {
     [usableGroup]
   )
 
-  const handleClearAll = useCallback(() => {
-    clearFilters()
-    clearSearch()
-  }, [clearFilters, clearSearch])
-
   const renderPricingContent = () => {
     if (filteredModels.length === 0) {
       return (
         <EmptyState
-          searchQuery={searchInput}
           hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearAll}
+          onClearFilters={clearFilters}
         />
       )
     }
@@ -191,15 +181,6 @@ export function Pricing() {
                 'Discover curated AI models, compare pricing and capabilities, and choose the right model for every scenario.'
               )}
             </p>
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onClear={clearSearch}
-              placeholder={t(
-                'Search model name, provider, endpoint, or tag...'
-              )}
-              className='mx-auto mt-4 max-w-2xl sm:mt-6'
-            />
           </header>
 
           <div className='grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]'>

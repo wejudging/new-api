@@ -19,8 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { useSearch } from '@tanstack/react-router'
 import { useMemo, useCallback, useState } from 'react'
 
-import { useDebounce } from '@/hooks/use-debounce'
-
 import {
   FILTER_ALL,
   SORT_OPTIONS,
@@ -34,7 +32,6 @@ import { filterAndSortModels, extractAllTags } from '../lib/filters'
 import type { PricingModel, TokenUnit } from '../types'
 
 type FilterState = {
-  search?: string
   sort?: string
   vendor?: string
   group?: string
@@ -56,7 +53,6 @@ function normalizeViewMode(value: unknown): ViewMode {
 export function useFilters(models: PricingModel[]) {
   const search = useSearch({ from: '/pricing/' })
   const [filterState, setFilterState] = useState<FilterState>(() => ({
-    search: search.search,
     sort: search.sort,
     vendor: search.vendor,
     group: search.group,
@@ -68,8 +64,6 @@ export function useFilters(models: PricingModel[]) {
     rechargePrice: search.rechargePrice,
   }))
 
-  const searchInput = filterState.search || ''
-  const debouncedSearchInput = useDebounce(searchInput, 200)
   const sortBy = filterState.sort || SORT_OPTIONS.NAME
   const vendorFilter = filterState.vendor || FILTER_ALL
   const groupFilter = filterState.group || FILTER_ALL
@@ -93,10 +87,6 @@ export function useFilters(models: PricingModel[]) {
     })
   }, [])
 
-  const setSearchInput = useCallback(
-    (v: string) => updateFilters({ search: v || undefined }),
-    [updateFilters]
-  )
   const setSortBy = useCallback(
     (v: string) =>
       updateFilters({ sort: v === SORT_OPTIONS.NAME ? undefined : v }),
@@ -150,7 +140,6 @@ export function useFilters(models: PricingModel[]) {
     if (!models || models.length === 0) return []
 
     return filterAndSortModels(models, {
-      search: debouncedSearchInput,
       vendor: vendorFilter,
       group: groupFilter,
       quotaType: quotaTypeFilter,
@@ -160,7 +149,6 @@ export function useFilters(models: PricingModel[]) {
     })
   }, [
     models,
-    debouncedSearchInput,
     vendorFilter,
     groupFilter,
     quotaTypeFilter,
@@ -199,12 +187,7 @@ export function useFilters(models: PricingModel[]) {
     })
   }, [updateFilters])
 
-  const clearSearch = useCallback(() => {
-    updateFilters({ search: undefined })
-  }, [updateFilters])
-
   return {
-    searchInput,
     sortBy,
     vendorFilter,
     groupFilter,
@@ -214,7 +197,6 @@ export function useFilters(models: PricingModel[]) {
     tokenUnit,
     viewMode,
     showRechargePrice,
-    setSearchInput,
     setSortBy,
     setVendorFilter,
     setGroupFilter,
@@ -229,6 +211,5 @@ export function useFilters(models: PricingModel[]) {
     activeFilterCount,
     availableTags,
     clearFilters,
-    clearSearch,
   }
 }
