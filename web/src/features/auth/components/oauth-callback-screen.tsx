@@ -16,10 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Loader2, Send, Shield, UserRound, type LucideIcon } from 'lucide-react'
+import { Loader2, Send, UserRound, type LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiLinux, SiWechat } from 'react-icons/si'
+
+import { IconGoogle } from '@/assets/brand-icons'
+import { OIDC_DISPLAY_NAME } from '@/lib/oidc-display'
 
 import { AuthLayout } from '../auth-layout'
 
@@ -40,7 +43,12 @@ const providerDictionary: Record<string, ProviderMeta> = {
       <SiGithub className={props.className} focusable='false' />
     ),
   },
-  oidc: { label: 'OIDC', Icon: Shield },
+  oidc: {
+    label: OIDC_DISPLAY_NAME,
+    Icon: (props: { className?: string }) => (
+      <IconGoogle className={props.className} />
+    ),
+  },
   linuxdo: {
     label: 'LinuxDO',
     Icon: (props: { className?: string }) => (

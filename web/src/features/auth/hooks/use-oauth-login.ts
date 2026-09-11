@@ -143,7 +143,7 @@ export function useOAuthLogin(
       window.open(url, '_self')
     } catch (error) {
       handleServerError(
-        AuthOperationError.from(error, t('Failed to start OIDC login'))
+        AuthOperationError.from(error, t('Failed to start Google login'))
       )
     } finally {
       setIsLoading(false)

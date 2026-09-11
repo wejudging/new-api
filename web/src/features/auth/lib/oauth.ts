@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { OIDC_DISPLAY_NAME } from '@/lib/oidc-display'
+
 import type { SystemStatus, OAuthProvider } from '../types'
 
 export {
@@ -59,7 +61,7 @@ export function getAvailableOAuthProviders(
 
   if (status.oidc_enabled) {
     providers.push({
-      name: 'OIDC',
+      name: OIDC_DISPLAY_NAME,
       type: 'oidc',
       enabled: true,
       clientId: status.oidc_client_id,

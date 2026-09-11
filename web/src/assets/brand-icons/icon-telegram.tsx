@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type SVGProps } from 'react'
+import type { SVGProps } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -28,17 +28,22 @@ export function IconTelegram({ className, ...props }: SVGProps<SVGSVGElement>) {
       xmlns='http://www.w3.org/2000/svg'
       width='24'
       height='24'
-      className={cn('[&>path]:stroke-current', className)}
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
+      className={cn(className)}
       {...props}
     >
       <title>Telegram</title>
-      <path strokeWidth='0' d='M0 0h24v24H0z' fill='none' />
-      <path d='M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4' />
+      <defs>
+        <linearGradient id='hohai-telegram-brand' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0%' stopColor='#2AABEE' />
+          <stop offset='100%' stopColor='#229ED9' />
+        </linearGradient>
+      </defs>
+      <circle cx='12' cy='12' r='12' fill='url(#hohai-telegram-brand)' />
+      <path
+        fill='#ffffff'
+        transform='translate(1.545 1.97) scale(0.85)'
+        d='M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.19-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42Z'
+      />
     </svg>
   )
 }

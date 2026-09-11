@@ -92,7 +92,12 @@ const user = {
 }
 
 function findUnbindButton(provider: string): HTMLButtonElement {
-  let container = screen.getByText(provider).parentElement
+  // Provider brand marks carry an SVG <title> with the same name, so match the
+  // visible label instead of every text node that reads like the provider.
+  const label = screen
+    .getAllByText(provider)
+    .find((node) => !node.closest('svg'))
+  let container = label?.parentElement
   while (container && !container.querySelector('button')) {
     container = container.parentElement
   }
@@ -177,7 +182,7 @@ describe('UserBindingDialog built-in bindings', () => {
       ['GitHub', 'github'],
       ['Discord', 'discord'],
       ['WeChat', 'wechat'],
-      ['OIDC', 'oidc'],
+      ['Google', 'oidc'],
       ['Telegram', 'telegram'],
       ['LinuxDO', 'linuxdo'],
     ] as const

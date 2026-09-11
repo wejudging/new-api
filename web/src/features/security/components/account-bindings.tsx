@@ -16,13 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Mail, Shield, Send, Link2, Unlink } from 'lucide-react'
+import { Mail, Send, Link2, Unlink } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiWechat, SiLinux } from 'react-icons/si'
 import { toast } from 'sonner'
 
-import { IconDiscord } from '@/assets/brand-icons'
+import { IconDiscord, IconGoogle } from '@/assets/brand-icons'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -274,8 +274,8 @@ export function AccountBindings({ profile, onUpdate }: AccountBindingsProps) {
     },
     {
       id: 'oidc',
-      label: t('OIDC'),
-      icon: Shield,
+      label: t('Google'),
+      icon: IconGoogle,
       value: (profile as unknown as Record<string, unknown>).oidc_id as
         | string
         | undefined,

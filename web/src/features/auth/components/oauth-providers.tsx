@@ -22,11 +22,13 @@ import { useTranslation } from 'react-i18next'
 import {
   IconDiscord,
   IconGithub,
+  IconGoogle,
   IconLinuxDo,
   IconTelegram,
   IconWeChat,
 } from '@/assets/brand-icons'
 import { Button } from '@/components/ui/button'
+import { resolveOidcDisplayName } from '@/lib/oidc-display'
 import { cn } from '@/lib/utils'
 
 import { useOAuthLogin } from '../hooks/use-oauth-login'
@@ -102,13 +104,14 @@ export function OAuthProviders({
   }
 
   if (status?.oidc_enabled) {
-    const oidcDisplayName = status.oidc_display_name?.trim() || 'OIDC'
+    const oidcDisplayName = resolveOidcDisplayName(status.oidc_display_name)
     providerButtons.push({
       key: 'oidc',
       label: t('Continue with {{name}}', {
         name: oidcDisplayName,
       }),
       onClick: handleOIDCLogin,
+      icon: <IconGoogle className='h-4 w-4' />,
     })
   }
 
@@ -126,7 +129,7 @@ export function OAuthProviders({
       key: 'telegram',
       label: t('Continue with Telegram'),
       onClick: handleTelegramLogin,
-      icon: <IconTelegram data-icon='inline-start' />,
+      icon: <IconTelegram data-icon='inline-start' className='h-4 w-4' />,
     })
   }
 

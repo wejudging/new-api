@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
 
+import { OIDC_DISPLAY_NAME } from '@/lib/oidc-display'
+
 export function sessionDevice(
   userAgent: string,
   unknownDevice: string,
@@ -72,7 +74,7 @@ export function loginMethodLabel(method: string, t: TFunction): string {
     discord: 'Discord',
     github: 'GitHub',
     linuxdo: 'LinuxDO',
-    oidc: 'OIDC',
+    oidc: OIDC_DISPLAY_NAME,
   }
   return `${t('OAuth')} · ${providerNames[provider] || provider}`
 }
