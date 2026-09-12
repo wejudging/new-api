@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -33,28 +33,10 @@ function toolbarProps(): PricingToolbarProps {
     tokenUnit: 'M',
     showRechargePrice: false,
     viewMode: 'card',
-    quotaTypeFilter: 'all',
-    endpointTypeFilter: 'all',
-    vendorFilter: 'all',
-    groupFilter: 'all',
-    tagFilter: 'all',
     onSortChange: vi.fn(),
     onTokenUnitChange: vi.fn(),
     onRechargePriceChange: vi.fn(),
     onViewModeChange: vi.fn(),
-    onQuotaTypeChange: vi.fn(),
-    onEndpointTypeChange: vi.fn(),
-    onVendorChange: vi.fn(),
-    onGroupChange: vi.fn(),
-    onTagChange: vi.fn(),
-    vendors: [],
-    groups: ['default', 'premium'],
-    groupRatios: { default: 1, premium: 3 },
-    tags: [],
-    models: [],
-    hasActiveFilters: false,
-    activeFilterCount: 0,
-    onClearFilters: vi.fn(),
   }
 }
 
@@ -115,32 +97,5 @@ describe('pricing controls', () => {
       screen.getByRole('menuitem', { name: 'Price: Low to High' })
     )
     expect(props.onSortChange).toHaveBeenCalledWith('price-low')
-  })
-
-  it('opens mobile filters from the left, selects a group, and restores focus on close', async () => {
-    const props = toolbarProps()
-    const user = userEvent.setup()
-    const { rerender } = render(<PricingToolbar {...props} />)
-    await user.click(screen.getByRole('button', { name: 'Filter' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Filter' })
-    expect(dialog).toHaveAttribute('data-side', 'left')
-    expect(within(dialog).getByRole('button', { name: 'Reset' })).toBeDisabled()
-    await user.click(within(dialog).getByRole('button', { name: /premium/ }))
-    expect(props.onGroupChange).toHaveBeenCalledWith('premium')
-    rerender(
-      <PricingToolbar
-        {...props}
-        groupFilter='premium'
-        hasActiveFilters
-        activeFilterCount={1}
-      />
-    )
-    expect(
-      within(dialog).getByRole('button', { name: /premium/ })
-    ).toHaveAttribute('aria-pressed', 'true')
-    await user.click(within(dialog).getByRole('button', { name: 'Reset' }))
-    expect(props.onClearFilters).toHaveBeenCalledOnce()
-    await user.keyboard('{Escape}')
-    expect(await screen.findByRole('button', { name: /Filter/ })).toHaveFocus()
   })
 })
