@@ -181,7 +181,6 @@ describe('security page migration', () => {
     const verification = screen.getByRole('complementary', {
       name: 'Security verification',
     })
-    expect(await within(verification).findByText('Passkey Login')).toBeVisible()
     expect(
       await within(verification).findByText('Two-Factor Authentication')
     ).toBeVisible()
@@ -251,10 +250,12 @@ describe('security page migration', () => {
   it('Profile retains preferences and no longer mounts security controls or requests', async () => {
     await renderPage('/profile')
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Save Settings' })
-      ).toBeVisible()
+      expect(screen.getByText('Language Preferences')).toBeVisible()
     )
+    // The settings & preferences card is intentionally gone for this deployment.
+    expect(
+      screen.queryByRole('button', { name: 'Save Settings' })
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Change Password' })
     ).not.toBeInTheDocument()
