@@ -225,48 +225,46 @@ export function Footer(props: FooterProps) {
     <footer
       className={cn('border-border/40 relative z-10 border-t', props.className)}
     >
-      <div className='mx-auto max-w-6xl px-6 py-12 md:py-16'>
-        <div className='flex flex-col justify-between gap-10 md:flex-row md:gap-16'>
-          {/* Brand column */}
-          <div className='shrink-0'>
-            <Link to='/' className='group flex items-center gap-2.5'>
-              <img
-                src={displayLogo}
-                alt={displayName}
-                className='size-7 rounded-lg object-contain'
-              />
-              <span className='text-sm font-semibold tracking-tight'>
-                {displayName}
-              </span>
-            </Link>
-            <p className='text-muted-foreground/60 mt-3 text-xs leading-relaxed'>
-              {t('Powerful API Management Platform')}
-              <span className='text-muted-foreground/40 ms-1.5'>
-                &copy; {currentYear} {displayName}.
-              </span>
-            </p>
-          </div>
-
-          {/* Links columns */}
-          {isDemoSiteMode && (
-            <div className='grid grid-cols-3 gap-8 md:gap-16'>
-              {displayColumns.map((column, index) => (
-                <div key={index}>
-                  <p className='text-muted-foreground/50 mb-3 text-xs font-medium tracking-wider uppercase'>
-                    {t(column.title)}
-                  </p>
-                  <ul className='space-y-2.5'>
-                    {column.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <FooterLinkItem link={link} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className='mx-auto max-w-6xl px-6 py-8 md:py-10'>
+        {/* Brand on the far left, tagline and copyright on the far right. */}
+        <div className='flex flex-col items-center gap-3 sm:flex-row sm:justify-between sm:gap-6'>
+          <Link to='/' className='group flex items-center gap-2.5'>
+            <img
+              src={displayLogo}
+              alt={displayName}
+              className='size-7 rounded-lg object-contain'
+            />
+            <span className='text-sm font-semibold tracking-tight'>
+              {displayName}
+            </span>
+          </Link>
+          <p className='text-muted-foreground/60 text-center text-xs leading-relaxed sm:text-end'>
+            {t('Powerful API Management Platform')}
+            <span className='text-muted-foreground/40 ms-1.5'>
+              &copy; {currentYear} {displayName}.
+            </span>
+          </p>
         </div>
+
+        {/* Optional link columns, kept for demo-site deployments. */}
+        {isDemoSiteMode && (
+          <div className='mt-10 grid grid-cols-3 gap-8 md:gap-16'>
+            {displayColumns.map((column, index) => (
+              <div key={index}>
+                <p className='text-muted-foreground/50 mb-3 text-xs font-medium tracking-wider uppercase'>
+                  {t(column.title)}
+                </p>
+                <ul className='space-y-2.5'>
+                  {column.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <FooterLinkItem link={link} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Optional legal links; wraps on narrow screens. */}
         {legalLinks.length > 0 && (
