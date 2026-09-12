@@ -1800,6 +1800,7 @@
     "Do regex replacement in the target field": "在目标字段里做正则替换",
     "Do string replacement in the target field": "在目标字段里做字符串替换",
     "Docs": "文档",
+    "Usage Docs": "使用文档",
     "Documentation Link": "文档链接",
     "Documentation or external knowledge base.": "文档或外部知识库。",
     "Does not check healthy channels. It only rechecks auto-disabled channels and restores them after they recover.": "不检查正常渠道，只复查被系统自动禁用的渠道，并在恢复后重新启用。",

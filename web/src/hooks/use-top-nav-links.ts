@@ -20,6 +20,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
+import { resolveDocsUrl } from '@/lib/docs-link'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -86,14 +87,12 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
-  // Docs (supports external links)
-  if (modules?.docs !== false) {
-    if (docsLink) {
-      links.push({ title: t('Docs'), href: docsLink, external: true })
-    } else {
-      links.push({ title: t('Docs'), href: '/docs' })
-    }
-  }
+  // Usage docs (always available; unset or upstream links resolve to our site)
+  links.push({
+    title: t('Usage Docs'),
+    href: resolveDocsUrl(docsLink),
+    external: true,
+  })
 
   // About
   if (modules?.about !== false) {

@@ -1800,6 +1800,7 @@
     "Do regex replacement in the target field": "ターゲットフィールドで正規表現置換",
     "Do string replacement in the target field": "ターゲットフィールドで文字列置換",
     "Docs": "ドキュメント",
+    "Usage Docs": "利用ドキュメント",
     "Documentation Link": "ドキュメントリンク",
     "Documentation or external knowledge base.": "ドキュメントまたは外部知識ベース。",
     "Does not check healthy channels. It only rechecks auto-disabled channels and restores them after they recover.": "正常なチャネルはチェックしません。自動無効化されたチャネルのみを再チェックし、復旧後に再び有効化します。",

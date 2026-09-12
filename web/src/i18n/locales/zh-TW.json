@@ -1800,6 +1800,7 @@
     "Do regex replacement in the target field": "在目標欄位裡做正則替換",
     "Do string replacement in the target field": "在目標欄位裡做字串替換",
     "Docs": "文件",
+    "Usage Docs": "使用文件",
     "Documentation Link": "文件連結",
     "Documentation or external knowledge base.": "文件或外部知識庫。",
     "Does not check healthy channels. It only rechecks auto-disabled channels and restores them after they recover.": "不檢查正常渠道，只複查被系統自動停用的渠道，並在恢復後重新啟用。",

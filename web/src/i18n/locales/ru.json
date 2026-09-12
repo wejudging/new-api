@@ -1800,6 +1800,7 @@
     "Do regex replacement in the target field": "Выполнить замену по регулярному выражению в целевом поле",
     "Do string replacement in the target field": "Выполнить замену строки в целевом поле",
     "Docs": "Документы",
+    "Usage Docs": "Документация",
     "Documentation Link": "Ссылка на документацию",
     "Documentation or external knowledge base.": "Документация или внешняя база знаний.",
     "Does not check healthy channels. It only rechecks auto-disabled channels and restores them after they recover.": "Рабочие каналы не проверяются. Повторно проверяются только автоматически отключённые каналы, которые включаются после восстановления.",

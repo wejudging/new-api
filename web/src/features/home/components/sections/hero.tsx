@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyButton } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
+import { resolveDocsUrl } from '@/lib/docs-link'
 
 import { HeroTerminalDemo } from '../hero-terminal-demo'
 
@@ -55,8 +56,7 @@ const SECONDARY_ACTION_CLASS =
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
-  const docsUrl =
-    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
+  const docsUrl = resolveDocsUrl(status?.docs_link as string | undefined)
   const apiBaseUrl = `${window.location.origin}/v1`
 
   const renderDocsButton = () => {

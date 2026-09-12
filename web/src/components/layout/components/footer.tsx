@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
+import { DEFAULT_LOGO } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 interface FooterLink {
@@ -130,7 +131,7 @@ export function Footer(props: FooterProps) {
     demoSiteEnabled,
   } = useSystemConfig()
 
-  const displayLogo = systemLogo || props.logo || '/logo.png'
+  const displayLogo = systemLogo || props.logo || DEFAULT_LOGO
   const displayName = systemName || props.name || 'HOHAI'
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
@@ -240,6 +241,9 @@ export function Footer(props: FooterProps) {
             </Link>
             <p className='text-muted-foreground/60 mt-3 max-w-[200px] text-xs leading-relaxed'>
               {t('Powerful API Management Platform')}
+              <span className='text-muted-foreground/40 ms-1.5'>
+                &copy; {currentYear} {displayName}.
+              </span>
             </p>
           </div>
 
@@ -264,13 +268,12 @@ export function Footer(props: FooterProps) {
           )}
         </div>
 
-        {/* Brand copyright plus the optional legal links; wraps on narrow screens. */}
-        <div className='border-border/30 text-muted-foreground/40 mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t pt-6 text-xs sm:justify-start'>
-          <span>
-            &copy; {currentYear} {displayName}.
-          </span>
-          <LegalLinks items={legalLinks} leadingSeparator />
-        </div>
+        {/* Optional legal links; wraps on narrow screens. */}
+        {legalLinks.length > 0 && (
+          <div className='border-border/30 text-muted-foreground/40 mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t pt-6 text-xs sm:justify-start'>
+            <LegalLinks items={legalLinks} />
+          </div>
+        )}
       </div>
     </footer>
   )

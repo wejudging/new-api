@@ -22,7 +22,8 @@ For commercial licensing, please contact support@quantumnous.com
 
 // System Configuration Defaults
 export const DEFAULT_SYSTEM_NAME = 'HOHAI'
-export const DEFAULT_LOGO = '/logo.png'
+export const DEFAULT_LOGO = '/logo.svg'
+export const DEFAULT_DOCS_URL = 'https://doc.hohai.eu.org'
 
 // LocalStorage Keys
 export const STORAGE_KEYS = {
