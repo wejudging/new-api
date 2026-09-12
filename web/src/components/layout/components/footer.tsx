@@ -239,7 +239,7 @@ export function Footer(props: FooterProps) {
                 {displayName}
               </span>
             </Link>
-            <p className='text-muted-foreground/60 mt-3 max-w-[200px] text-xs leading-relaxed'>
+            <p className='text-muted-foreground/60 mt-3 text-xs leading-relaxed'>
               {t('Powerful API Management Platform')}
               <span className='text-muted-foreground/40 ms-1.5'>
                 &copy; {currentYear} {displayName}.
