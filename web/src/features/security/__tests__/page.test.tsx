@@ -34,7 +34,6 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Profile } from '@/features/profile'
 import type { UserProfile } from '@/features/profile/types'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
@@ -140,13 +139,8 @@ async function renderPage(path = '/security') {
     path: '/security',
     component: Security,
   })
-  const personal = createRoute({
-    getParentRoute: () => root,
-    path: '/profile',
-    component: Profile,
-  })
   const router = createRouter({
-    routeTree: root.addChildren([security, personal]),
+    routeTree: root.addChildren([security]),
     history: createMemoryHistory({ initialEntries: [path] }),
   })
   await router.load()
@@ -245,27 +239,6 @@ describe('security page migration', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     )
-  })
-
-  it('Profile retains preferences and no longer mounts security controls or requests', async () => {
-    await renderPage('/profile')
-    await waitFor(() =>
-      expect(screen.getByText('Language Preferences')).toBeVisible()
-    )
-    // The settings & preferences card is intentionally gone for this deployment.
-    expect(
-      screen.queryByRole('button', { name: 'Save Settings' })
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Change Password' })
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('Account Bindings')).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('switch', { name: 'Record IP Address' })
-    ).not.toBeInTheDocument()
-    expect(api.get).not.toHaveBeenCalledWith('/api/user/passkey')
-    expect(api.get).not.toHaveBeenCalledWith('/api/user/2fa/status')
-    expect(api.get).not.toHaveBeenCalledWith('/api/user/sessions')
   })
 
   it('a failed profile load offers retry before exposing account actions', async () => {

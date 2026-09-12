@@ -28,7 +28,7 @@ const legacyConsoleRoutes: Record<string, string> = {
   '/console/playground': '/playground',
   '/console/redemption': '/redemption-codes',
   '/console/user': '/users',
-  '/console/personal': '/profile',
+  '/console/personal': '/wallet',
   '/console/log': '/usage-logs',
   '/console/midjourney': '/usage-logs/drawing',
   '/console/task': '/usage-logs/task',

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useNavigate } from '@tanstack/react-router'
-import { User, Wallet, LogOut, Settings, ShieldCheck } from 'lucide-react'
+import { Wallet, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -85,28 +85,11 @@ export function ProfileDropdown() {
               <p className='text-foreground truncate text-sm font-medium'>
                 {displayName}
               </p>
-              <div className='flex items-center gap-1.5'>
-                <span className='text-muted-foreground text-xs'>
-                  {roleLabel}
-                </span>
-                {user?.group && (
-                  <>
-                    <span className='text-muted-foreground text-xs'>·</span>
-                    <span className='text-muted-foreground truncate text-xs'>
-                      {String(user.group)}
-                    </span>
-                  </>
-                )}
-              </div>
+              <span className='text-muted-foreground text-xs'>{roleLabel}</span>
             </div>
           </div>
 
           <DropdownMenuSeparator />
-
-          <DropdownMenuItem onClick={() => navigate({ to: '/profile' })}>
-            <User className='size-4' />
-            {t('Profile')}
-          </DropdownMenuItem>
 
           {isSecurityVisible && (
             <DropdownMenuItem onClick={() => navigate({ to: '/security' })}>

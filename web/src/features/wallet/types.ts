@@ -228,6 +228,12 @@ export interface UserWalletData {
   id: number
   /** Username */
   username: string
+  /** Display name */
+  display_name?: string
+  /** User role (1=user, 10=admin, 100=super admin) */
+  role?: number
+  /** Email address */
+  email?: string
   /** Current quota balance */
   quota: number
   /** Total used quota */

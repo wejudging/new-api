@@ -31,6 +31,7 @@ import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialo
 import { TransferDialog } from './components/dialogs/transfer-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
+import { UserInfoCard } from './components/user-info-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
 import {
@@ -288,6 +289,8 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Title>{t('Wallet')}</SectionPageLayout.Title>
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
+            <UserInfoCard user={user} loading={userLoading} />
+
             <WalletStatsCard user={user} loading={userLoading} />
 
             <div
