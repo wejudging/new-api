@@ -56,6 +56,7 @@ import {
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
@@ -556,7 +557,7 @@ function ModelBackendProviderSection(props: { model: PricingModel }) {
     </CatalogInfoCell>
   )
 
-  if (groups.length > 0) {
+  if (groups.length > 0 && !isSingleGroupScope(groups)) {
     cells.push(
       <CatalogInfoCell key='groups' label={t('Groups')}>
         <CatalogPillList items={groups} />
@@ -1497,6 +1498,11 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
     !props.model.billing_usage_schema ||
     simpleTaskPricing ||
     taskTiers.length === 0
+  // Hide the group table when it would repeat one unchanged default price.
+  const groupNames = Object.keys(props.groupRatio)
+  const groupRatioValues = Object.values(props.groupRatio)
+  const showGroupPricing =
+    groupNames.length > 1 || groupRatioValues.some((ratio) => ratio !== 1)
 
   return (
     <div className='@container/details space-y-4'>
@@ -1544,16 +1550,18 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
                 }}
               />
             )}
-            <GroupPricingSection
-              model={props.model}
-              groupRatio={props.groupRatio}
-              usableGroup={props.usableGroup}
-              autoGroups={props.autoGroups}
-              priceRate={props.priceRate}
-              usdExchangeRate={props.usdExchangeRate}
-              tokenUnit={props.tokenUnit}
-              showRechargePrice={showRechargePrice}
-            />
+            {showGroupPricing && (
+              <GroupPricingSection
+                model={props.model}
+                groupRatio={props.groupRatio}
+                usableGroup={props.usableGroup}
+                autoGroups={props.autoGroups}
+                priceRate={props.priceRate}
+                usdExchangeRate={props.usdExchangeRate}
+                tokenUnit={props.tokenUnit}
+                showRechargePrice={showRechargePrice}
+              />
+            )}
           </section>
 
           <ModelBackendDetailsSection model={props.model} />

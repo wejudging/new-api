@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import dayjs from '@/lib/dayjs'
 import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 
 import type { UsageLog } from '../data/schema'
 import { formatModelName, parseLogOther } from '../lib/format'
@@ -113,7 +114,11 @@ export function CommonLogMobileCard<TData>(props: {
     group: {
       label: t('Group'),
       value: group,
-      visible: displayable && props.cells.has('token_name') && !!group,
+      visible:
+        displayable &&
+        props.cells.has('token_name') &&
+        !!group &&
+        !isSingleGroupScope([group]),
       sensitive: true,
     },
   }

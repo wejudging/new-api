@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyButton } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -66,6 +67,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const tags = parseTags(props.model.tags)
   const groups = props.model.enable_groups || []
   const endpoints = props.model.supported_endpoint_types || []
+  const visibleGroups = isSingleGroupScope(groups) ? [] : groups
   const modelIconKey = props.model.icon || props.model.vendor_icon
   const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 28) : null
   const initial = props.model.model_name?.charAt(0).toUpperCase() || '?'
@@ -331,28 +333,29 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             {priceSummary}
           </div>
         </div>
-        {(groups.length > 0 || endpoints.length > 0) && (
+        {(visibleGroups.length > 0 || endpoints.length > 0) && (
           <dl
             className={cn(
               'grid min-w-0 grid-cols-2 gap-3 text-xs',
-              (groups.length === 0 || endpoints.length === 0) && 'grid-cols-1'
+              (visibleGroups.length === 0 || endpoints.length === 0) &&
+                'grid-cols-1'
             )}
           >
-            {groups.length > 0 && (
+            {visibleGroups.length > 0 && (
               <div className='flex min-w-0 items-baseline gap-1.5'>
                 <dt className='text-muted-foreground shrink-0'>
                   {t('Groups')}
                 </dt>
                 <dd className='flex min-w-0 items-baseline gap-1'>
-                  <span className='truncate' title={groups.join(', ')}>
-                    {groups[0]}
+                  <span className='truncate' title={visibleGroups.join(', ')}>
+                    {visibleGroups[0]}
                   </span>
-                  {groups.length > 1 && (
+                  {visibleGroups.length > 1 && (
                     <span
                       className='text-muted-foreground shrink-0'
-                      title={groups.slice(1).join(', ')}
+                      title={visibleGroups.slice(1).join(', ')}
                     >
-                      +{groups.length - 1}
+                      +{visibleGroups.length - 1}
                     </span>
                   )}
                 </dd>

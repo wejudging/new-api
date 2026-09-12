@@ -65,6 +65,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useStatus } from '@/hooks/use-status'
 import { getUserModels, getUserGroups } from '@/lib/api'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 import { handleServerError } from '@/lib/handle-server-error'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
@@ -169,6 +170,9 @@ export function ApiKeysMutateDrawer({
     [groupsData]
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')
+  const showGroupField = !isSingleGroupScope(
+    groups.filter((group) => group.value !== 'auto').map((group) => group.value)
+  )
   const availableAutoGroupNames = useMemo(
     () => groups.filter((group) => group.value !== 'auto').map((g) => g.value),
     [groups]
@@ -415,35 +419,37 @@ export function ApiKeysMutateDrawer({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name='group'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Group')}</FormLabel>
-                    <FormControl>
-                      <ApiKeyGroupCombobox
-                        options={groups}
-                        value={field.value}
-                        onValueChange={(group) => {
-                          field.onChange(group)
-                          if (group === 'auto') {
-                            form.setValue('cross_group_retry', true, {
+              {showGroupField && (
+                <FormField
+                  control={form.control}
+                  name='group'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Group')}</FormLabel>
+                      <FormControl>
+                        <ApiKeyGroupCombobox
+                          options={groups}
+                          value={field.value}
+                          onValueChange={(group) => {
+                            field.onChange(group)
+                            if (group === 'auto') {
+                              form.setValue('cross_group_retry', true, {
+                                shouldDirty: true,
+                              })
+                              return
+                            }
+                            form.setValue('cross_group_retry', false, {
                               shouldDirty: true,
                             })
-                            return
-                          }
-                          form.setValue('cross_group_retry', false, {
-                            shouldDirty: true,
-                          })
-                        }}
-                        placeholder={t('Select a group')}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          }}
+                          placeholder={t('Select a group')}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {selectedGroup === 'auto' && (
                 <FormField

@@ -21,7 +21,11 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PromptInputButton } from '@/components/ai-elements/prompt-input'
-import { ModelGroupSelector } from '@/components/model-group-selector'
+import {
+  ModelGroupSelector,
+  ModelSelector,
+} from '@/components/model-group-selector'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 
 import { getInputControlState } from '../../lib'
 import type { GroupOption, ModelOption } from '../../types'
@@ -67,17 +71,28 @@ export function PlaygroundInputControls({
       text,
     })
 
-  const renderSelector = () => (
-    <ModelGroupSelector
-      selectedModel={modelValue}
-      models={models}
-      onModelChange={onModelChange}
-      selectedGroup={groupValue}
-      groups={groups}
-      onGroupChange={onGroupChange}
-      disabled={isSelectorDisabled}
-    />
-  )
+  // Group choice is meaningless when only the default group exists.
+  const showGroupSelector = !isSingleGroupScope(groups.map((g) => g.value))
+
+  const renderSelector = () =>
+    showGroupSelector ? (
+      <ModelGroupSelector
+        selectedModel={modelValue}
+        models={models}
+        onModelChange={onModelChange}
+        selectedGroup={groupValue}
+        groups={groups}
+        onGroupChange={onGroupChange}
+        disabled={isSelectorDisabled}
+      />
+    ) : (
+      <ModelSelector
+        selectedModel={modelValue}
+        models={models}
+        onModelChange={onModelChange}
+        disabled={isSelectorDisabled}
+      />
+    )
 
   const renderSubmitButton = () =>
     shouldShowStop ? (

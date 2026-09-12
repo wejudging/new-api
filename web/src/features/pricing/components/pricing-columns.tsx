@@ -38,7 +38,10 @@ import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
 // Pricing Table Columns
 // ----------------------------------------------------------------------------
 
-export type PricingColumnsOptions = ModelPriceCellOptions
+export type PricingColumnsOptions = ModelPriceCellOptions & {
+  /** Set to false to hide the group column on single-group deployments. */
+  showGroups?: boolean
+}
 
 export function usePricingColumns(
   options: PricingColumnsOptions = {}
@@ -182,23 +185,27 @@ export function usePricingColumns(
       enableSorting: false,
     },
 
-    // Enable Groups column
-    {
-      accessorKey: 'enable_groups',
-      header: t('Groups'),
-      cell: ({ row }) => {
-        const groups = row.original.enable_groups || []
-        return (
-          <BadgeListCell
-            items={groups.map((group) => (
-              <GroupBadge key={group} group={group} size='sm' />
-            ))}
-            tooltipClassName='max-w-[280px] p-2'
-          />
-        )
-      },
-      size: 130,
-      enableSorting: false,
-    },
+    // Enable Groups column (hidden when only the default group exists)
+    ...(options.showGroups === false
+      ? []
+      : [
+          {
+            accessorKey: 'enable_groups',
+            header: t('Groups'),
+            cell: ({ row }) => {
+              const groups = row.original.enable_groups || []
+              return (
+                <BadgeListCell
+                  items={groups.map((group) => (
+                    <GroupBadge key={group} group={group} size='sm' />
+                  ))}
+                  tooltipClassName='max-w-[280px] p-2'
+                />
+              )
+            },
+            size: 130,
+            enableSorting: false,
+          } satisfies ColumnDef<PricingModel>,
+        ]),
   ]
 }

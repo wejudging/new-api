@@ -351,9 +351,13 @@ async function renderKeysPage(status = 1, overrides: Partial<ApiKey> = {}) {
 
 it('combines creation and last use while keeping expiry, models and IP restrictions separate', async () => {
   await renderKeysPage()
-  for (const name of ['Name', 'API Key', 'Group', 'Models', 'IP Restriction']) {
+  for (const name of ['Name', 'API Key', 'Models', 'IP Restriction']) {
     expect(screen.getByRole('columnheader', { name })).toBeInTheDocument()
   }
+  // Single-group deployments hide the redundant group column.
+  expect(
+    screen.queryByRole('columnheader', { name: 'Group' })
+  ).not.toBeInTheDocument()
   expect(screen.getByRole('columnheader', { name: 'Time' })).toBeInTheDocument()
   expect(
     screen.getByRole('columnheader', { name: 'Expires' })
@@ -468,8 +472,9 @@ it('keeps full mobile information without group or quota section headings', asyn
     expect(
       screen.queryByText(zh.translation['Group'], { exact: true })
     ).not.toBeInTheDocument()
-    expect(screen.getByText('default')).toBeInTheDocument()
-    expect(screen.getByText('1x')).toBeInTheDocument()
+    // The single default group carries no information, so it is not rendered.
+    expect(screen.queryByText('default')).not.toBeInTheDocument()
+    expect(screen.queryByText('1x')).not.toBeInTheDocument()
     expect(screen.getByText(zh.translation['Models'])).toBeInTheDocument()
     expect(
       screen.getByText(zh.translation['IP Restriction'])

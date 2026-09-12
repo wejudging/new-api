@@ -26,6 +26,7 @@ import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
 import { getCurrencyDisplay } from '@/lib/currency'
+import { isSingleGroupScope } from '@/lib/group-visibility'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
@@ -70,6 +71,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const { meta: currency } = getCurrencyDisplay()
   const quotaUnit = currency.kind === 'tokens' ? t('Tokens') : currency.symbol
   const groupRatios = useGroupRatios()
+  const showGroups = !isSingleGroupScope(Object.keys(groupRatios))
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
@@ -141,24 +143,28 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       size: 260,
       minSize: 260,
     },
-    {
-      accessorKey: 'group',
-      header: t('Group'),
-      cell: ({ row }) => {
-        const apiKey = row.original
-        const group = row.getValue('group') as string
-        return (
-          <ApiKeyGroupCell
-            group={group}
-            ratio={groupRatios[group]}
-            crossGroupRetry={apiKey.cross_group_retry}
-            shouldReduceMotion={shouldReduceMotion}
-          />
-        )
-      },
-      size: 220,
-      meta: { mobileHidden: true },
-    },
+    ...(showGroups
+      ? [
+          {
+            accessorKey: 'group',
+            header: t('Group'),
+            cell: ({ row }) => {
+              const apiKey = row.original
+              const group = row.getValue('group') as string
+              return (
+                <ApiKeyGroupCell
+                  group={group}
+                  ratio={groupRatios[group]}
+                  crossGroupRetry={apiKey.cross_group_retry}
+                  shouldReduceMotion={shouldReduceMotion}
+                />
+              )
+            },
+            size: 220,
+            meta: { mobileHidden: true },
+          } satisfies ColumnDef<ApiKey>,
+        ]
+      : []),
     {
       id: 'model_limits',
       accessorKey: 'model_limits',
