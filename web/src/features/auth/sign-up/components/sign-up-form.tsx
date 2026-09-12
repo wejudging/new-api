@@ -94,7 +94,6 @@ export function SignUpForm({
       username: '',
       email: '',
       password: '',
-      confirmPassword: '',
     },
   })
 
@@ -278,21 +277,6 @@ export function SignUpForm({
                   placeholder={t('Enter password (8–128 characters)')}
                   {...field}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Confirm Password Field */}
-        <FormField
-          control={form.control}
-          name='confirmPassword'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('Confirm password')}</FormLabel>
-              <FormControl>
-                <PasswordInput placeholder={t('Confirm password')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

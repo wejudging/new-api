@@ -32,15 +32,7 @@ export function IconGithub({ className, ...props }: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <title>GitHub</title>
-      <circle
-        cx='12'
-        cy='12'
-        r='11.25'
-        fill='#181717'
-        stroke='currentColor'
-        strokeOpacity='0.14'
-        strokeWidth='1.5'
-      />
+      <circle cx='12' cy='12' r='12' fill='#181717' />
       <g transform='translate(5.12 5.12) scale(0.86)'>
         <path
           fill='#ffffff'
