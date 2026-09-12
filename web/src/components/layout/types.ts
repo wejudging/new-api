@@ -26,6 +26,11 @@ type BaseNavItem = {
   title: string
   badge?: string
   icon?: React.ElementType
+  /**
+   * Marks the item as an off-site link. Sidebar and command palette render it
+   * as a plain anchor that opens in a new tab instead of a router link.
+   */
+  external?: boolean
   activeUrls?: (LinkProps['to'] | (string & {}))[]
   configUrls?: (LinkProps['to'] | (string & {}))[]
   /**

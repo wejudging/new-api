@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Activity,
+  BadgeDollarSign,
+  BookOpen,
   Box,
   ClipboardList,
   CreditCard,
@@ -33,13 +35,15 @@ import {
   Settings,
   ShieldCheck,
   Ticket,
-  User,
+  Trophy,
   Users,
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { SidebarData } from '@/components/layout/types'
+import { useStatus } from '@/hooks/use-status'
+import { resolveDocsUrl } from '@/lib/docs-link'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -50,6 +54,8 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const { status } = useStatus()
+  const docsUrl = resolveDocsUrl(status?.docs_link as string | undefined)
 
   return {
     navGroups: [
@@ -105,6 +111,22 @@ export function useSidebarData(): SidebarData {
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
             icon: ListTodo,
           },
+          {
+            title: t('Model Square'),
+            url: '/pricing',
+            icon: BadgeDollarSign,
+          },
+          {
+            title: t('Rankings'),
+            url: '/rankings',
+            icon: Trophy,
+          },
+          {
+            title: t('Usage Docs'),
+            url: docsUrl,
+            external: true,
+            icon: BookOpen,
+          },
         ],
       },
       {
@@ -115,11 +137,6 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
-          },
-          {
-            title: t('Profile'),
-            url: '/profile',
-            icon: User,
           },
           {
             title: t('Security & Access'),

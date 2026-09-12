@@ -74,7 +74,29 @@ function sidebarFor(admin?: object, user?: object, canConfigure = true) {
 }
 
 describe('security sidebar visibility', () => {
-  it('old configurations show Security & Access immediately after Profile and keep API Keys', () => {
+  it('lists model pricing, rankings and the usage docs under General', () => {
+    const { result } = sidebarFor(
+      { personal: { enabled: true, personal: true } },
+      { personal: { enabled: true, personal: true } }
+    )
+    const general = result.current.find((group) => group.id === 'general')
+    expect(general?.items.map((item) => item.title)).toEqual(
+      expect.arrayContaining(['Model Square', 'Rankings', 'Usage Docs'])
+    )
+    expect(
+      general?.items.find((item) => item.title === 'Usage Docs')
+    ).toMatchObject({
+      url: 'https://doc.hohai.eu.org',
+      external: true,
+    })
+    for (const icon of ['Model Square', 'Rankings', 'Usage Docs']) {
+      expect(
+        general?.items.find((item) => item.title === icon)?.icon
+      ).toBeTruthy()
+    }
+  })
+
+  it('old configurations keep Wallet, Security & Access and API Keys', () => {
     const { result } = sidebarFor(
       { personal: { enabled: true, personal: true, topup: true } },
       { personal: { enabled: true, personal: true } }
@@ -83,7 +105,7 @@ describe('security sidebar visibility', () => {
       result.current
         .find((group) => group.id === 'personal')
         ?.items.map((item) => item.title)
-    ).toEqual(['Wallet', 'Profile', 'Security & Access'])
+    ).toEqual(['Wallet', 'Security & Access'])
     expect(
       result.current
         .flatMap((group) => group.items)
