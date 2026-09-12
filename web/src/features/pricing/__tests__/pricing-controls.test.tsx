@@ -30,48 +30,13 @@ function toolbarProps(): PricingToolbarProps {
     filteredCount: 2,
     totalCount: 2,
     sortBy: 'name',
-    tokenUnit: 'M',
-    showRechargePrice: false,
     viewMode: 'card',
     onSortChange: vi.fn(),
-    onTokenUnitChange: vi.fn(),
-    onRechargePriceChange: vi.fn(),
     onViewModeChange: vi.fn(),
   }
 }
 
 describe('pricing controls', () => {
-  it('changes the token unit and keeps the selected unit pressed when clicked again', async () => {
-    const props = toolbarProps()
-    const user = userEvent.setup()
-    const { rerender } = render(<PricingToolbar {...props} />)
-    await user.click(screen.getByRole('button', { name: '/1K' }))
-    expect(props.onTokenUnitChange).toHaveBeenCalledWith('K')
-    rerender(<PricingToolbar {...props} tokenUnit='K' />)
-    const selected = screen.getByRole('button', { name: '/1K' })
-    expect(selected).toHaveAttribute('aria-pressed', 'true')
-    await user.click(selected)
-    expect(selected).toHaveAttribute('aria-pressed', 'true')
-    expect(props.onTokenUnitChange).toHaveBeenCalledTimes(1)
-  })
-
-  it('changes the recharge display mode with an accessible selected state', async () => {
-    const props = toolbarProps()
-    const user = userEvent.setup()
-    const { rerender } = render(<PricingToolbar {...props} />)
-    await user.click(screen.getByRole('button', { name: 'Recharge' }))
-    expect(props.onRechargePriceChange).toHaveBeenCalledWith(true)
-    rerender(<PricingToolbar {...props} showRechargePrice />)
-    expect(screen.getByRole('button', { name: 'Recharge' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
-    expect(screen.getByRole('button', { name: 'Standard' })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    )
-  })
-
   it('switches to table view with the keyboard and exposes the selected view', async () => {
     const props = toolbarProps()
     const user = userEvent.setup()

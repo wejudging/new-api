@@ -37,7 +37,6 @@ import {
   getDynamicPricingSummary,
   isUnconfiguredTaskUsageModel,
 } from '../lib/dynamic-price'
-import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
 import { taskPriceLabel, taskUsageUnitLabel } from '../lib/task-price-display'
@@ -64,7 +63,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const showRechargePrice = props.showRechargePrice ?? false
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
-  const tags = parseTags(props.model.tags)
   const groups = props.model.enable_groups || []
   const endpoints = props.model.supported_endpoint_types || []
   const visibleGroups = isSingleGroupScope(groups) ? [] : groups
@@ -296,23 +294,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           <p className='text-muted-foreground line-clamp-2 text-[13px] leading-5 break-words'>
             {props.model.description || t('No description available.')}
           </p>
-          {tags.length > 0 && (
-            <div
-              role='group'
-              aria-label={t('Tags')}
-              className='text-muted-foreground flex min-w-0 items-baseline gap-1.5 text-xs'
-            >
-              <span className='shrink-0'>{t('Tags')}</span>
-              <span className='truncate' title={tags.join(', ')}>
-                {tags.slice(0, 2).join(', ')}
-              </span>
-              {tags.length > 2 && (
-                <span className='shrink-0' title={tags.slice(2).join(', ')}>
-                  +{tags.length - 2}
-                </span>
-              )}
-            </div>
-          )}
         </div>
         <div
           role='group'

@@ -173,23 +173,14 @@ describe('model cards', () => {
     expect(screen.getByRole('button', { name: 'Details' })).toBeEnabled()
   })
 
-  it('keeps group, endpoint and tag overflow counts with their own metadata', () => {
+  it('keeps group and endpoint overflow counts with their own metadata', () => {
     const groups = ['default-with-a-long-group-name', 'premium', 'internal']
     const endpoints = ['openai-response', 'openai', 'claude', 'gemini', 'jina']
-    const tags = [
-      'video-generation',
-      'high-resolution',
-      'fast',
-      'batch',
-      'hd',
-      'pro',
-    ]
     render(
       <ModelCard
         model={pricingModel({
           enable_groups: groups,
           supported_endpoint_types: endpoints,
-          tags: tags.join(','),
         })}
         onClick={vi.fn()}
       />
@@ -200,7 +191,6 @@ describe('model cards', () => {
     if (!groupField || !endpointField) {
       throw new Error('Expected labeled group and endpoint fields')
     }
-    const tagField = screen.getByRole('group', { name: 'Tags' })
     expect(within(groupField).getByText(groups[0])).toBeVisible()
     expect(within(groupField).getByText('+2')).toHaveAttribute(
       'title',
@@ -211,17 +201,13 @@ describe('model cards', () => {
     ).toHaveAttribute('title', endpoints.join(', '))
     expect(within(endpointField).getByText('+3')).toBeVisible()
     expect(
-      within(tagField).getByText('video-generation, high-resolution')
-    ).toHaveAttribute('title', tags.join(', '))
-    expect(within(tagField).getByText('+4')).toBeVisible()
-    expect(
       within(screen.getByRole('group', { name: 'Pricing' })).getByText(
         'Token-based'
       )
     ).toBeVisible()
   })
 
-  it('omits metadata fields when the model has no groups, endpoints or tags', () => {
+  it('omits metadata fields when the model has no groups or endpoints', () => {
     render(
       <ModelCard
         model={pricingModel({ enable_groups: [] })}

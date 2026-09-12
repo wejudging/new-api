@@ -62,9 +62,7 @@ export function Pricing() {
     showRechargePrice,
     setSortBy,
     setVendorFilter,
-    setTokenUnit,
     setViewMode,
-    setShowRechargePrice,
     filteredModels,
     hasActiveFilters,
     clearFilters,
@@ -179,10 +177,6 @@ export function Pricing() {
               totalCount={models?.length}
               sortBy={sortBy}
               onSortChange={setSortBy}
-              tokenUnit={tokenUnit}
-              onTokenUnitChange={setTokenUnit}
-              showRechargePrice={showRechargePrice}
-              onRechargePriceChange={setShowRechargePrice}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
             />

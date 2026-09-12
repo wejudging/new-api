@@ -28,21 +28,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
 import { getSortLabels, type SortOption, type ViewMode } from '../constants'
-import type { TokenUnit } from '../types'
 
 export interface PricingToolbarProps {
   filteredCount: number
   totalCount?: number
   sortBy: string
   onSortChange: (value: string) => void
-  tokenUnit: TokenUnit
-  onTokenUnitChange: (value: TokenUnit) => void
-  showRechargePrice: boolean
-  onRechargePriceChange: (value: boolean) => void
   viewMode: ViewMode
   onViewModeChange: (value: ViewMode) => void
 }
@@ -70,35 +64,6 @@ export function PricingToolbar(props: PricingToolbarProps) {
         </div>
 
         <div className='flex min-w-0 flex-wrap items-center gap-2'>
-          <ToggleGroup
-            value={[props.showRechargePrice ? 'recharge' : 'standard']}
-            onValueChange={(values) => {
-              if (values.length > 0) {
-                props.onRechargePriceChange(values[0] === 'recharge')
-              }
-            }}
-            variant='outline'
-            size='sm'
-            aria-label={t('Price display mode')}
-          >
-            <ToggleGroupItem value='standard'>{t('Standard')}</ToggleGroupItem>
-            <ToggleGroupItem value='recharge'>{t('Recharge')}</ToggleGroupItem>
-          </ToggleGroup>
-          <ToggleGroup
-            value={[props.tokenUnit]}
-            onValueChange={(values) => {
-              if (values[0] === 'M' || values[0] === 'K') {
-                props.onTokenUnitChange(values[0])
-              }
-            }}
-            variant='outline'
-            size='sm'
-            aria-label={t('Token unit')}
-          >
-            <ToggleGroupItem value='M'>/1M</ToggleGroupItem>
-            <ToggleGroupItem value='K'>/1K</ToggleGroupItem>
-          </ToggleGroup>
-
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
