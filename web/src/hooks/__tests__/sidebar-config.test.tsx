@@ -74,7 +74,7 @@ function sidebarFor(admin?: object, user?: object, canConfigure = true) {
 }
 
 describe('security sidebar visibility', () => {
-  it('lists model pricing, rankings and the usage docs under General', () => {
+  it('lists model pricing, rankings and the usage docs in the workspace group', () => {
     const { result } = sidebarFor(
       { personal: { enabled: true, personal: true } },
       { personal: { enabled: true, personal: true } }
@@ -96,16 +96,44 @@ describe('security sidebar visibility', () => {
     }
   })
 
+  it('orders the workspace entries without a section heading', () => {
+    const { result } = sidebarFor()
+    const workspace = result.current.find((group) => group.id === 'general')
+    expect(workspace?.title).toBe('')
+    expect(workspace?.items.map((item) => item.title)).toEqual([
+      'Overview',
+      'API Keys',
+      'Wallet',
+      'Security & Access',
+      'Rankings',
+      'Model Square',
+      'Dashboard',
+      'Usage Docs',
+      'Usage Logs',
+      'Audit Logs',
+      'Task Logs',
+    ])
+  })
+
   it('old configurations keep Wallet, Security & Access and API Keys', () => {
     const { result } = sidebarFor(
       { personal: { enabled: true, personal: true, topup: true } },
       { personal: { enabled: true, personal: true } }
     )
+    const titles = result.current
+      .flatMap((group) => group.items)
+      .map((item) => item.title)
+    expect(titles).toEqual(
+      expect.arrayContaining(['Wallet', 'Security & Access'])
+    )
+    expect(result.current.some((group) => group.id === 'personal')).toBe(false)
     expect(
       result.current
-        .find((group) => group.id === 'personal')
-        ?.items.map((item) => item.title)
-    ).toEqual(['Wallet', 'Security & Access'])
+        .find((group) => group.id === 'general')
+        ?.items.filter((item) =>
+          ['Wallet', 'Security & Access'].includes(item.title)
+        )
+    ).toHaveLength(2)
     expect(
       result.current
         .flatMap((group) => group.items)

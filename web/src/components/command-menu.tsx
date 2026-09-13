@@ -66,7 +66,10 @@ export function CommandMenu() {
           <ScrollArea className='h-72 pe-1'>
             <CommandEmpty>{t('No results found.')}</CommandEmpty>
             {navGroups.map((group) => (
-              <CommandGroup key={group.id || group.title} heading={group.title}>
+              <CommandGroup
+                key={group.id || group.title}
+                heading={group.title || undefined}
+              >
                 {group.items.map((navItem, i) => {
                   if (navItem.url)
                     return (

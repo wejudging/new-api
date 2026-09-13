@@ -26,8 +26,8 @@ import { render, screen } from '@testing-library/react'
 import { BookOpen, Trophy } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 
-import { SidebarProvider } from '@/components/ui/sidebar'
 import type { NavItem } from '@/components/layout/types'
+import { SidebarProvider } from '@/components/ui/sidebar'
 
 import { NavGroup } from '../nav-group'
 
@@ -41,11 +41,11 @@ const items: NavItem[] = [
   },
 ]
 
-async function renderGroup() {
+async function renderGroup(title = '常规') {
   const root = createRootRoute({
     component: () => (
       <SidebarProvider>
-        <NavGroup title='常规' items={items} />
+        <NavGroup title={title} items={items} />
       </SidebarProvider>
     ),
   })
@@ -54,10 +54,28 @@ async function renderGroup() {
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
   await router.load()
-  render(<RouterProvider router={router} />)
+  return render(<RouterProvider router={router} />)
 }
 
 describe('sidebar nav group', () => {
+  it('shows the section heading for titled groups', async () => {
+    const { container } = await renderGroup()
+    expect(screen.getByText('常规')).toBeVisible()
+    expect(
+      container.querySelector('[data-slot="sidebar-menu"]')
+        ?.previousElementSibling
+    ).not.toBeNull()
+  })
+
+  it('renders without a section heading for untitled groups', async () => {
+    const { container } = await renderGroup('')
+    expect(
+      container.querySelector('[data-slot="sidebar-menu"]')
+        ?.previousElementSibling
+    ).toBeNull()
+    expect(screen.getByRole('link', { name: '排行榜' })).toBeVisible()
+  })
+
   it('routes internal entries through the router', async () => {
     await renderGroup()
     const link = screen.getByRole('link', { name: '排行榜' })

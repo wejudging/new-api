@@ -51,6 +51,10 @@ import { ROLE } from '@/lib/roles'
  *
  * These are shown when the URL does not match any nested sidebar view
  * registered in `layout/lib/sidebar-view-registry.ts`.
+ *
+ * The workspace group (former "General" + "Personal" sections) is rendered
+ * without a heading: this deployment keeps a single default group and a
+ * payment-first navigation, so the upstream section titles only added noise.
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
@@ -77,7 +81,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'general',
-        title: t('General'),
+        title: '',
         items: [
           {
             title: t('Overview'),
@@ -85,14 +89,40 @@ export function useSidebarData(): SidebarData {
             icon: Activity,
           },
           {
+            title: t('API Keys'),
+            url: '/keys',
+            icon: Key,
+          },
+          {
+            title: t('Wallet'),
+            url: '/wallet',
+            icon: Wallet,
+          },
+          {
+            title: t('Security & Access'),
+            url: '/security',
+            icon: ShieldCheck,
+          },
+          {
+            title: t('Rankings'),
+            url: '/rankings',
+            icon: Trophy,
+          },
+          {
+            title: t('Model Square'),
+            url: '/pricing',
+            icon: BadgeDollarSign,
+          },
+          {
             title: t('Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
           },
           {
-            title: t('API Keys'),
-            url: '/keys',
-            icon: Key,
+            title: t('Usage Docs'),
+            url: docsUrl,
+            external: true,
+            icon: BookOpen,
           },
           {
             title: t('Usage Logs'),
@@ -110,38 +140,6 @@ export function useSidebarData(): SidebarData {
             activeUrls: ['/usage-logs/drawing'],
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
             icon: ListTodo,
-          },
-          {
-            title: t('Model Square'),
-            url: '/pricing',
-            icon: BadgeDollarSign,
-          },
-          {
-            title: t('Rankings'),
-            url: '/rankings',
-            icon: Trophy,
-          },
-          {
-            title: t('Usage Docs'),
-            url: docsUrl,
-            external: true,
-            icon: BookOpen,
-          },
-        ],
-      },
-      {
-        id: 'personal',
-        title: t('Personal'),
-        items: [
-          {
-            title: t('Wallet'),
-            url: '/wallet',
-            icon: Wallet,
-          },
-          {
-            title: t('Security & Access'),
-            url: '/security',
-            icon: ShieldCheck,
           },
         ],
       },
