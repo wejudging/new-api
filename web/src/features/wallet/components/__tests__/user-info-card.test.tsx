@@ -38,24 +38,36 @@ const user: UserWalletData = {
 }
 
 describe('wallet user info card', () => {
-  it('shows the account identity without the single-group label', () => {
+  it('shows only the username and email of the account', () => {
     render(<UserInfoCard user={user} />)
-    expect(screen.getByText('Alice')).toBeVisible()
-    expect(screen.getByText('@alice')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'alice' })).toBeVisible()
     expect(screen.getByText('alice@example.com')).toBeVisible()
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument()
+    expect(screen.queryByText('User')).not.toBeInTheDocument()
+    expect(screen.queryByText(/User ID/)).not.toBeInTheDocument()
     expect(screen.queryByText('default')).not.toBeInTheDocument()
   })
 
-  it('falls back to the username when no display name is set', () => {
+  it('draws a generated block avatar for the account', () => {
+    const { container } = render(<UserInfoCard user={user} />)
+    expect(
+      container.querySelector('[data-slot="github-identicon"]')
+    ).toBeInTheDocument()
+  })
+
+  it('hides the email row when the account has no email', () => {
     render(
-      <UserInfoCard user={{ ...user, display_name: undefined, email: undefined }} />
+      <UserInfoCard
+        user={{ ...user, display_name: undefined, email: undefined }}
+      />
     )
-    expect(screen.getByText('alice')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'alice' })).toBeVisible()
+    expect(screen.queryByText('alice@example.com')).not.toBeInTheDocument()
   })
 
   it('renders a placeholder while the account is loading', () => {
     const { container } = render(<UserInfoCard user={null} loading />)
-    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBe(5)
+    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBe(3)
   })
 
   it('renders nothing when there is no account', () => {

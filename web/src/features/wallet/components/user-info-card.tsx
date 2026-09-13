@@ -16,14 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useTranslation } from 'react-i18next'
-
-import { StatusBadge } from '@/components/status-badge'
+import { GitHubIdenticon } from '@/components/github-identicon'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
-import { getRoleLabel } from '@/lib/roles'
 
 import type { UserWalletData } from '../types'
 
@@ -40,20 +36,14 @@ interface UserInfoCardProps {
  * "default".
  */
 export function UserInfoCard(props: UserInfoCardProps) {
-  const { t } = useTranslation()
-
   if (props.loading) {
     return (
       <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
         <CardContent className='p-3 sm:p-5'>
           <div className='flex items-center gap-3 sm:gap-4'>
-            <Skeleton className='h-12 w-12 rounded-xl sm:h-16 sm:w-16 sm:rounded-2xl' />
+            <Skeleton className='h-12 w-12 rounded-md sm:h-16 sm:w-16 sm:rounded-lg' />
             <div className='space-y-2.5'>
-              <div className='flex items-center gap-2'>
-                <Skeleton className='h-6 w-40 sm:h-7' />
-                <Skeleton className='h-5 w-16' />
-                <Skeleton className='h-5 w-24' />
-              </div>
+              <Skeleton className='h-6 w-40 sm:h-7' />
               <Skeleton className='h-4 w-56' />
             </div>
           </div>
@@ -65,48 +55,27 @@ export function UserInfoCard(props: UserInfoCardProps) {
   if (!props.user) return null
 
   const user = props.user
-  const displayName = user.display_name || user.username
-  const avatarName = user.username || displayName
+  const avatarName = user.username || user.display_name || String(user.id)
 
   return (
     <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
       <CardContent className='p-3 sm:p-5'>
         <div className='flex items-center gap-3 text-left sm:gap-4'>
-          <Avatar className='ring-background h-12 w-12 rounded-xl text-sm ring-2 sm:h-16 sm:w-16 sm:rounded-2xl sm:text-lg sm:ring-4'>
-            <AvatarFallback
-              className='rounded-xl font-semibold text-white sm:rounded-2xl'
-              style={getUserAvatarStyle(avatarName)}
-            >
-              {getUserAvatarFallback(avatarName)}
+          <Avatar className='ring-background h-12 w-12 rounded-md text-sm ring-2 after:rounded-md sm:h-16 sm:w-16 sm:rounded-lg sm:text-lg sm:ring-4 sm:after:rounded-lg'>
+            <AvatarFallback className='overflow-hidden rounded-md sm:rounded-lg'>
+              <GitHubIdenticon name={avatarName} />
             </AvatarFallback>
           </Avatar>
 
-          <div className='min-w-0 flex-1 space-y-1.5 sm:space-y-3'>
-            <div className='flex min-w-0 flex-wrap items-center gap-2'>
-              <h1 className='truncate text-xl font-semibold tracking-tight sm:text-2xl'>
-                {displayName}
-              </h1>
-              <StatusBadge
-                label={getRoleLabel(user.role)}
-                variant='neutral'
-                copyable={false}
-              />
-              <StatusBadge
-                label={`${t('User ID')} ${user.id}`}
-                variant='info'
-                copyText={String(user.id)}
-              />
-            </div>
-
-            <div className='text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:gap-x-4 sm:text-sm'>
-              <span className='truncate'>@{user.username}</span>
-              {user.email && (
-                <>
-                  <span>•</span>
-                  <span className='truncate'>{user.email}</span>
-                </>
-              )}
-            </div>
+          <div className='min-w-0 flex-1 space-y-1 sm:space-y-1.5'>
+            <h1 className='truncate text-xl font-semibold tracking-tight sm:text-2xl'>
+              {user.username}
+            </h1>
+            {user.email && (
+              <div className='text-muted-foreground truncate text-xs sm:text-sm'>
+                {user.email}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
