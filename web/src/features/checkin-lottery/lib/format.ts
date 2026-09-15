@@ -27,18 +27,6 @@ export function formatYuan(amount: number | null | undefined): string {
   return `¥${amount.toFixed(2)}`
 }
 
-/**
- * Format a normalised probability (0-1) as a percentage label. Small
- * probabilities keep two decimals so the rare top tiers stay readable.
- */
-export function formatProbability(probability: number): string {
-  if (!Number.isFinite(probability) || probability <= 0) return '0%'
-  const percent = probability * 100
-  if (percent >= 10) return `${percent.toFixed(0)}%`
-  if (percent >= 1) return `${percent.toFixed(1)}%`
-  return `${percent.toFixed(2)}%`
-}
-
 /** Ordinal-safe rank label, e.g. `#4`. */
 export function formatRank(rank: number): string {
   if (!rank || rank < 1) return '-'

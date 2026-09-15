@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '../components/settings-page'
-import { DEFAULT_CHECKIN_PRIZES } from '../general/checkin-settings-section'
 import type { BillingSettings } from '../types'
 import {
   BILLING_DEFAULT_SECTION,
@@ -108,7 +107,10 @@ const defaultBillingSettings: BillingSettings = {
   'checkin_setting.enabled': false,
   'checkin_setting.daily_draws': 1,
   'checkin_setting.topup_yuan_per_draw': 10,
-  'checkin_setting.prizes': DEFAULT_CHECKIN_PRIZES,
+  'checkin_setting.prize_min_amount': 0.01,
+  'checkin_setting.prize_max_amount': 1,
+  'checkin_setting.prize_expected_amount': 0.1,
+  'checkin_setting.prize_tiers': 12,
 }
 
 export function BillingSettings() {

@@ -18,30 +18,107 @@ func withCheckinSetting(t *testing.T, setting CheckinSetting) {
 	})
 }
 
-func TestDefaultCheckinPrizesPayAboutThreeYuanPerMonth(t *testing.T) {
-	withCheckinSetting(t, CheckinSetting{
-		Enabled:    true,
-		DailyDraws: 1,
-		Prizes:     DefaultCheckinPrizes,
-	})
+// defaultPrizeSetting 默认奖池配置：¥0.01 ~ ¥1.00，12 档，单次期望 ¥0.10
+func defaultPrizeSetting() CheckinSetting {
+	return CheckinSetting{
+		Enabled:        true,
+		DailyDraws:     1,
+		PrizeMinAmount: DefaultCheckinPrizeMinAmount,
+		PrizeMaxAmount: DefaultCheckinPrizeMaxAmount,
+		PrizeExpected:  DefaultCheckinPrizeExpectedAmount,
+		PrizeTiers:     DefaultCheckinPrizeTiers,
+	}
+}
 
-	require.Equal(t, 100, GetCheckinPrizeWeights())
+func TestDefaultCheckinPrizePoolPaysAboutThreeYuanPerMonth(t *testing.T) {
+	withCheckinSetting(t, defaultPrizeSetting())
+
+	prizes := GetCheckinPrizes()
+	require.Len(t, prizes, 12)
+	require.Equal(t, 0.01, prizes[0].Amount)
+	require.Equal(t, 1.0, prizes[len(prizes)-1].Amount)
 
 	expected := GetCheckinPrizeExpectedAmount()
-	require.InDelta(t, 0.102, expected, 0.0005)
+	require.InDelta(t, DefaultCheckinPrizeExpectedAmount, expected, 0.0005)
 
 	monthly := expected * float64(GetCheckinDailyDraws()) * 30
-	require.InDelta(t, 3.06, monthly, 0.02)
+	require.InDelta(t, 3.0, monthly, 0.02)
+}
+
+func TestCheckinPrizeLadderRaisesAmountAndLowersChance(t *testing.T) {
+	withCheckinSetting(t, defaultPrizeSetting())
+
+	prizes := GetCheckinPrizes()
+	for i := 1; i < len(prizes); i++ {
+		require.Greater(t, prizes[i].Amount, prizes[i-1].Amount, "金额必须严格递增")
+		require.Greater(t, prizes[i-1].Weight, prizes[i].Weight, "金额越高权重越小")
+	}
+	require.GreaterOrEqual(t, prizes[len(prizes)-1].Weight, 1, "最高档必须抽得到")
+}
+
+func TestCheckinPrizePoolFollowsTheConfiguredRange(t *testing.T) {
+	withCheckinSetting(t, CheckinSetting{
+		PrizeMinAmount: 0.02,
+		PrizeMaxAmount: 2,
+		PrizeExpected:  0.2,
+		PrizeTiers:     8,
+	})
+
+	prizes := GetCheckinPrizes()
+	require.Len(t, prizes, 8)
+	require.Equal(t, 0.02, prizes[0].Amount)
+	require.Equal(t, 2.0, prizes[len(prizes)-1].Amount)
+	require.InDelta(t, 0.2, GetCheckinPrizeExpectedAmount(), 0.0005)
+}
+
+func TestCheckinPrizeTiersCollapseWhenTheRangeIsTiny(t *testing.T) {
+	withCheckinSetting(t, CheckinSetting{
+		PrizeMinAmount: 0.01,
+		PrizeMaxAmount: 0.05,
+		PrizeExpected:  0.02,
+		PrizeTiers:     12,
+	})
+
+	prizes := GetCheckinPrizes()
+	require.Len(t, prizes, 5, "¥0.01~¥0.05 只放得下 5 个不重复档位")
+	require.Equal(t, 0.01, prizes[0].Amount)
+	require.Equal(t, 0.05, prizes[len(prizes)-1].Amount)
+}
+
+func TestCheckinPrizeExpectationIsClampedToThePool(t *testing.T) {
+	// 期望低于最低档 → 收敛到最低档金额
+	withCheckinSetting(t, CheckinSetting{
+		PrizeMinAmount: 0.01,
+		PrizeMaxAmount: 1,
+		PrizeExpected:  0.001,
+		PrizeTiers:     4,
+	})
+	require.InDelta(t, 0.01, GetCheckinPrizeExpectedAmount(), 0.0005)
+
+	// 期望高于各档均值（无解） → 收敛到均值
+	withCheckinSetting(t, CheckinSetting{
+		PrizeMinAmount: 0.1,
+		PrizeMaxAmount: 1,
+		PrizeExpected:  100,
+		PrizeTiers:     4,
+	})
+	prizes := GetCheckinPrizes()
+	mean := 0.0
+	for _, prize := range prizes {
+		mean += prize.Amount
+	}
+	mean /= float64(len(prizes))
+	require.InDelta(t, mean, GetCheckinPrizeExpectedAmount(), 0.0005)
 }
 
 func TestPickCheckinPrizeStaysInsideTheConfiguredPool(t *testing.T) {
 	withCheckinSetting(t, CheckinSetting{
-		Enabled:    true,
-		DailyDraws: 1,
-		Prizes: []CheckinPrize{
-			{Amount: 0.05, Weight: 1},
-			{Amount: 0.5, Weight: 1},
-		},
+		Enabled:        true,
+		DailyDraws:     1,
+		PrizeMinAmount: 0.05,
+		PrizeMaxAmount: 0.5,
+		PrizeExpected:  0.1,
+		PrizeTiers:     2,
 	})
 
 	seen := map[float64]int{}
@@ -53,13 +130,17 @@ func TestPickCheckinPrizeStaysInsideTheConfiguredPool(t *testing.T) {
 	}
 
 	require.Len(t, seen, 2)
+	require.Greater(t, seen[0.05], seen[0.5], "低档位应该更常见")
 }
 
 func TestCheckinPrizesFallBackToDefaultsWhenUnset(t *testing.T) {
 	withCheckinSetting(t, CheckinSetting{Enabled: true, DailyDraws: 1})
 
-	require.Equal(t, DefaultCheckinPrizes, GetCheckinPrizes())
-	require.Equal(t, 100, GetCheckinPrizeWeights())
+	prizes := GetCheckinPrizes()
+	require.Len(t, prizes, DefaultCheckinPrizeTiers)
+	require.Equal(t, DefaultCheckinPrizeMinAmount, prizes[0].Amount)
+	require.Equal(t, DefaultCheckinPrizeMaxAmount, prizes[len(prizes)-1].Amount)
+	require.InDelta(t, DefaultCheckinPrizeExpectedAmount, GetCheckinPrizeExpectedAmount(), 0.0005)
 }
 
 func TestCheckinPrizeQuotaFollowsTheExchangeRate(t *testing.T) {

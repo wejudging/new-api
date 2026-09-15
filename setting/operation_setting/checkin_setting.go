@@ -17,34 +17,46 @@ type CheckinPrize struct {
 
 // CheckinSetting 签到抽奖功能配置
 type CheckinSetting struct {
-	Enabled          bool           `json:"enabled"`             // 是否启用签到功能
-	MinQuota         int            `json:"min_quota"`           // 旧版随机签到额度下限（保留兼容）
-	MaxQuota         int            `json:"max_quota"`           // 旧版随机签到额度上限（保留兼容）
-	DailyDraws       int            `json:"daily_draws"`         // 每日可领取的抽奖次数
-	TopUpYuanPerDraw float64        `json:"topup_yuan_per_draw"` // 累计充值满多少元赠送 1 次抽奖，<=0 表示不赠送
-	Prizes           []CheckinPrize `json:"prizes"`              // 奖池配置，金额单位为人民币元
+	Enabled          bool    `json:"enabled"`               // 是否启用签到功能
+	MinQuota         int     `json:"min_quota"`             // 旧版随机签到额度下限（保留兼容）
+	MaxQuota         int     `json:"max_quota"`             // 旧版随机签到额度上限（保留兼容）
+	DailyDraws       int     `json:"daily_draws"`           // 每日可领取的抽奖次数
+	TopUpYuanPerDraw float64 `json:"topup_yuan_per_draw"`   // 累计充值满多少元赠送 1 次抽奖，<=0 表示不赠送
+	PrizeMinAmount   float64 `json:"prize_min_amount"`      // 奖池最低金额（人民币元）
+	PrizeMaxAmount   float64 `json:"prize_max_amount"`      // 奖池最高金额（人民币元）
+	PrizeExpected    float64 `json:"prize_expected_amount"` // 单次抽奖期望金额（人民币元），档位权重由此反推
+	PrizeTiers       int     `json:"prize_tiers"`           // 奖池档位数量（前台按 4 列铺开，默认 12 档 = 4×3）
 }
 
-// DefaultCheckinPrizes 默认奖池
-//
-// 单次期望 ¥0.102，按每日 1 次抽奖计算，连续签到 30 天约 ¥3.06。
-var DefaultCheckinPrizes = []CheckinPrize{
-	{Amount: 0.05, Weight: 40}, // 40%
-	{Amount: 0.08, Weight: 25}, // 25%
-	{Amount: 0.10, Weight: 15}, // 15%
-	{Amount: 0.15, Weight: 10}, // 10%
-	{Amount: 0.20, Weight: 6},  // 6%
-	{Amount: 0.50, Weight: 4},  // 4%
-}
+const (
+	// DefaultCheckinPrizeMinAmount 默认奖池最低金额
+	DefaultCheckinPrizeMinAmount = 0.01
+	// DefaultCheckinPrizeMaxAmount 默认奖池最高金额
+	DefaultCheckinPrizeMaxAmount = 1.0
+	// DefaultCheckinPrizeExpectedAmount 默认单次期望金额（每日 1 次约合每月 ¥3）
+	DefaultCheckinPrizeExpectedAmount = 0.1
+	// DefaultCheckinPrizeTiers 默认档位数量（4 列 × 3 行）
+	DefaultCheckinPrizeTiers = 12
+	// MaxCheckinPrizeTiers 档位数量上限
+	MaxCheckinPrizeTiers = 30
+
+	// checkinPrizeAmountStep 金额最小步长，奖池金额按分取整
+	checkinPrizeAmountStep = 0.01
+	// checkinPrizeWeightTotal 权重总和，权重取整后的精度
+	checkinPrizeWeightTotal = 100000
+)
 
 // 默认配置
 var checkinSetting = CheckinSetting{
-	Enabled:          false, // 默认关闭
-	MinQuota:         1000,  // 默认最小额度 1000 (约 0.002 USD)
-	MaxQuota:         10000, // 默认最大额度 10000 (约 0.02 USD)
-	DailyDraws:       1,     // 默认每日 1 次抽奖
-	TopUpYuanPerDraw: 10,    // 默认每累计充值 10 元赠送 1 次抽奖
-	Prizes:           DefaultCheckinPrizes,
+	Enabled:          false,                             // 默认关闭
+	MinQuota:         1000,                              // 默认最小额度 1000 (约 0.002 USD)
+	MaxQuota:         10000,                             // 默认最大额度 10000 (约 0.02 USD)
+	DailyDraws:       1,                                 // 默认每日 1 次抽奖
+	TopUpYuanPerDraw: 10,                                // 默认每累计充值 10 元赠送 1 次抽奖
+	PrizeMinAmount:   DefaultCheckinPrizeMinAmount,      // 默认最低 ¥0.01
+	PrizeMaxAmount:   DefaultCheckinPrizeMaxAmount,      // 默认最高 ¥1.00
+	PrizeExpected:    DefaultCheckinPrizeExpectedAmount, // 默认单次期望 ¥0.10
+	PrizeTiers:       DefaultCheckinPrizeTiers,          // 默认 12 档
 }
 
 func init() {
@@ -75,16 +87,180 @@ func GetCheckinDailyDraws() int {
 	return checkinSetting.DailyDraws
 }
 
-// GetCheckinPrizes 获取生效的奖池（过滤掉金额或权重非正的档位）
-func GetCheckinPrizes() []CheckinPrize {
-	prizes := make([]CheckinPrize, 0, len(checkinSetting.Prizes))
-	for _, prize := range checkinSetting.Prizes {
-		if prize.Amount > 0 && prize.Weight > 0 {
-			prizes = append(prizes, prize)
-		}
+// roundToCents 按分取整，避免浮点误差出现在奖池金额里
+func roundToCents(amount float64) float64 {
+	return math.Round(amount*100) / 100
+}
+
+// GetCheckinPrizeAmountRange 获取奖池金额范围（元），已按分对齐
+func GetCheckinPrizeAmountRange() (minAmount, maxAmount float64) {
+	minAmount = roundToCents(checkinSetting.PrizeMinAmount)
+	if minAmount < DefaultCheckinPrizeMinAmount {
+		minAmount = DefaultCheckinPrizeMinAmount
 	}
-	if len(prizes) == 0 {
-		return append([]CheckinPrize(nil), DefaultCheckinPrizes...)
+	maxAmount = roundToCents(checkinSetting.PrizeMaxAmount)
+	if maxAmount <= 0 {
+		maxAmount = DefaultCheckinPrizeMaxAmount
+	}
+	if maxAmount < minAmount {
+		maxAmount = minAmount
+	}
+	return minAmount, maxAmount
+}
+
+// GetCheckinPrizeTargetAmount 获取配置的单次抽奖期望金额（元）
+func GetCheckinPrizeTargetAmount() float64 {
+	target := checkinSetting.PrizeExpected
+	if target <= 0 {
+		target = DefaultCheckinPrizeExpectedAmount
+	}
+	lowest, _ := GetCheckinPrizeAmountRange()
+	if target < lowest {
+		target = lowest
+	}
+	return target
+}
+
+// GetCheckinPrizeTierCount 获取奖池档位数量
+//
+// 档位数量会按金额范围收敛，范围太窄时不会生成重复金额的档位。
+func GetCheckinPrizeTierCount() int {
+	minAmount, maxAmount := GetCheckinPrizeAmountRange()
+	tiers := checkinSetting.PrizeTiers
+	if tiers <= 0 {
+		tiers = DefaultCheckinPrizeTiers
+	}
+	if tiers > MaxCheckinPrizeTiers {
+		tiers = MaxCheckinPrizeTiers
+	}
+	room := int(math.Round((maxAmount-minAmount)/checkinPrizeAmountStep)) + 1
+	if tiers > room {
+		tiers = room
+	}
+	if tiers < 1 {
+		tiers = 1
+	}
+	return tiers
+}
+
+// buildCheckinPrizeAmounts 在金额范围内生成等比递增的档位金额
+func buildCheckinPrizeAmounts(minAmount, maxAmount float64, tiers int) []float64 {
+	amounts := make([]float64, 0, tiers)
+	if tiers <= 1 {
+		return append(amounts, roundToCents(minAmount))
+	}
+	ratio := math.Pow(maxAmount/minAmount, 1/float64(tiers-1))
+	for i := 0; i < tiers; i++ {
+		amount := roundToCents(minAmount * math.Pow(ratio, float64(i)))
+		if i == tiers-1 {
+			amount = roundToCents(maxAmount)
+		}
+		if i > 0 && amount <= amounts[i-1] {
+			amount = roundToCents(amounts[i-1] + checkinPrizeAmountStep)
+		}
+		amounts = append(amounts, amount)
+	}
+	return amounts
+}
+
+// checkinPrizeDecayExpected 指数衰减权重下奖池的单次期望金额
+func checkinPrizeDecayExpected(amounts []float64, decay float64) float64 {
+	weightSum := 0.0
+	amountSum := 0.0
+	for i, amount := range amounts {
+		weight := math.Exp(-decay * float64(i))
+		weightSum += weight
+		amountSum += amount * weight
+	}
+	if weightSum <= 0 {
+		return 0
+	}
+	return amountSum / weightSum
+}
+
+// buildCheckinPrizeWeights 反推各档位权重，让单次期望等于目标金额
+//
+// 权重按档位指数衰减，衰减系数用二分法求解：金额越高权重越小，最高档最稀有。
+// 期望的可行区间是「最低档金额 ~ 各档均值」，超出区间时收敛到区间边界。
+func buildCheckinPrizeWeights(amounts []float64, target float64) []int {
+	count := len(amounts)
+	weights := make([]int, count)
+	if count == 0 {
+		return weights
+	}
+	if count == 1 {
+		weights[0] = checkinPrizeWeightTotal
+		return weights
+	}
+
+	mean := 0.0
+	for _, amount := range amounts {
+		mean += amount
+	}
+	mean /= float64(count)
+	lowest := amounts[0]
+	if target > mean {
+		target = mean
+	}
+	if target < lowest {
+		target = lowest
+	}
+
+	decay := 0.0
+	if target < mean {
+		low, high := 0.0, 64.0
+		for i := 0; i < 60; i++ {
+			mid := (low + high) / 2
+			if checkinPrizeDecayExpected(amounts, mid) > target {
+				low = mid
+			} else {
+				high = mid
+			}
+		}
+		decay = (low + high) / 2
+	}
+
+	rawSum := 0.0
+	for i := range amounts {
+		rawSum += math.Exp(-decay * float64(i))
+	}
+	total := 0
+	for i := range amounts {
+		weight := int(math.Round(math.Exp(-decay*float64(i)) / rawSum * checkinPrizeWeightTotal))
+		if weight < 1 {
+			weight = 1
+		}
+		weights[i] = weight
+		total += weight
+	}
+
+	// 取整会带来偏差，用最高档的权重补齐，保证期望与配置一致
+	if amount := amounts[count-1]; amount > 0 {
+		current := 0.0
+		for i := range amounts {
+			current += amounts[i] * float64(weights[i])
+		}
+		delta := int(math.Round((target*float64(total) - current) / amount))
+		if weights[count-1]+delta < 1 {
+			delta = 1 - weights[count-1]
+		}
+		weights[count-1] += delta
+	}
+	return weights
+}
+
+// GetCheckinPrizes 获取生效的奖池
+//
+// 奖池由「金额范围 + 单次期望 + 档位数量」自动生成：金额在范围内等比递增铺开，
+// 权重按指数衰减反推，使单次期望等于配置值。
+func GetCheckinPrizes() []CheckinPrize {
+	minAmount, maxAmount := GetCheckinPrizeAmountRange()
+	tiers := GetCheckinPrizeTierCount()
+	amounts := buildCheckinPrizeAmounts(minAmount, maxAmount, tiers)
+	weights := buildCheckinPrizeWeights(amounts, GetCheckinPrizeTargetAmount())
+	prizes := make([]CheckinPrize, 0, len(amounts))
+	for i, amount := range amounts {
+		prizes = append(prizes, CheckinPrize{Amount: amount, Weight: weights[i]})
 	}
 	return prizes
 }

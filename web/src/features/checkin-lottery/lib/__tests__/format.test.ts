@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { describe, expect, it } from 'vitest'
 
-import { formatProbability, formatRank, formatYuan } from '../format'
+import { formatRank, formatYuan } from '../format'
 
 describe('check-in lottery formatting', () => {
   it('renders prize amounts in CNY with two decimals', () => {
@@ -31,13 +31,6 @@ describe('check-in lottery formatting', () => {
     expect(formatYuan(undefined)).toBe('-')
     expect(formatYuan(null)).toBe('-')
     expect(formatYuan(Number.NaN)).toBe('-')
-  })
-
-  it('keeps rare tiers readable by widening the precision', () => {
-    expect(formatProbability(0.4)).toBe('40%')
-    expect(formatProbability(0.04)).toBe('4.0%')
-    expect(formatProbability(0.008)).toBe('0.80%')
-    expect(formatProbability(0)).toBe('0%')
   })
 
   it('labels ranks without inventing a position for unranked users', () => {

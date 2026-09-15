@@ -20,7 +20,7 @@ import { Crown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-import { formatProbability, formatYuan } from '../lib/format'
+import { formatYuan } from '../lib/format'
 import type { CheckinLotteryPrize } from '../types'
 
 interface PrizeBoardProps {
@@ -33,8 +33,9 @@ interface PrizeBoardProps {
 }
 
 /**
- * The prize pool grid. Every tier shows its amount and draw probability so
- * users can see the odds instead of guessing them.
+ * The prize pool grid, four columns by three rows for the default twelve
+ * tiers. Every tier only shows its amount: the odds stay in the backend so the
+ * pool can be tuned without publishing the distribution.
  */
 export function PrizeBoard(props: PrizeBoardProps) {
   const topAmount = props.prizes.reduce(
@@ -45,7 +46,7 @@ export function PrizeBoard(props: PrizeBoardProps) {
   return (
     <div
       className={cn(
-        'grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3',
+        'grid grid-cols-4 gap-2 sm:gap-3',
         props.disabled && 'opacity-60'
       )}
     >
@@ -74,14 +75,11 @@ export function PrizeBoard(props: PrizeBoardProps) {
             )}
             <span
               className={cn(
-                'font-mono text-base font-bold tracking-tight tabular-nums sm:text-lg',
+                'font-mono text-base font-bold tracking-tight tabular-nums sm:text-xl',
                 isWon ? 'text-success' : 'text-foreground'
               )}
             >
               {formatYuan(prize.amount)}
-            </span>
-            <span className='text-muted-foreground/80 text-[0.7rem] tabular-nums'>
-              {formatProbability(prize.probability)}
             </span>
           </div>
         )

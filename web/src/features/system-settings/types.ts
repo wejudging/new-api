@@ -367,7 +367,14 @@ export type BillingSettings = {
   'checkin_setting.enabled': boolean
   'checkin_setting.daily_draws': number
   'checkin_setting.topup_yuan_per_draw': number
-  'checkin_setting.prizes': Array<{ amount: number; weight: number }>
+  /** Lowest prize amount of the pool, in CNY. */
+  'checkin_setting.prize_min_amount': number
+  /** Highest prize amount of the pool, in CNY. */
+  'checkin_setting.prize_max_amount': number
+  /** Average payout of one draw, in CNY; the tier odds are solved from it. */
+  'checkin_setting.prize_expected_amount': number
+  /** Number of prize tiers generated for the board. */
+  'checkin_setting.prize_tiers': number
 }
 
 export type OperationsSettings = {

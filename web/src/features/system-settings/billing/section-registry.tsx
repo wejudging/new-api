@@ -198,7 +198,10 @@ const BILLING_SECTIONS = [
           enabled: settings['checkin_setting.enabled'],
           dailyDraws: settings['checkin_setting.daily_draws'],
           topUpYuanPerDraw: settings['checkin_setting.topup_yuan_per_draw'],
-          prizes: settings['checkin_setting.prizes'],
+          prizeMinAmount: settings['checkin_setting.prize_min_amount'],
+          prizeMaxAmount: settings['checkin_setting.prize_max_amount'],
+          prizeExpected: settings['checkin_setting.prize_expected_amount'],
+          prizeTiers: settings['checkin_setting.prize_tiers'],
         }}
       />
     ),

@@ -31,6 +31,7 @@ import { LotteryStats } from './components/lottery-stats'
 import { LotteryUnavailableCard } from './components/lottery-unavailable-card'
 import { LuckLeaderboard } from './components/luck-leaderboard'
 import { useCheckinLotteryStatus } from './hooks/use-checkin-lottery'
+import { resolveAvailableDraws } from './lib/available-draws'
 
 /**
  * Daily check-in lottery page: claim the daily draws, spend them on the
@@ -45,6 +46,12 @@ export function CheckinLottery() {
   const lotteryQuery = useCheckinLotteryStatus(enabled)
   const payload = lotteryQuery.data?.data
   const loading = enabled && lotteryQuery.isPending
+  const available = resolveAvailableDraws({
+    daily_tickets: payload?.daily_tickets ?? 0,
+    bonus_tickets: payload?.bonus_tickets ?? 0,
+    daily_draws: payload?.daily_draws ?? 1,
+    checked_in_today: payload?.checked_in_today ?? false,
+  })
 
   return (
     <SectionPageLayout>
@@ -71,9 +78,9 @@ export function CheckinLottery() {
           {enabled && !loading && (
             <>
               <LotteryStats
-                tickets={payload?.tickets ?? 0}
-                dailyTickets={payload?.daily_tickets ?? 0}
-                bonusTickets={payload?.bonus_tickets ?? 0}
+                tickets={available.tickets}
+                dailyTickets={available.dailyTickets}
+                bonusTickets={available.bonusTickets}
                 dailyDraws={payload?.daily_draws ?? 1}
                 topUpYuanPerDraw={payload?.topup_yuan_per_draw ?? 0}
                 balanceQuota={user?.quota ?? 0}
@@ -81,7 +88,7 @@ export function CheckinLottery() {
 
               <LotteryDrawCard
                 prizes={payload?.prizes ?? []}
-                tickets={payload?.tickets ?? 0}
+                tickets={available.tickets}
                 checkedInToday={payload?.checked_in_today ?? false}
               />
 
