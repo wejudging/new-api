@@ -76,6 +76,23 @@ it('renders weekday and hour conditions as time windows instead of expression so
   expect(screen.queryByText(/weekday\(/)).not.toBeInTheDocument()
 })
 
+it('prints request rule multipliers as time windows instead of expression source', () => {
+  const peakWindows =
+    '(hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6 ? 2 : 1) * (hour("Asia/Shanghai") >= 14 && hour("Asia/Shanghai") < 18 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6 ? 2 : 1)'
+  render(
+    <DynamicPricingBreakdown
+      billingExpr={`tier("off_peak", p * 0.4 + c * 1.6 + cr * 0.008) * ${peakWindows}`}
+    />
+  )
+  expect(
+    screen.getAllByText('Mon–Fri 09:00–12:00 (Asia/Shanghai)').length
+  ).toBeGreaterThan(0)
+  expect(
+    screen.getAllByText('Mon–Fri 14:00–18:00 (Asia/Shanghai)').length
+  ).toBeGreaterThan(0)
+  expect(screen.queryByText(/hour\(/)).not.toBeInTheDocument()
+})
+
 const model: PricingModel = {
   id: 1,
   model_name: 'incho_music',

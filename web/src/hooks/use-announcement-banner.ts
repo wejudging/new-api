@@ -20,7 +20,7 @@ import type { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { promoCaption } from '@/lib/promo-caption'
+import { promoOffLabel } from '@/lib/promo-caption'
 import type { PromoPricing } from '@/lib/promo-pricing'
 
 import { useNotifications } from './use-notifications'
@@ -35,6 +35,8 @@ const MAX_BANNER_ANNOUNCEMENTS = 5
 export type AnnouncementBannerItem = {
   key: string
   content: string
+  /** Campaign the row counts down to, when it is a limited-time offer. */
+  campaign?: PromoPricing
 }
 
 function collapseWhitespace(input: string): string {
@@ -50,7 +52,8 @@ function buildPromoItem(
   const title = collapseWhitespace(promo.title) || t('Limited-time offer')
   return {
     key: 'promo',
-    content: `${title} · ${promoCaption(promo, t)}`,
+    content: `${title} · ${promoOffLabel(promo, t)}`,
+    campaign: promo,
   }
 }
 

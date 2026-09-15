@@ -42,6 +42,44 @@ export function promoExpiryLabel(promo: PromoPricing, t: TFunction): string {
   })
 }
 
+/** Countdown clock, e.g. `2d 05:12:33`, or `05:12:33` within the last day. */
+export function formatPromoCountdown(
+  remainingMs: number,
+  t: TFunction
+): string {
+  const total = Math.max(0, Math.floor(remainingMs / 1000))
+  const days = Math.floor(total / 86400)
+  const clock = [
+    Math.floor((total % 86400) / 3600),
+    Math.floor((total % 3600) / 60),
+    total % 60,
+  ]
+    .map((part) => String(part).padStart(2, '0'))
+    .join(':')
+
+  return days > 0 ? t('{{days}}d {{clock}}', { days, clock }) : clock
+}
+
+/**
+ * `Ends in 2d 05:12:33` for a live countdown, or an empty string when the
+ * campaign has no deadline left to count down to.
+ */
+export function promoCountdownLabel(
+  promo: PromoPricing,
+  t: TFunction,
+  now: number = Date.now()
+): string {
+  const expiry = getPromoExpiry(promo)
+  if (expiry === null) return ''
+
+  const remaining = expiry - now
+  if (remaining <= 0) return ''
+
+  return t('Ends in {{time}}', {
+    time: formatPromoCountdown(remaining, t),
+  })
+}
+
 /** Caption fragment describing an active campaign, e.g. `50% off · Ends …`. */
 export function promoCaption(promo: PromoPricing, t: TFunction): string {
   return [promoOffLabel(promo, t), promoExpiryLabel(promo, t)]

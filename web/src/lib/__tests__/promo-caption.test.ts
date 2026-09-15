@@ -20,7 +20,9 @@ import type { TFunction } from 'i18next'
 import { describe, expect, test } from 'vitest'
 
 import {
+  formatPromoCountdown,
   promoCaption,
+  promoCountdownLabel,
   promoExpiryLabel,
   promoOffLabel,
 } from '@/lib/promo-caption'
@@ -74,5 +76,39 @@ describe('promo captions', () => {
     expect(
       promoCaption(makePromo({ expiresAt: LOCAL_DEADLINE.toISOString() }), t)
     ).toBe(`50% off · ${LOCAL_DEADLINE_LABEL}`)
+  })
+
+  test('renders the countdown as a clock, with days in front of it', () => {
+    expect(formatPromoCountdown(45_000, t)).toBe('00:00:45')
+    expect(
+      formatPromoCountdown(
+        2 * 86_400_000 + 5 * 3_600_000 + 12 * 60_000 + 33_000,
+        t
+      )
+    ).toBe('2d 05:12:33')
+  })
+
+  test('counts down to the deadline instead of printing it', () => {
+    const now =
+      LOCAL_DEADLINE.getTime() -
+      (3 * 86_400_000 + 12 * 3_600_000 + 34 * 60_000 + 56_000)
+
+    expect(promoCountdownLabel(makePromo(), t, now)).toBe('')
+    expect(
+      promoCountdownLabel(
+        makePromo({ expiresAt: LOCAL_DEADLINE.toISOString() }),
+        t,
+        now
+      )
+    ).toBe('Ends in 3d 12:34:56')
+  })
+
+  test('drops the countdown once the deadline is reached', () => {
+    const expiresAt = makePromo({ expiresAt: LOCAL_DEADLINE.toISOString() })
+
+    expect(promoCountdownLabel(expiresAt, t, LOCAL_DEADLINE.getTime())).toBe('')
+    expect(
+      promoCountdownLabel(expiresAt, t, LOCAL_DEADLINE.getTime() + 60_000)
+    ).toBe('')
   })
 })

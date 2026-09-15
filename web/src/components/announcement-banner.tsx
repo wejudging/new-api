@@ -21,6 +21,8 @@ import { Megaphone, Sparkles } from 'lucide-react'
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
 import { cn } from '@/lib/utils'
 
+import { PromoCountdown } from './promo-countdown'
+
 type AnnouncementBannerProps = {
   /** Active limited-time campaign, or `null` when there is none. */
   promo: AnnouncementBannerItem | null
@@ -53,7 +55,10 @@ function AnnouncementBannerText(props: {
                 aria-hidden
               />
             ) : null}
-            <span title={item.content}>{item.content}</span>
+            <span title={item.content}>
+              {item.content}
+              {item.campaign ? <PromoCountdown promo={item.campaign} /> : null}
+            </span>
           </div>
         ))}
       </div>

@@ -176,6 +176,15 @@ describe('time range expression parsing', () => {
     }
   })
 
+  test('keeps the condition source so pricing rows can print readable windows', () => {
+    const groups = tryParseRequestRuleExpr(
+      '(hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6 ? 2 : 1)'
+    )
+    expect(groups?.[0].conditionText).toBe(
+      'hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6'
+    )
+  })
+
   test.each([
     [
       'out-of-domain range bounds',

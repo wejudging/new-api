@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
 
@@ -95,5 +95,64 @@ describe('top banner rows', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toHaveTextContent('平台维护通知')
     expect(rows[0]).toHaveTextContent('新模型上线')
+  })
+})
+
+describe('live campaign countdown', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('ticks the campaign row down instead of printing the deadline', () => {
+    vi.useFakeTimers()
+    const deadline = new Date(2026, 9, 1, 12, 0, 0)
+    const remaining = 2 * 86_400_000 + 5 * 3_600_000 + 12 * 60_000 + 33_000
+    vi.setSystemTime(deadline.getTime() - remaining)
+
+    const campaignPromo: AnnouncementBannerItem = {
+      key: 'promo',
+      content: 'DeepSeek 全线限时半价 · 50% off',
+      campaign: {
+        enabled: true,
+        title: 'DeepSeek 全线限时半价',
+        expiresAt: deadline.toISOString(),
+        discount: 0.5,
+        models: ['deepseek*'],
+      },
+    }
+
+    render(<AnnouncementBanner promo={campaignPromo} announcements={[]} />)
+    const row = screen.getByRole('status')
+    expect(row).toHaveTextContent('Ends in 2d 05:12:33')
+    expect(row).not.toHaveTextContent('2026-10-01')
+
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+
+    expect(row).toHaveTextContent('Ends in 2d 05:12:32')
+  })
+
+  it('keeps the caption clean when the campaign has no deadline', () => {
+    render(
+      <AnnouncementBanner
+        promo={{
+          key: 'promo',
+          content: 'DeepSeek 全线限时半价 · 50% off',
+          campaign: {
+            enabled: true,
+            title: 'DeepSeek 全线限时半价',
+            expiresAt: '',
+            discount: 0.5,
+            models: ['deepseek*'],
+          },
+        }}
+        announcements={[]}
+      />
+    )
+
+    const row = screen.getByRole('status')
+    expect(row).toHaveTextContent('DeepSeek 全线限时半价 · 50% off')
+    expect(row.textContent).not.toMatch(/·\s*$/)
   })
 })
