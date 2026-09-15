@@ -214,8 +214,10 @@ func GrantTopUpLotteryTickets(db *gorm.DB, userId int, creditedQuota int) (int, 
 			return 0, err
 		}
 	}
+	// 列名必须是 GORM 由字段名推导出的 top_up_remainder：写成 topup_remainder
+	// 会命中不存在的列（SQLSTATE 42703），赠送次数因此永远结算不完。
 	err = db.Model(&CheckinLotteryTicketState{}).Where("user_id = ?", userId).
-		Update("topup_remainder", remainder).Error
+		Update("top_up_remainder", remainder).Error
 	if err != nil {
 		return 0, err
 	}
