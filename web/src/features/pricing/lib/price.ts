@@ -181,6 +181,9 @@ export function formatPrice(
 
 /**
  * Format price for a specific group (token-based)
+ *
+ * `discount` is the limited-time campaign multiplier (`1` = no campaign, `0.5`
+ * = half price) and is applied to the displayed amount.
  */
 export function formatGroupPrice(
   model: PricingModel,
@@ -190,7 +193,8 @@ export function formatGroupPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  groupRatio: Record<string, number>
+  groupRatio: Record<string, number>,
+  discount = 1
 ): string {
   if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -205,6 +209,7 @@ export function formatGroupPrice(
     priceRate,
     usdExchangeRate
   )
+  priceInUSD *= discount
 
   const price = priceInUSD / TOKEN_UNIT_DIVISORS[tokenUnit]
   return formatBillingCurrencyFromUSD(price, {
@@ -216,6 +221,8 @@ export function formatGroupPrice(
 
 /**
  * Format fixed price for pay-per-request models (with specific group)
+ *
+ * `discount` behaves the same way as in {@link formatPrice}.
  */
 export function formatFixedPrice(
   model: PricingModel,
@@ -223,7 +230,8 @@ export function formatFixedPrice(
   showWithRecharge = false,
   priceRate = 1,
   usdExchangeRate = 1,
-  groupRatio: Record<string, number>
+  groupRatio: Record<string, number>,
+  discount = 1
 ): string {
   if (model.quota_type !== QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -238,6 +246,7 @@ export function formatFixedPrice(
     priceRate,
     usdExchangeRate
   )
+  priceInUSD *= discount
 
   return formatBillingCurrencyFromUSD(priceInUSD, {
     digitsLarge: 4,

@@ -37,7 +37,7 @@ type PromoPriceProps = {
  */
 export function PromoPrice(props: PromoPriceProps) {
   const { original, promo, className } = props
-  if (!promo || promo === original) return <>{original}</>
+  if (!promo || promo === original) return original
 
   return (
     <span

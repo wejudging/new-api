@@ -56,8 +56,10 @@ import {
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
+import { usePromoPricing } from '@/hooks/use-promo-pricing'
 import { isSingleGroupScope } from '@/lib/group-visibility'
 import { getLobeIcon } from '@/lib/lobe-icon'
+import { promoCaption } from '@/lib/promo-caption'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -104,6 +106,7 @@ import { DynamicPricingBreakdown } from './dynamic-pricing-breakdown'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelDetailsApi } from './model-details-api'
 import { ModelDetailsPerformance } from './model-details-performance'
+import { PromoPrice } from './promo-price'
 
 // ----------------------------------------------------------------------------
 // Local UI helpers
@@ -672,28 +675,71 @@ function PriceSection(props: {
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
   const currency = useSystemConfigStore((state) => state.config.currency)
   const billingTime = useBillingTime(props.model.billing_expr)
-  const dynamicSummary = useMemo(
-    () =>
-      getDynamicPricingSummary(props.model, {
-        now: billingTime === undefined ? undefined : new Date(billingTime),
-        tokenUnit: props.tokenUnit,
-        showRechargePrice: props.showRechargePrice,
-        priceRate: props.priceRate,
-        usdExchangeRate: props.usdExchangeRate,
-        groupRatioMultiplier: 1,
-      }),
-    // Currency is read indirectly by the price formatter.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { promo, getDiscount } = usePromoPricing()
+  const discount = getDiscount(props.model.model_name) ?? 1
+  const hasPromo = discount !== 1
+  const dynamicPriceOptions = useMemo(
+    () => ({
+      now: billingTime === undefined ? undefined : new Date(billingTime),
+      tokenUnit: props.tokenUnit,
+      showRechargePrice: props.showRechargePrice,
+      priceRate: props.priceRate,
+      usdExchangeRate: props.usdExchangeRate,
+      discount,
+      groupRatioMultiplier: 1,
+    }),
     [
-      props.model,
       props.tokenUnit,
       props.showRechargePrice,
       props.priceRate,
       props.usdExchangeRate,
       billingTime,
-      currency,
+      discount,
     ]
   )
+  const dynamicSummary = useMemo(
+    () => getDynamicPricingSummary(props.model, dynamicPriceOptions),
+    // Currency is read indirectly by the price formatter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.model, dynamicPriceOptions, currency]
+  )
+  const baseEntriesByKey = useMemo(() => {
+    if (!hasPromo) return new Map<string, DynamicPriceEntry>()
+
+    const summary = getDynamicPricingSummary(props.model, {
+      ...dynamicPriceOptions,
+      discount: 1,
+    })
+    const entries = [
+      ...(summary?.primaryEntries ?? []),
+      ...(summary?.secondaryEntries ?? []),
+    ]
+    return new Map(entries.map((entry) => [entry.key, entry]))
+  }, [props.model, dynamicPriceOptions, hasPromo])
+
+  /** Regular price struck through next to the campaign price, when active. */
+  const renderEntryPrice = (entry: DynamicPriceEntry) => {
+    const baseEntry = baseEntriesByKey.get(entry.key)
+    return (
+      <PromoPrice
+        original={
+          baseEntry?.formattedRange ??
+          baseEntry?.formatted ??
+          entry.formattedRange ??
+          entry.formatted
+        }
+        promo={
+          baseEntry ? (entry.formattedRange ?? entry.formatted) : undefined
+        }
+      />
+    )
+  }
+  const promoFootnote =
+    promo && hasPromo ? (
+      <p className='mt-2 text-xs font-medium text-red-500'>
+        {promoCaption(promo, t)}
+      </p>
+    ) : null
 
   const primaryPriceTypes: { label: string; type: PriceType }[] = [
     { label: t('Input'), type: 'input' },
@@ -796,7 +842,7 @@ function PriceSection(props: {
                     <DynamicPriceEntryLabel entry={entry} />
                   </div>
                   <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
-                    {entry.formattedRange ?? entry.formatted}
+                    {renderEntryPrice(entry)}
                     <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
                       / {unitLabel}
                     </span>
@@ -831,7 +877,7 @@ function PriceSection(props: {
                       <DynamicPriceEntryLabel entry={entry} />
                     </span>
                     <span className='text-muted-foreground font-mono text-sm tabular-nums'>
-                      {entry.formattedRange ?? entry.formatted}
+                      {renderEntryPrice(entry)}
                       <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
                         / {unitLabel}
                       </span>
@@ -842,6 +888,7 @@ function PriceSection(props: {
             </div>
           </div>
         )}
+        {promoFootnote}
       </section>
     )
   }
@@ -864,16 +911,32 @@ function PriceSection(props: {
             {t('Per request')}
           </span>
           <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
-            {formatFixedPrice(
-              props.model,
-              baseGroupKey,
-              props.showRechargePrice,
-              props.priceRate,
-              props.usdExchangeRate,
-              baseGroupRatioMap
-            )}
+            <PromoPrice
+              original={formatFixedPrice(
+                props.model,
+                baseGroupKey,
+                props.showRechargePrice,
+                props.priceRate,
+                props.usdExchangeRate,
+                baseGroupRatioMap
+              )}
+              promo={
+                hasPromo
+                  ? formatFixedPrice(
+                      props.model,
+                      baseGroupKey,
+                      props.showRechargePrice,
+                      props.priceRate,
+                      props.usdExchangeRate,
+                      baseGroupRatioMap,
+                      discount
+                    )
+                  : undefined
+              }
+            />
           </span>
         </div>
+        {promoFootnote}
       </section>
     )
   }
@@ -881,16 +944,33 @@ function PriceSection(props: {
   const secondaryItems = secondaryPriceTypes.filter((p) => p.available)
   const renderPrice = (type: PriceType) => (
     <>
-      {formatGroupPrice(
-        props.model,
-        baseGroupKey,
-        type,
-        props.tokenUnit,
-        props.showRechargePrice,
-        props.priceRate,
-        props.usdExchangeRate,
-        baseGroupRatioMap
-      )}
+      <PromoPrice
+        original={formatGroupPrice(
+          props.model,
+          baseGroupKey,
+          type,
+          props.tokenUnit,
+          props.showRechargePrice,
+          props.priceRate,
+          props.usdExchangeRate,
+          baseGroupRatioMap
+        )}
+        promo={
+          hasPromo
+            ? formatGroupPrice(
+                props.model,
+                baseGroupKey,
+                type,
+                props.tokenUnit,
+                props.showRechargePrice,
+                props.priceRate,
+                props.usdExchangeRate,
+                baseGroupRatioMap,
+                discount
+              )
+            : undefined
+        }
+      />
       <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
         / {tokenUnitLabel}
       </span>
@@ -929,6 +1009,7 @@ function PriceSection(props: {
           </div>
         </div>
       )}
+      {promoFootnote}
     </section>
   )
 }

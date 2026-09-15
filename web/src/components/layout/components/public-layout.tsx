@@ -41,9 +41,8 @@ export function PublicLayout(props: PublicLayoutProps) {
   return (
     <div className='bg-background text-foreground relative min-h-svh overflow-x-clip'>
       <AnnouncementBanner
-        items={banner.items}
-        visible={banner.visible}
-        onDismiss={banner.dismiss}
+        promo={banner.promo}
+        announcements={banner.announcements}
         className='fixed inset-x-0 top-0 z-60'
       />
       <PublicHeader

@@ -51,9 +51,8 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
         >
           <SkipToMain />
           <AnnouncementBanner
-            items={banner.items}
-            visible={banner.visible}
-            onDismiss={banner.dismiss}
+            promo={banner.promo}
+            announcements={banner.announcements}
           />
           <AppHeader />
           <div className='flex min-h-0 w-full flex-1'>

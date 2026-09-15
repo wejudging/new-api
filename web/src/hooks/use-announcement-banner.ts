@@ -17,44 +17,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { promoCaption } from '@/lib/promo-caption'
 import type { PromoPricing } from '@/lib/promo-pricing'
-import { useAnnouncementBannerStore } from '@/stores/announcement-banner-store'
 
 import { useNotifications } from './use-notifications'
 import { usePromoPricing } from './use-promo-pricing'
 
-/** Height of the banner row, consumed by the app shell for its scroll math. */
+/** Height of one banner row, consumed by the app shell for its scroll math. */
 export const ANNOUNCEMENT_BANNER_HEIGHT = '2.25rem'
 
-/** Newest announcements shown in the top row; the rest stay in the popover. */
+/** Newest announcements shown in the announcement row. */
 const MAX_BANNER_ANNOUNCEMENTS = 5
 
 export type AnnouncementBannerItem = {
   key: string
   content: string
-  tone: 'promo' | 'default' | 'ongoing' | 'success' | 'warning' | 'error'
 }
 
 function collapseWhitespace(input: string): string {
   return input.replaceAll(/\s+/g, ' ').trim()
-}
-
-function toTone(type: unknown): AnnouncementBannerItem['tone'] {
-  if (typeof type !== 'string') return 'default'
-  if (
-    type === 'promo' ||
-    type === 'ongoing' ||
-    type === 'success' ||
-    type === 'warning' ||
-    type === 'error'
-  ) {
-    return type
-  }
-  return 'default'
 }
 
 function buildPromoItem(
@@ -67,19 +51,13 @@ function buildPromoItem(
   return {
     key: 'promo',
     content: `${title} · ${promoCaption(promo, t)}`,
-    tone: 'promo',
   }
 }
 
-function buildBannerItems(
-  announcements: Record<string, unknown>[],
-  promo: PromoPricing | null,
-  t: TFunction
+function buildAnnouncementItems(
+  announcements: Record<string, unknown>[]
 ): AnnouncementBannerItem[] {
   const items: AnnouncementBannerItem[] = []
-
-  const promoItem = buildPromoItem(promo, t)
-  if (promoItem) items.push(promoItem)
 
   for (const announcement of announcements.slice(0, MAX_BANNER_ANNOUNCEMENTS)) {
     const content = collapseWhitespace(String(announcement.content ?? ''))
@@ -89,7 +67,6 @@ function buildBannerItems(
     items.push({
       key: `announcement:${announcement.id ?? content}`,
       content: extra ? `${content} · ${extra}` : content,
-      tone: toTone(announcement.type),
     })
   }
 
@@ -97,37 +74,29 @@ function buildBannerItems(
 }
 
 /**
- * Feeds the top announcement row: the active limited-time campaign plus the
- * newest platform announcements.
+ * Feeds the two top rows of the app shell: the active limited-time campaign,
+ * then the newest platform announcements. Each row keeps its own height and is
+ * dropped entirely while it has nothing to show.
  */
 export function useAnnouncementBanner() {
   const { t } = useTranslation()
   const { announcements } = useNotifications()
   const { promo } = usePromoPricing()
-  const dismissedSignature = useAnnouncementBannerStore(
-    (state) => state.dismissedSignature
-  )
-  const dismiss = useAnnouncementBannerStore((state) => state.dismiss)
 
-  const items = useMemo(
-    () => buildBannerItems(announcements, promo, t),
-    [announcements, promo, t]
+  const promoItem = useMemo(() => buildPromoItem(promo, t), [promo, t])
+  const announcementItems = useMemo(
+    () => buildAnnouncementItems(announcements),
+    [announcements]
   )
-  const signature = useMemo(
-    () => items.map((item) => item.content).join('|'),
-    [items]
-  )
-  const visible = items.length > 0 && signature !== dismissedSignature
-
-  const handleDismiss = useCallback(
-    () => dismiss(signature),
-    [dismiss, signature]
-  )
+  const rowCount = (promoItem ? 1 : 0) + (announcementItems.length > 0 ? 1 : 0)
 
   return {
-    items,
-    visible,
-    height: visible ? ANNOUNCEMENT_BANNER_HEIGHT : '0px',
-    dismiss: handleDismiss,
+    promo: promoItem,
+    announcements: announcementItems,
+    visible: rowCount > 0,
+    height:
+      rowCount === 0
+        ? '0px'
+        : `calc(${rowCount} * ${ANNOUNCEMENT_BANNER_HEIGHT})`,
   }
 }
