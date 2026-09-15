@@ -90,6 +90,11 @@ export function useSidebarData(): SidebarData {
             icon: Activity,
           },
           {
+            title: t('Rankings'),
+            url: '/rankings',
+            icon: Trophy,
+          },
+          {
             title: t('Check-in draw'),
             url: '/checkin',
             icon: Gift,
@@ -108,11 +113,6 @@ export function useSidebarData(): SidebarData {
             title: t('Security & Access'),
             url: '/security',
             icon: ShieldCheck,
-          },
-          {
-            title: t('Rankings'),
-            url: '/rankings',
-            icon: Trophy,
           },
           {
             title: t('Model Square'),
