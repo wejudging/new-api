@@ -28,8 +28,24 @@ import { drawCheckinLottery } from '../api'
 import type { CheckinLotteryDrawResult } from '../types'
 import { CHECKIN_LOTTERY_QUERY_KEY } from './use-checkin-lottery'
 
-/** Interval between two highlighted prize chips while a draw is in flight. */
-const ROLL_INTERVAL_MS = 90
+/**
+ * How long the roll keeps spinning before the prize is revealed. The API
+ * normally answers in a few hundred milliseconds, so without a floor the
+ * highlight would blink once and jump straight to the result, which reads as
+ * a glitch rather than a draw.
+ */
+const MIN_DRAW_ANIMATION_MS = 2600
+
+/** Highlight speed at the start and at the end of the roll, in milliseconds. */
+const ROLL_START_INTERVAL_MS = 70
+const ROLL_END_INTERVAL_MS = 260
+
+/** Resolves after `ms`, used to hold the reveal until the roll has played. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 function isTurnstileError(message?: string): boolean {
   return typeof message === 'string' && message.includes('Turnstile')
@@ -71,23 +87,40 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
     }
     const count = optionsRef.current.prizeCount
     if (count <= 0) return
-    const timer = window.setInterval(() => {
+    const startedAt = Date.now()
+    let timer = 0
+    const roll = () => {
       setRollingIndex((current) => {
         const next = current == null ? 0 : current + 1
         return next % count
       })
-    }, ROLL_INTERVAL_MS)
-    return () => window.clearInterval(timer)
+      const progress = Math.min(
+        (Date.now() - startedAt) / MIN_DRAW_ANIMATION_MS,
+        1
+      )
+      // Ease out: sprint through the pool first, then glide to a stop so the
+      // reveal lands as a punchline instead of an instant flash.
+      const delay =
+        ROLL_START_INTERVAL_MS +
+        (ROLL_END_INTERVAL_MS - ROLL_START_INTERVAL_MS) * progress ** 2
+      timer = window.setTimeout(roll, delay)
+    }
+    timer = window.setTimeout(roll, ROLL_START_INTERVAL_MS)
+    return () => window.clearTimeout(timer)
   }, [drawing])
 
   const draw = useCallback(
     async (turnstileToken?: string) => {
       setDrawing(true)
       setErrorMessage(null)
+      // Start the roll timer next to the request: the reveal waits for
+      // whichever finishes last, so a fast API still shows the full animation.
+      const reveal = sleep(MIN_DRAW_ANIMATION_MS)
       try {
         const res = await drawCheckinLottery(turnstileToken)
         if (res.success && res.data) {
           const drawn = res.data
+          await reveal
           setResult(drawn)
           setTurnstileOpen(false)
 

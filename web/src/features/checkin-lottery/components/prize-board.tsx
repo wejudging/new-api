@@ -47,7 +47,7 @@ export function PrizeBoard(props: PrizeBoardProps) {
     <div
       className={cn(
         'grid grid-cols-4 gap-2 sm:gap-3',
-        props.disabled && 'opacity-60'
+        props.disabled && 'select-none'
       )}
     >
       {props.prizes.map((prize, index) => {
@@ -65,8 +65,9 @@ export function PrizeBoard(props: PrizeBoardProps) {
               'relative flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 transition-all duration-200 sm:py-4',
               'border-border/70 bg-card',
               isRolling &&
-                'border-primary bg-primary/10 scale-[1.04] shadow-sm',
-              isWon && 'border-success bg-success/10 shadow-sm',
+                'border-primary bg-primary/10 scale-[1.06] shadow-sm',
+              isWon &&
+                'border-success bg-success/10 animate-in zoom-in-50 fade-in shadow-sm duration-500',
               !isRolling && !isWon && 'hover:border-primary/40'
             )}
           >
