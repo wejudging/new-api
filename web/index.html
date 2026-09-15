@@ -14,6 +14,20 @@
     />
 
     <meta name="theme-color" content="#fff" />
+    <!--
+      Branding that cannot come from the script below: Safari never paints an
+      SVG favicon and reads the "add to dock / home screen" artwork from the
+      markup instead of from the DOM, so the raster links have to be static.
+    -->
+    <link id="app-icon" rel="icon" href="/logo.png" />
+    <link rel="shortcut icon" href="/logo.png" />
+    <link
+      id="app-touch-icon"
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/apple-touch-icon.png"
+    />
+    <link rel="manifest" href="/manifest.json" />
     <script>
       // Apply the cached branding before the document starts painting so a
       // refresh never flashes the bundled default title or logo while
@@ -32,10 +46,20 @@
           /* keep the bundled defaults when the cache is missing or malformed */
         }
         document.title = title
-        var icon = document.createElement('link')
-        icon.rel = 'icon'
+        var icon = document.getElementById('app-icon')
+        if (!icon) {
+          icon = document.createElement('link')
+          icon.rel = 'icon'
+          document.head.appendChild(icon)
+        }
         icon.href = logo
-        document.head.appendChild(icon)
+
+        // iOS and macOS only accept raster artwork for the home screen icon,
+        // so a custom SVG logo keeps falling back to the bundled PNG.
+        var touchIcon = document.getElementById('app-touch-icon')
+        if (touchIcon && /\.(png|jpe?g|webp)($|\?)/i.test(logo)) {
+          touchIcon.href = logo
+        }
       })()
     </script>
     <!--umami-->
