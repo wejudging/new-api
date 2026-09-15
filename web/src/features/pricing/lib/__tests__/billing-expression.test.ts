@@ -138,6 +138,21 @@ describe('local billing expression evaluation', () => {
       formatBillingCondition(`!(${peakCondition})`, translations.t, 'zh')
     ).toBe('周一至周五 09:00至12:00或14:00至18:00以外的时段（Asia/Shanghai）')
   })
+  test('reads a month and day bound as one campaign window', async () => {
+    const translations = createInstance()
+    await translations.init({ lng: 'zh', resources: { zh } })
+    const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
+    expect(formatBillingCondition(condition, translations.t, 'zh')).toBe(
+      '9月1日至9月20日（Asia/Shanghai）'
+    )
+    expect(
+      formatBillingCondition(
+        `${condition} && hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12`,
+        translations.t,
+        'zh'
+      )
+    ).toBe('9月1日至9月20日 09:00至12:00（Asia/Shanghai）')
+  })
   test('keeps log prices tied to the recorded tier regardless of the current time', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-09-07T10:00:00+08:00'))

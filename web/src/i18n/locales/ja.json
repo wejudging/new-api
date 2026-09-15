@@ -1877,6 +1877,7 @@
     "Not on the leaderboard yet, try your luck today": "まだランク外です。今日の運試しをどうぞ",
     "Number of prize tiers on the board, laid out over four columns. Tiers collapse automatically when the range is too narrow to split.": "賞品ボードに表示する段階数。フロントは 4 列で表示します。金額幅が狭すぎる場合は自動的に統合されます。",
     "One extra draw per ¥{{amount}} credited, never expires": "¥{{amount}} の入金ごとに 1 回、無期限で有効",
+    "Price before discount": "割引前の金額",
     "Pricing page preview:": "価格ページのプレビュー：",
     "Prize paid out": "賞品を付与しました",
     "Prize pool": "景品プール",

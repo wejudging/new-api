@@ -1877,6 +1877,7 @@
     "Not on the leaderboard yet, try your luck today": "暫未上榜，今天來試試手氣",
     "Number of prize tiers on the board, laid out over four columns. Tiers collapse automatically when the range is too narrow to split.": "獎池展示的檔位數量，前台按四列鋪開。當金額範圍過窄無法拆分時會自動合併檔位。",
     "One extra draw per ¥{{amount}} credited, never expires": "每累計到帳 ¥{{amount}} 贈送 1 次，永久有效",
+    "Price before discount": "折前金額",
     "Pricing page preview:": "定價頁預覽：",
     "Prize paid out": "已發放獎勵",
     "Prize pool": "獎池",

@@ -71,27 +71,9 @@ function describeTimeRange(
   locale: string
 ): Description | null {
   const first = comparisons[0]
-  let [start, end] = DOMAINS[first.name]
-  for (const comparison of comparisons) {
-    switch (comparison.operator) {
-      case '>=':
-        start = Math.max(start, comparison.value)
-        break
-      case '>':
-        start = Math.max(start, comparison.value + 1)
-        break
-      case '<':
-        end = Math.min(end, comparison.value)
-        break
-      case '<=':
-        end = Math.min(end, comparison.value + 1)
-        break
-      case '==':
-        start = Math.max(start, comparison.value)
-        end = Math.min(end, comparison.value + 1)
-        break
-    }
-  }
+  const range = resolveTimeRange(comparisons)
+  if (!range) return null
+  const [start, end] = range
   if (start >= end) return null
   let text: string
   let kind: Description['kind'] = 'calendar'
@@ -126,6 +108,88 @@ function describeTimeRange(
     text = `${t(labels[first.name])}: ${values}`
   }
   return { text, kind, timezone: first.timezone }
+}
+
+/** Half-open `[start, end)` window covered by comparisons of one time unit. */
+function resolveTimeRange(
+  comparisons: TimeComparison[]
+): [number, number] | null {
+  const first = comparisons[0]
+  if (!first) return null
+  let [start, end] = DOMAINS[first.name]
+  for (const comparison of comparisons) {
+    switch (comparison.operator) {
+      case '>=':
+        start = Math.max(start, comparison.value)
+        break
+      case '>':
+        start = Math.max(start, comparison.value + 1)
+        break
+      case '<':
+        end = Math.min(end, comparison.value)
+        break
+      case '<=':
+        end = Math.min(end, comparison.value + 1)
+        break
+      case '==':
+        start = Math.max(start, comparison.value)
+        end = Math.min(end, comparison.value + 1)
+        break
+    }
+  }
+  return start < end ? [start, end] : null
+}
+
+/**
+ * `month(…) && day(…)` pairs read far better as one date span — `9月1日至9月20日`
+ * instead of two separate calendar fragments. The year stays out of the
+ * condition text, so a leap year is used to keep February 29th addressable.
+ */
+function describeMonthDaySpan(
+  monthComparisons: TimeComparison[],
+  dayComparisons: TimeComparison[],
+  t: Translate,
+  locale: string
+): Description | null {
+  const month = monthComparisons[0]
+  const day = dayComparisons[0]
+  if (!month || !day || month.timezone !== day.timezone) return null
+  const monthRange = resolveTimeRange(monthComparisons)
+  const dayRange = resolveTimeRange(dayComparisons)
+  if (!monthRange || !dayRange) return null
+  const [monthStart, monthEnd] = monthRange
+  // Spans crossing month boundaries are left to the plain calendar wording.
+  if (monthEnd - monthStart !== 1) return null
+
+  const daysInMonth = new Date(Date.UTC(2024, monthStart, 0)).getUTCDate()
+  const firstDay = dayRange[0]
+  const lastDay = Math.min(dayRange[1] - 1, daysInMonth)
+  if (firstDay > lastDay) return null
+
+  const intlLocale = locale === 'zhCN' ? 'zh-CN' : locale
+  const dayLabel = (value: number) =>
+    new Intl.DateTimeFormat(intlLocale, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2024, monthStart - 1, value)))
+  const wholeMonth = firstDay === 1 && lastDay === daysInMonth
+  let text: string
+  if (wholeMonth) {
+    text = new Intl.DateTimeFormat(intlLocale, {
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2024, monthStart - 1, 1)))
+  } else if (firstDay === lastDay) {
+    text = dayLabel(firstDay)
+  } else {
+    text = t('{{start}}–{{end}}', {
+      start: dayLabel(firstDay),
+      end: dayLabel(lastDay),
+    })
+  }
+
+  return { text, kind: 'calendar', timezone: month.timezone }
 }
 
 function describeBillingCondition(
@@ -186,7 +250,21 @@ function describeBillingCondition(
         parts.push(description)
       }
     }
-    for (const range of ranges.values()) {
+    // A month bound plus a day bound is one calendar window, so fold the pair
+    // into a single date span and keep the position of whichever came first.
+    const entries = [...ranges.entries()]
+    const months = entries.filter(([key]) => key.startsWith('month:'))
+    const days = entries.filter(([key]) => key.startsWith('day:'))
+    const span =
+      months.length === 1 && days.length === 1
+        ? describeMonthDaySpan(months[0][1], days[0][1], t, locale)
+        : null
+    const spannedKeys = span ? new Set([months[0][0], days[0][0]]) : null
+    for (const [key, range] of entries) {
+      if (span && spannedKeys?.has(key)) {
+        if (key === months[0][0]) parts.push(span)
+        continue
+      }
       const description = describeTimeRange(range, t, locale)
       if (!description) return null
       parts.push(description)

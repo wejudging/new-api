@@ -21,6 +21,8 @@ import { render, screen, within } from '@testing-library/react'
 import i18next from 'i18next'
 import { afterEach, beforeAll, describe, expect, test } from 'vitest'
 
+import { formatLogQuota } from '@/lib/format'
+
 import type { UsageLog } from '../../data/schema'
 import type { LogOtherData } from '../../types'
 import { DetailsDialog } from '../dialogs/details-dialog'
@@ -36,6 +38,9 @@ const i18nKeys = {
   'Group Ratio': 'Group Ratio',
   'Total Cost': 'Total Cost',
   'Usage parameters': 'Usage parameters',
+  Discount: 'Discount',
+  'Price before discount': 'Price before discount',
+  '{{percent}}% off': '{{percent}}% off',
 }
 
 function makeLog(other: LogOtherData): UsageLog {
@@ -215,5 +220,44 @@ describe('usage facts billing details', () => {
     expect(screen.queryByText('resolution')).toBeNull()
     expect(screen.queryByText('seconds')).toBeNull()
     expect(screen.getByText('Total Cost')).toBeInTheDocument()
+  })
+
+  test('names the campaign discount and the price it started from', () => {
+    const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
+    queryClients.push(
+      renderDetails({
+        group_ratio: 1,
+        billing_mode: 'tiered_expr',
+        expr_b64: btoa(
+          `tier("off_peak", p * 0.4 + c * 1.6) * (${condition} ? 0.5 : 1)`
+        ),
+        matched_tier: 'off_peak',
+        request_rules: [{ cond: condition, multiplier: 0.5, matched: true }],
+      })
+    )
+
+    expect(rowValue('Discount')).toBe('50% off')
+    // The settled 5000 quota is the discounted half of the campaign price.
+    expect(rowValue('Price before discount')).toBe(formatLogQuota(10000))
+    expect(rowValue('Total Cost')).toBe(formatLogQuota(5000))
+  })
+
+  test('leaves the price story untouched when no discount rule fired', () => {
+    queryClients.push(
+      renderDetails({
+        group_ratio: 1,
+        request_rules: [
+          {
+            cond: 'hour("Asia/Shanghai") >= 9',
+            multiplier: 0.5,
+            matched: false,
+          },
+        ],
+      })
+    )
+
+    expect(screen.queryByText('Discount')).toBeNull()
+    expect(screen.queryByText('Price before discount')).toBeNull()
+    expect(rowValue('Total Cost')).toBe(formatLogQuota(5000))
   })
 })

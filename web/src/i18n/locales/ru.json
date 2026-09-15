@@ -1877,6 +1877,7 @@
     "Not on the leaderboard yet, try your luck today": "Вы пока не в рейтинге — испытайте удачу сегодня",
     "Number of prize tiers on the board, laid out over four columns. Tiers collapse automatically when the range is too narrow to split.": "Число призов на доске, по четыре в ряд. При слишком узком диапазоне призы объединяются автоматически.",
     "One extra draw per ¥{{amount}} credited, never expires": "1 билет за каждые ¥{{amount}} пополнения, без срока",
+    "Price before discount": "Цена до скидки",
     "Pricing page preview:": "Предпросмотр на странице цен:",
     "Prize paid out": "Приз начислен",
     "Prize pool": "Пул призов",

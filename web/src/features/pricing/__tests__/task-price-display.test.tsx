@@ -93,6 +93,34 @@ it('prints request rule multipliers as time windows instead of expression source
   expect(screen.queryByText(/hour\(/)).not.toBeInTheDocument()
 })
 
+it('presents a conditional discount as a limited-time offer', () => {
+  const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
+  render(
+    <DynamicPricingBreakdown
+      billingExpr={`tier("off_peak", p * 0.4 + c * 1.6) * (${condition} ? 0.5 : 1)`}
+    />
+  )
+
+  expect(screen.getByText('Limited-time offer')).toBeInTheDocument()
+  expect(screen.getByText('50% off')).toBeInTheDocument()
+  expect(screen.getByText('Sep 1–Sep 20 (Asia/Shanghai)')).toBeInTheDocument()
+  expect(screen.queryByText('Conditional multipliers')).not.toBeInTheDocument()
+  expect(screen.queryByText(/month\(/)).not.toBeInTheDocument()
+})
+
+it('keeps the multiplier wording for surcharges that raise the price', () => {
+  const condition = 'hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12'
+  render(
+    <DynamicPricingBreakdown
+      billingExpr={`tier("peak", p * 3 + c * 9) * (${condition} ? 2 : 1)`}
+    />
+  )
+
+  expect(screen.getByText('Conditional multipliers')).toBeInTheDocument()
+  expect(screen.getByText('2x')).toBeInTheDocument()
+  expect(screen.queryByText('Limited-time offer')).not.toBeInTheDocument()
+})
+
 const model: PricingModel = {
   id: 1,
   model_name: 'incho_music',

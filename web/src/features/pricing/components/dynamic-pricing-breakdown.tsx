@@ -53,6 +53,10 @@ import {
   type DynamicPriceLabelKind,
   type DynamicPriceOptions,
 } from '../lib/dynamic-price'
+import {
+  ruleDiscountLabel,
+  ruleDiscountPercent,
+} from '../lib/request-rule-discount'
 import { getTaskPricingDisplayTiers } from '../lib/task-matrix-display'
 import {
   taskPriceLabel,
@@ -336,6 +340,11 @@ export function DynamicPricingBreakdown({
 
   const hasTiers = tiers.length > 0
   const hasRules = ruleGroups.length > 0
+  // Rules that lower the price are a campaign customers can read, so the block
+  // stops being a technical list of conditional multipliers.
+  const hasDiscountOffer = ruleGroups.some(
+    (group) => ruleDiscountPercent(group.multiplier) > 0
+  )
 
   if (!expr) return null
 
@@ -706,11 +715,14 @@ export function DynamicPricingBreakdown({
                 : 'text-foreground mb-2 text-sm font-semibold'
             }
           >
-            {t('Conditional multipliers')}
+            {hasDiscountOffer
+              ? t('Limited-time offer')
+              : t('Conditional multipliers')}
           </div>
           <ul className='space-y-1.5'>
             {ruleGroups.map((group) => {
               const isMatched = group.matched === true
+              const offPercent = ruleDiscountPercent(group.multiplier)
               const rowKey = nextOccurrenceKey(
                 `${group.conditionText || JSON.stringify(group.conditions)}:${group.multiplier}`,
                 requestRuleKeyOccurrences
@@ -734,12 +746,18 @@ export function DynamicPricingBreakdown({
                   <Badge
                     variant='secondary'
                     className={cn(
-                      'shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
+                      'shrink-0',
+                      offPercent > 0
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
+                        : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
                       isMatched &&
                         'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                     )}
                   >
-                    {group.multiplier}x{isMatched && ` · ${t('Matched')}`}
+                    {offPercent > 0
+                      ? ruleDiscountLabel(offPercent, t)
+                      : `${group.multiplier}x`}
+                    {isMatched && ` · ${t('Matched')}`}
                   </Badge>
                 </li>
               )

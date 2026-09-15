@@ -60,6 +60,10 @@ import { DynamicPricingBreakdown } from '@/features/pricing/components/dynamic-p
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import { BILLING_PRICING_VARS } from '@/features/pricing/lib/billing-expr'
 import { pluginUsageSchema } from '@/features/pricing/lib/plugin-pricing'
+import {
+  matchedDiscountPercent,
+  ruleDiscountLabel,
+} from '@/features/pricing/lib/request-rule-discount'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
@@ -339,6 +343,15 @@ function BillingBreakdown(props: {
       ? Object.entries(other.usage_facts)
       : []
 
+  // Request rules that lowered the price leave no trace in the settled amount,
+  // so surface the campaign and the undiscounted price next to the total.
+  const discountPercent = matchedDiscountPercent(other.request_rules)
+  const discountFactor = 1 - discountPercent / 100
+  const originalQuota =
+    discountPercent > 0 && log.quota > 0
+      ? Math.round(log.quota / discountFactor)
+      : null
+
   return (
     <DetailSection label={t('Billing Details')}>
       {rows.map((row) => (
@@ -359,9 +372,40 @@ function BillingBreakdown(props: {
           ))}
         </>
       )}
+      {discountPercent > 0 && (
+        <DetailRow
+          label={t('Discount')}
+          mono
+          value={
+            <span className='font-semibold text-rose-600 dark:text-rose-400'>
+              {ruleDiscountLabel(discountPercent, t)}
+            </span>
+          }
+        />
+      )}
+      {originalQuota !== null && (
+        <DetailRow
+          label={t('Price before discount')}
+          mono
+          muted
+          value={
+            <span className='line-through decoration-1'>
+              {formatLogQuota(originalQuota)}
+            </span>
+          }
+        />
+      )}
       <DetailRow
         label={t('Total Cost')}
-        value={formatLogQuota(log.quota)}
+        value={
+          discountPercent > 0 ? (
+            <span className='font-semibold text-rose-600 dark:text-rose-400'>
+              {formatLogQuota(log.quota)}
+            </span>
+          ) : (
+            formatLogQuota(log.quota)
+          )
+        }
         mono
       />
     </DetailSection>
