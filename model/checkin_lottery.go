@@ -185,14 +185,14 @@ func GrantDailyLotteryTickets(db *gorm.DB, userId int, dailyDraws int) (int, err
 }
 
 // GrantTopUpLotteryTickets 按累计充值到账额度赠送抽奖次数（不参与每日封顶，也不会过期）
+//
+// 只受赠送门槛控制（门槛 <= 0 即关闭），与「启用签到」开关无关：
+// 抽奖功能临时关闭时赠送的次数会留着，重新开启后依然可用。
 func GrantTopUpLotteryTickets(db *gorm.DB, userId int, creditedQuota int) (int, error) {
 	if db == nil {
 		db = DB
 	}
 	if operation_setting.GetCheckinTopUpStepQuota() <= 0 || creditedQuota <= 0 {
-		return 0, nil
-	}
-	if !operation_setting.IsCheckinEnabled() {
 		return 0, nil
 	}
 

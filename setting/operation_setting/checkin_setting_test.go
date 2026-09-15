@@ -104,8 +104,9 @@ func stubQuotaUnits(t *testing.T) {
 
 func TestCheckinTopUpTicketsUseTheCreditedAmount(t *testing.T) {
 	stubQuotaUnits(t)
+	// 赠送只受门槛控制：即使签到抽奖暂时关闭，门槛换算依然生效
 	withCheckinSetting(t, CheckinSetting{
-		Enabled:          true,
+		Enabled:          false,
 		DailyDraws:       1,
 		TopUpYuanPerDraw: 10,
 	})
@@ -153,7 +154,7 @@ func TestCheckinTopUpTicketsAccumulateAcrossOrders(t *testing.T) {
 func TestCheckinTopUpTicketsStayOffWhenDisabled(t *testing.T) {
 	stubQuotaUnits(t)
 	withCheckinSetting(t, CheckinSetting{
-		Enabled:          true,
+		Enabled:          false,
 		DailyDraws:       1,
 		TopUpYuanPerDraw: 0,
 	})
