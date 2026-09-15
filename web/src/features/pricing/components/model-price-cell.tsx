@@ -19,7 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { usePromoPricing } from '@/hooks/use-promo-pricing'
 import { getCurrencyLabel } from '@/lib/currency'
+import { promoCaption } from '@/lib/promo-caption'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { DEFAULT_TOKEN_UNIT } from '../constants'
@@ -34,6 +36,7 @@ import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
 import { taskUsageUnitLabel } from '../lib/task-price-display'
 import type { PricingModel, TokenUnit } from '../types'
+import { PromoPrice } from './promo-price'
 
 export type ModelPriceCellOptions = {
   tokenUnit?: TokenUnit
@@ -56,21 +59,22 @@ export function ModelPriceCell(props: {
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const billingTime = useBillingTime(props.model.billing_expr)
-  const dynamic = useMemo(
-    () =>
-      getDynamicPricingSummary(props.model, {
-        priceRate: options.priceRate,
-        usdExchangeRate: options.usdExchangeRate,
-        showRechargePrice: options.showRechargePrice,
-        now: billingTime === undefined ? undefined : new Date(billingTime),
-        tokenUnit,
-        showCurrencySymbol: false,
-        groupRatioMultiplier: getDynamicDisplayGroupRatio(
-          props.model,
-          options.selectedGroup
-        ),
-      }),
-    // Currency is read indirectly by the price formatter.
+  const { promo, getDiscount } = usePromoPricing()
+  const discount = getDiscount(props.model.model_name) ?? 1
+  const hasPromo = discount !== 1
+  const dynamicOptions = useMemo(
+    () => ({
+      priceRate: options.priceRate,
+      usdExchangeRate: options.usdExchangeRate,
+      showRechargePrice: options.showRechargePrice,
+      now: billingTime === undefined ? undefined : new Date(billingTime),
+      tokenUnit,
+      showCurrencySymbol: false,
+      groupRatioMultiplier: getDynamicDisplayGroupRatio(
+        props.model,
+        options.selectedGroup
+      ),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       props.model,
@@ -80,10 +84,37 @@ export function ModelPriceCell(props: {
       options.showRechargePrice,
       options.selectedGroup,
       billingTime,
-      currency,
     ]
   )
-  let metrics: Array<{ label: string; value: string }>
+  const dynamic = useMemo(
+    () => getDynamicPricingSummary(props.model, dynamicOptions),
+    // Currency is read indirectly by the price formatter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.model, dynamicOptions, currency]
+  )
+  const dynamicPromo = useMemo(
+    () =>
+      hasPromo
+        ? getDynamicPricingSummary(props.model, {
+            ...dynamicOptions,
+            discount,
+          })
+        : null,
+    // Currency is read indirectly by the price formatter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.model, dynamicOptions, hasPromo, discount, currency]
+  )
+  const promoEntriesByKey = useMemo(
+    () =>
+      new Map(
+        [
+          ...(dynamicPromo?.entries ?? []),
+          ...(dynamicPromo?.primaryEntries ?? []),
+        ].map((entry) => [entry.key, entry])
+      ),
+    [dynamicPromo]
+  )
+  let metrics: Array<{ label: string; value: string; promoValue?: string }>
   const providerCaption = dynamic?.providerCount
     ? t('{{count}} providers', { count: dynamic.providerCount })
     : ''
@@ -133,12 +164,16 @@ export function ModelPriceCell(props: {
         if (hasRequestPrice && entry.unit === 'token') {
           suffix = `/${t('{{unit}} tokens', { unit: tokenUnitLabel })}`
         }
+        const promoEntry = promoEntriesByKey.get(entry.key)
         return {
           label:
             entry.labelKind === 'schema'
               ? entry.shortLabel
               : t(entry.shortLabel),
           value: `${entry.formattedRange ?? entry.formatted}${suffix}`,
+          promoValue: promoEntry
+            ? `${promoEntry.formattedRange ?? promoEntry.formatted}${suffix}`
+            : undefined,
         }
       })
     if (metrics.length === 0) {
@@ -201,6 +236,19 @@ export function ModelPriceCell(props: {
             options.selectedGroup,
             false
           ),
+          promoValue: hasPromo
+            ? formatPrice(
+                props.model,
+                'input',
+                tokenUnit,
+                options.showRechargePrice,
+                options.priceRate,
+                options.usdExchangeRate,
+                options.selectedGroup,
+                false,
+                discount
+              )
+            : undefined,
         },
         {
           label: t('Output'),
@@ -214,6 +262,19 @@ export function ModelPriceCell(props: {
             options.selectedGroup,
             false
           ),
+          promoValue: hasPromo
+            ? formatPrice(
+                props.model,
+                'output',
+                tokenUnit,
+                options.showRechargePrice,
+                options.priceRate,
+                options.usdExchangeRate,
+                options.selectedGroup,
+                false,
+                discount
+              )
+            : undefined,
         },
       ]
     } else {
@@ -228,10 +289,24 @@ export function ModelPriceCell(props: {
             options.selectedGroup,
             false
           ),
+          promoValue: hasPromo
+            ? formatRequestPrice(
+                props.model,
+                options.showRechargePrice,
+                options.priceRate,
+                options.usdExchangeRate,
+                options.selectedGroup,
+                false,
+                discount
+              )
+            : undefined,
         },
       ]
       caption = `${currencyLabel} / ${t('request')}`
     }
+  }
+  if (promo && hasPromo) {
+    caption += ` · ${promoCaption(promo, t)}`
   }
   return (
     <span className='block w-full max-w-full min-w-0 space-y-1.5'>
@@ -253,7 +328,7 @@ export function ModelPriceCell(props: {
               className='min-w-0 font-mono text-sm break-words whitespace-normal tabular-nums'
               title={metric.value}
             >
-              {metric.value}
+              <PromoPrice original={metric.value} promo={metric.promoValue} />
             </span>
           </span>
         ))}

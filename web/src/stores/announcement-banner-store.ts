@@ -16,21 +16,30 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// System Configuration
-export { useSystemConfig } from './use-system-config'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-// Navigation
-export { useTopNavLinks } from './use-top-nav-links'
+interface AnnouncementBannerState {
+  /** Content signature of the dismissed banner. */
+  dismissedSignature: string
+  dismiss: (signature: string) => void
+}
 
-// Notifications
-export { useNotifications } from './use-notifications'
-
-// Limited-time pricing campaigns
-export { usePromoPricing } from './use-promo-pricing'
-export type { PromoPricingState } from './use-promo-pricing'
-
-// Utils
-export { useDebounce } from './use-debounce'
-
-// Media Query
-export { useMediaQuery } from './use-media-query'
+/**
+ * Remembers which announcement banner the visitor closed, so new or edited
+ * announcements show up again.
+ */
+export const useAnnouncementBannerStore = create<AnnouncementBannerState>()(
+  persist(
+    (set) => ({
+      dismissedSignature: '',
+      dismiss: (signature: string) => set({ dismissedSignature: signature }),
+    }),
+    {
+      name: 'announcement-banner-storage',
+      partialize: (state) => ({
+        dismissedSignature: state.dismissedSignature,
+      }),
+    }
+  )
+)

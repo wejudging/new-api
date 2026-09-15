@@ -140,6 +140,9 @@ function applyRechargeRate(
 
 /**
  * Format token-based price for display
+ *
+ * `discount` is the limited-time campaign multiplier (`1` = no campaign, `0.5`
+ * = half price) and is applied to the displayed amount.
  */
 export function formatPrice(
   model: PricingModel,
@@ -149,7 +152,8 @@ export function formatPrice(
   priceRate = 1,
   usdExchangeRate = 1,
   selectedGroup?: string,
-  showCurrencySymbol = true
+  showCurrencySymbol = true,
+  discount = 1
 ): string {
   if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -164,6 +168,7 @@ export function formatPrice(
     priceRate,
     usdExchangeRate
   )
+  priceInUSD *= discount
 
   const price = priceInUSD / TOKEN_UNIT_DIVISORS[tokenUnit]
   return formatBillingCurrencyFromUSD(price, {
@@ -243,6 +248,8 @@ export function formatFixedPrice(
 
 /**
  * Format fixed price for pay-per-request models (minimum price from all groups)
+ *
+ * `discount` behaves the same way as in {@link formatPrice}.
  */
 export function formatRequestPrice(
   model: PricingModel,
@@ -250,7 +257,8 @@ export function formatRequestPrice(
   priceRate = 1,
   usdExchangeRate = 1,
   selectedGroup?: string,
-  showCurrencySymbol = true
+  showCurrencySymbol = true,
+  discount = 1
 ): string {
   if (model.quota_type !== QUOTA_TYPE_VALUES.REQUEST) {
     return '-'
@@ -266,6 +274,7 @@ export function formatRequestPrice(
     priceRate,
     usdExchangeRate
   )
+  priceInUSD *= discount
 
   return formatBillingCurrencyFromUSD(priceInUSD, {
     showSymbol: showCurrencySymbol,

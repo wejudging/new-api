@@ -59,6 +59,8 @@ export interface PublicHeaderProps {
   showNavigation?: boolean
   showAuthButtons?: boolean
   showNotifications?: boolean
+  /** CSS length the fixed header is pushed down by, e.g. the notice banner. */
+  topOffset?: string
   className?: string
 }
 
@@ -72,6 +74,7 @@ export function PublicHeader(props: PublicHeaderProps) {
     homeUrl = '/',
     showAuthButtons = true,
     showNotifications = true,
+    topOffset = '0px',
   } = props
 
   const { t } = useTranslation()
@@ -199,7 +202,10 @@ export function PublicHeader(props: PublicHeaderProps) {
 
   return (
     <>
-      <header className='pointer-events-none fixed inset-x-0 top-0 z-50'>
+      <header
+        className='pointer-events-none fixed inset-x-0 z-50'
+        style={{ top: topOffset }}
+      >
         <div
           className={cn(
             'pointer-events-auto mx-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
@@ -294,10 +300,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                   open={notifications.popoverOpen}
                   onOpenChange={notifications.setPopoverOpen}
                   unreadCount={notifications.unreadCount}
-                  activeTab={notifications.activeTab}
-                  onTabChange={notifications.setActiveTab}
                   notice={notifications.notice}
-                  announcements={notifications.announcements}
                   loading={notifications.loading}
                 />
               )}

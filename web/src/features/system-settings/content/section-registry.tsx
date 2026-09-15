@@ -24,6 +24,7 @@ import { ChatSettingsSection } from './chat-settings-section'
 import { DashboardSection } from './dashboard-section'
 import { DrawingSettingsSection } from './drawing-settings-section'
 import { FAQSection } from './faq-section'
+import { PromoPricingSection } from './promo-pricing-section'
 import { UptimeKumaSection } from './uptime-kuma-section'
 
 /**
@@ -57,10 +58,13 @@ const CONTENT_SECTIONS = [
     id: 'announcements',
     titleKey: 'Announcements',
     build: (settings: ContentSettings) => (
-      <AnnouncementsSection
-        enabled={settings['console_setting.announcements_enabled']}
-        data={settings['console_setting.announcements']}
-      />
+      <div className='space-y-6'>
+        <AnnouncementsSection
+          enabled={settings['console_setting.announcements_enabled']}
+          data={settings['console_setting.announcements']}
+        />
+        <PromoPricingSection data={settings.PromoPricing} />
+      </div>
     ),
   },
   {

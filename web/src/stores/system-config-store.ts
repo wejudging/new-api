@@ -20,6 +20,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import type { PromoPricing } from '@/lib/promo-pricing'
 
 export type CurrencyDisplayType = 'USD' | 'CNY' | 'TOKENS' | 'CUSTOM'
 
@@ -45,6 +46,8 @@ export interface SystemConfig {
   demoSiteEnabled?: boolean
   displayTokenStatEnabled?: boolean
   currency: CurrencyConfig
+  /** Limited-time pricing campaign from `/api/status`, `null` when none. */
+  promoPricing?: PromoPricing | null
 }
 
 export const DEFAULT_CURRENCY_CONFIG: CurrencyConfig = {

@@ -17,57 +17,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { useStatus } from '@/hooks/use-status'
 import { getNotice } from '@/lib/api'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useNotificationStore } from '@/stores/notification-store'
 
-function hashString(input: string): string {
-  let hash = 0
-  if (!input) return '0'
-
-  for (let i = 0; i < input.length; i += 1) {
-    const chr = input.charCodeAt(i)
-    hash = (hash << 5) - hash + chr
-    hash |= 0
-  }
-
-  return hash.toString(36)
-}
-
 /**
- * Generate a unique key for an announcement
- * Prefer backend id, fall back to a content hash so edits register
- */
-function getAnnouncementKey(item: Record<string, unknown>): string {
-  if (!item) return ''
-
-  if (item.id !== undefined && item.id !== null) {
-    return `id:${item.id}`
-  }
-
-  const fingerprint = JSON.stringify({
-    publishDate: (item?.publishDate as string) || '',
-    content: ((item?.content as string) || '').trim(),
-    extra: ((item?.extra as string) || '').trim(),
-    type: (item?.type as string) || '',
-    title: ((item?.title as string) || '').trim(),
-    link: ((item?.link as string) || '').trim(),
-  })
-  return `hash:${hashString(fingerprint)}`
-}
-
-/**
- * Hook to manage notifications (Notice + Announcements)
- * Provides unread counts and read status management
+ * Hook to manage notifications.
+ *
+ * The site notice feeds the bell popover; platform announcements are rendered
+ * by the top banner row (see `useAnnouncementBanner`) and only read here so
+ * both consumers share one `/api/status` subscription.
  */
 export function useNotifications() {
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
-    'notice'
-  )
 
   // Fetch Notice from API
   const {
@@ -92,78 +57,27 @@ export function useNotifications() {
   }, [announcementsEnabled, status?.announcements])
 
   // Notification store
-  const {
-    lastReadNotice,
-    markNoticeRead,
-    markAnnouncementsRead,
-    isAnnouncementRead,
-  } = useNotificationStore()
+  const { lastReadNotice, markNoticeRead } = useNotificationStore()
 
   // Extract notice content
   const noticeContent = noticeResponse?.success
     ? (noticeResponse.data || '').trim()
     : ''
 
-  // Calculate unread counts
-  const unreadCounts = useMemo(() => {
-    const noticeUnread =
-      noticeContent && noticeContent !== lastReadNotice ? 1 : 0
-
-    const announcementsUnread = announcements.filter(
-      (item: Record<string, unknown>) => {
-        const key = getAnnouncementKey(item)
-        return !isAnnouncementRead(key)
-      }
-    ).length
-
-    return {
-      notice: noticeUnread,
-      announcements: announcementsUnread,
-      total: noticeUnread + announcementsUnread,
-    }
-  }, [noticeContent, lastReadNotice, announcements, isAnnouncementRead])
-
-  const markAnnouncementsAsRead = () => {
-    if (announcements.length > 0) {
-      const allKeys = announcements.map((item: Record<string, unknown>) =>
-        getAnnouncementKey(item)
-      )
-      markAnnouncementsRead(allKeys)
-    }
-  }
-
-  // Handle popover open
-  const handleOpenPopover = (tab?: 'notice' | 'announcements') => {
-    const nextTab = tab || activeTab
-
-    // Mark currently visible content as read when opening the notification center
-    if (noticeContent) {
-      markNoticeRead(noticeContent)
-    }
-    if (nextTab === 'announcements') {
-      markAnnouncementsAsRead()
-    }
-
-    setActiveTab(nextTab)
-    setPopoverOpen(true)
-  }
+  const unreadCount = useMemo(() => {
+    return noticeContent && noticeContent !== lastReadNotice ? 1 : 0
+  }, [noticeContent, lastReadNotice])
 
   const handlePopoverOpenChange = (open: boolean) => {
     if (open) {
-      handleOpenPopover(activeTab)
+      if (noticeContent) {
+        markNoticeRead(noticeContent)
+      }
+      setPopoverOpen(true)
       return
     }
 
     setPopoverOpen(false)
-  }
-
-  // Handle tab change - mark announcements as read when switching to that tab
-  const handleTabChange = (tab: 'notice' | 'announcements') => {
-    setActiveTab(tab)
-
-    if (tab === 'announcements') {
-      markAnnouncementsAsRead()
-    }
   }
 
   return {
@@ -172,19 +86,15 @@ export function useNotifications() {
     announcements,
     loading: noticeLoading || statusLoading,
 
-    // Unread counts
-    unreadCount: unreadCounts.total,
-    unreadNoticeCount: unreadCounts.notice,
-    unreadAnnouncementsCount: unreadCounts.announcements,
+    // Unread count
+    unreadCount,
 
     // Popover state
     popoverOpen,
     setPopoverOpen: handlePopoverOpenChange,
-    activeTab,
-    setActiveTab: handleTabChange,
 
     // Actions
-    openPopover: handleOpenPopover,
+    openPopover: () => handlePopoverOpenChange(true),
     closePopover: () => setPopoverOpen(false),
     refetchNotice,
   }

@@ -16,6 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { AnnouncementBanner } from '@/components/announcement-banner'
+import { useAnnouncementBanner } from '@/hooks/use-announcement-banner'
+
 import type { TopNavLink } from '../types'
 import { PublicHeader, type PublicHeaderProps } from './public-header'
 
@@ -33,8 +36,16 @@ type PublicLayoutProps = {
 }
 
 export function PublicLayout(props: PublicLayoutProps) {
+  const banner = useAnnouncementBanner()
+
   return (
     <div className='bg-background text-foreground relative min-h-svh overflow-x-clip'>
+      <AnnouncementBanner
+        items={banner.items}
+        visible={banner.visible}
+        onDismiss={banner.dismiss}
+        className='fixed inset-x-0 top-0 z-60'
+      />
       <PublicHeader
         navContent={props.navContent}
         navLinks={props.navLinks}
@@ -43,11 +54,15 @@ export function PublicLayout(props: PublicLayoutProps) {
         showNotifications={props.showNotifications}
         logo={props.logo}
         siteName={props.siteName}
+        topOffset={banner.height}
         {...props.headerProps}
       />
 
       {props.showMainContainer !== false ? (
-        <main className='container px-4 py-6 pt-20 md:px-4'>
+        <main
+          className='container px-4 py-6 pt-20 md:px-4'
+          style={{ paddingTop: `calc(5rem + ${banner.height})` }}
+        >
           {props.children}
         </main>
       ) : (

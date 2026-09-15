@@ -20,6 +20,7 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query'
 
 import { getStatus } from '@/lib/api'
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import { parsePromoPricing } from '@/lib/promo-pricing'
 import {
   useSystemConfigStore,
   type CurrencyConfig,
@@ -100,6 +101,7 @@ export function mapStatusDataToConfig(
       | boolean
       | undefined,
     currency,
+    promoPricing: parsePromoPricing(data.promo_pricing),
   }
 }
 

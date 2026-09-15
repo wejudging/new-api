@@ -52,6 +52,8 @@ export type DynamicPriceOptions = {
   priceRate?: number
   usdExchangeRate?: number
   groupRatioMultiplier?: number
+  /** Limited-time campaign multiplier (`1` = regular price). */
+  discount?: number
   usageSchema?: BillingUsageSchema
   now?: Date
 }
@@ -207,12 +209,13 @@ export function formatDynamicUnitPrice(
   const priceUSD =
     (valuePerMillionTokens * groupRatio) /
     TOKEN_UNIT_DIVISORS[options.tokenUnit]
-  const displayPrice = applyRechargeRate(
-    priceUSD,
-    options.showRechargePrice ?? false,
-    priceRate,
-    usdExchangeRate
-  )
+  const displayPrice =
+    applyRechargeRate(
+      priceUSD,
+      options.showRechargePrice ?? false,
+      priceRate,
+      usdExchangeRate
+    ) * (options.discount ?? 1)
 
   return formatBillingCurrencyFromUSD(displayPrice, {
     showSymbol: options.showCurrencySymbol ?? true,
@@ -230,12 +233,13 @@ export function formatTaskUsageUnitPrice(
   const priceRate = options.priceRate ?? 1
   const usdExchangeRate = options.usdExchangeRate ?? 1
   const priceUSD = valuePerUnit * groupRatio
-  const displayPrice = applyRechargeRate(
-    priceUSD,
-    options.showRechargePrice ?? false,
-    priceRate,
-    usdExchangeRate
-  )
+  const displayPrice =
+    applyRechargeRate(
+      priceUSD,
+      options.showRechargePrice ?? false,
+      priceRate,
+      usdExchangeRate
+    ) * (options.discount ?? 1)
 
   return formatBillingCurrencyFromUSD(displayPrice, {
     showSymbol: options.showCurrencySymbol ?? true,
