@@ -18,7 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import i18next from 'i18next'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import zhCN from '@/i18n/locales/zh.json'
 
 import { CheckinLotteryRecords } from '../records'
 import type {
@@ -71,6 +74,10 @@ beforeEach(() => {
   records.ticket = { items: [], total: 0, loading: false }
 })
 
+afterEach(async () => {
+  await i18next.changeLanguage('en')
+})
+
 describe('draw records page', () => {
   it('hides the history while the lottery is switched off', () => {
     status.value = { checkin_enabled: false }
@@ -120,11 +127,31 @@ describe('draw records page', () => {
     await user.click(screen.getByRole('tab', { name: 'Ticket history' }))
 
     expect(screen.getByText('Daily check-in')).toBeVisible()
-    expect(screen.getByText('Draw')).toBeVisible()
+    expect(screen.getByText('Lottery draw')).toBeVisible()
     expect(screen.getByText('Refund')).toBeVisible()
     expect(screen.getByText('Top-up bonus')).toBeVisible()
     expect(screen.getAllByText('+1')).toHaveLength(3)
     expect(screen.getByText('-1')).toBeVisible()
+  })
+
+  it('labels a spent ticket as a lottery draw, not as an image-generation job', async () => {
+    const user = userEvent.setup()
+    records.ticket = { items: ticketItems, total: 4, loading: false }
+    i18next.addResourceBundle(
+      'zhCN',
+      'translation',
+      zhCN.translation,
+      true,
+      true
+    )
+    await i18next.changeLanguage('zhCN')
+
+    render(<CheckinLotteryRecords />)
+
+    await user.click(screen.getByRole('tab', { name: '次数流水' }))
+
+    expect(screen.getByText('抽奖')).toBeVisible()
+    expect(screen.queryByText('绘图')).not.toBeInTheDocument()
   })
 
   it('paginates with the row count the server reported', async () => {

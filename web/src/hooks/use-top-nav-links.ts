@@ -20,7 +20,6 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
-import { resolveDocsUrl } from '@/lib/docs-link'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -40,9 +39,10 @@ export type TopNavLink = {
  *   console: true,
  *   pricing: { enabled: true, requireAuth: false },
  *   rankings: { enabled: true, requireAuth: false },
- *   docs: true,
  *   about: true
  * }
+ *
+ * The usage documentation only lives in the sidebar, so it never shows up here.
  */
 export function useTopNavLinks(): TopNavLink[] {
   const { t } = useTranslation()
@@ -55,9 +55,6 @@ export function useTopNavLinks(): TopNavLink[] {
       status as Record<string, unknown> | null
     )
   }, [status])
-
-  // Documentation link (may be external)
-  const docsLink: string | undefined = status?.docs_link as string | undefined
 
   const isAuthed = !!auth?.user
 
@@ -86,13 +83,6 @@ export function useTopNavLinks(): TopNavLink[] {
     const requiresAuth = rankings.requireAuth && !isAuthed
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
-
-  // Usage docs (always available; unset or upstream links resolve to our site)
-  links.push({
-    title: t('Usage Docs'),
-    href: resolveDocsUrl(docsLink),
-    external: true,
-  })
 
   // About
   if (modules?.about !== false) {

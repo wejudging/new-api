@@ -293,7 +293,7 @@ function DrawRecordsList({ items }: { items: CheckinLotteryDrawRecord[] }) {
 
 const REASON_LABELS: Record<CheckinLotteryTicketReason, string> = {
   claim: 'Daily check-in',
-  draw: 'Draw',
+  draw: 'Lottery draw',
   refund: 'Refund',
   topup: 'Top-up bonus',
 }
@@ -322,7 +322,7 @@ function TicketRecordsList({ items }: { items: CheckinLotteryTicketRecord[] }) {
             </div>
             <div className='min-w-0 flex-1'>
               <div className='truncate text-sm font-medium'>
-                {t(REASON_LABELS[record.reason] ?? 'Draw')}
+                {t(REASON_LABELS[record.reason] ?? 'Lottery draw')}
               </div>
               <div className='text-muted-foreground/70 text-xs'>
                 {formatTimestampToDate(record.created_at)}
