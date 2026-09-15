@@ -20,8 +20,11 @@ import { api } from '@/lib/api'
 
 import type {
   CheckinLotteryApiResponse,
+  CheckinLotteryDrawRecord,
   CheckinLotteryDrawResult,
+  CheckinLotteryRecordPage,
   CheckinLotteryStatus,
+  CheckinLotteryTicketRecord,
 } from './types'
 
 // ============================================================================
@@ -51,4 +54,46 @@ export async function drawCheckinLottery(
     : '/api/user/lottery/draw'
   const res = await api.post(url)
   return res.data
+}
+
+/**
+ * Load one page of the personal lottery history.
+ *
+ * `type=draw` returns the prize records, `type=ticket` returns the ticket
+ * ledger (every granted and spent entry).
+ */
+export async function getCheckinLotteryRecords<T>(options: {
+  type: 'draw' | 'ticket'
+  page: number
+  pageSize: number
+}): Promise<CheckinLotteryApiResponse<CheckinLotteryRecordPage<T>>> {
+  const params = new URLSearchParams({
+    type: options.type,
+    p: String(options.page),
+    page_size: String(options.pageSize),
+  })
+  const res = await api.get(`/api/user/lottery/records?${params.toString()}`)
+  return res.data
+}
+
+/** Prize records of the signed-in user, newest first. */
+export function getCheckinLotteryDrawRecords(options: {
+  page: number
+  pageSize: number
+}) {
+  return getCheckinLotteryRecords<CheckinLotteryDrawRecord>({
+    ...options,
+    type: 'draw',
+  })
+}
+
+/** Ticket ledger of the signed-in user, newest first. */
+export function getCheckinLotteryTicketRecords(options: {
+  page: number
+  pageSize: number
+}) {
+  return getCheckinLotteryRecords<CheckinLotteryTicketRecord>({
+    ...options,
+    type: 'ticket',
+  })
 }

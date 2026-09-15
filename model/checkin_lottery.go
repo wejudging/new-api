@@ -16,6 +16,13 @@ const (
 	LotteryTicketReasonClaim  = "claim"  // 每日签到领取
 	LotteryTicketReasonDraw   = "draw"   // 抽奖消耗
 	LotteryTicketReasonRefund = "refund" // 失败回滚
+	LotteryTicketReasonTopUp  = "topup"  // 充值赠送
+)
+
+// 抽奖次数池对应的数据库列名
+const (
+	lotteryTicketPoolDaily = "daily_tickets"
+	lotteryTicketPoolBonus = "tickets"
 )
 
 var (
@@ -52,10 +59,18 @@ func (CheckinLotteryTicket) TableName() string {
 }
 
 // CheckinLotteryTicketState 抽奖次数余额，用于并发安全的原子扣减
+//
+// 次数分成两个池子：
+//   - DailyTickets 每日签到领取的次数，封顶为每日上限、不可累加（没用掉不会攒到第二天）；
+//   - BonusTickets 充值赠送的次数，永久有效、可累加。
+//
+// BonusTickets 复用历史字段名 tickets，避免升级时丢掉已有余额。
 type CheckinLotteryTicketState struct {
-	UserId    int   `json:"user_id" gorm:"primaryKey"`
-	Tickets   int   `json:"tickets" gorm:"not null;default:0"`
-	TouchedAt int64 `json:"touched_at" gorm:"bigint;not null;default:0"`
+	UserId         int   `json:"user_id" gorm:"primaryKey"`
+	DailyTickets   int   `json:"daily_tickets" gorm:"not null;default:0"`
+	BonusTickets   int   `json:"bonus_tickets" gorm:"column:tickets;not null;default:0"`
+	TopUpRemainder int64 `json:"topup_remainder" gorm:"bigint;not null;default:0"` // 累计充值赠送的余量（额度）
+	TouchedAt      int64 `json:"touched_at" gorm:"bigint;not null;default:0"`
 }
 
 func (CheckinLotteryTicketState) TableName() string {
@@ -64,37 +79,78 @@ func (CheckinLotteryTicketState) TableName() string {
 
 // GetUserLotteryTickets 获取用户可用抽奖次数
 func GetUserLotteryTickets(userId int) (int, error) {
-	var state CheckinLotteryTicketState
-	err := DB.Where("user_id = ?", userId).First(&state).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return 0, nil
-	}
+	daily, bonus, err := GetUserLotteryTicketBuckets(userId)
 	if err != nil {
 		return 0, err
 	}
-	if state.Tickets < 0 {
-		return 0, nil
-	}
-	return state.Tickets, nil
+	return daily + bonus, nil
 }
 
-// AddUserLotteryTickets 增加抽奖次数并写入次数流水
-func AddUserLotteryTickets(db *gorm.DB, userId int, delta int, reason string) error {
+// GetUserLotteryTicketBuckets 分别获取每日次数与充值赠送次数
+func GetUserLotteryTicketBuckets(userId int) (daily int, bonus int, err error) {
+	var state CheckinLotteryTicketState
+	err = DB.Where("user_id = ?", userId).First(&state).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, 0, nil
+	}
+	if err != nil {
+		return 0, 0, err
+	}
+	if state.DailyTickets < 0 {
+		state.DailyTickets = 0
+	}
+	if state.BonusTickets < 0 {
+		state.BonusTickets = 0
+	}
+	return state.DailyTickets, state.BonusTickets, nil
+}
+
+// ensureLotteryTicketState 确保用户有一行次数余额记录并加锁
+func ensureLotteryTicketState(db *gorm.DB, userId int) (*CheckinLotteryTicketState, error) {
+	if db == nil {
+		db = DB
+	}
+
+	state := &CheckinLotteryTicketState{UserId: userId}
+	err := lockForUpdate(db).Where("user_id = ?", userId).First(state).Error
+	if err == nil {
+		return state, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// 并发场景下另一个请求可能刚插入同一行，冲突时回退到读取。
+	err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(state).Error
+	if err != nil {
+		return nil, err
+	}
+	state = &CheckinLotteryTicketState{UserId: userId}
+	if err := lockForUpdate(db).Where("user_id = ?", userId).First(state).Error; err != nil {
+		return nil, err
+	}
+	return state, nil
+}
+
+// addUserLotteryTicketsTo 在指定的次数池上增加次数并写入次数流水
+func addUserLotteryTicketsTo(db *gorm.DB, userId int, pool string, delta int, reason string) error {
 	if db == nil {
 		db = DB
 	}
 	now := time.Now().Unix()
+	state := &CheckinLotteryTicketState{UserId: userId, TouchedAt: now}
+	if pool == lotteryTicketPoolDaily {
+		state.DailyTickets = delta
+	} else {
+		state.BonusTickets = delta
+	}
 	err := db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}},
 		DoUpdates: clause.Assignments(map[string]any{
-			"tickets":    gorm.Expr("tickets + ?", delta),
+			pool:         gorm.Expr(pool+" + ?", delta),
 			"touched_at": now,
 		}),
-	}).Create(&CheckinLotteryTicketState{
-		UserId:    userId,
-		Tickets:   delta,
-		TouchedAt: now,
-	}).Error
+	}).Create(state).Error
 	if err != nil {
 		return err
 	}
@@ -106,18 +162,94 @@ func AddUserLotteryTickets(db *gorm.DB, userId int, delta int, reason string) er
 	}).Error
 }
 
-// deductUserLotteryTicket 原子扣减一次抽奖次数，返回是否扣减成功
-func deductUserLotteryTicket(db *gorm.DB, userId int) (bool, error) {
+// GrantDailyLotteryTickets 领取当日抽奖次数
+//
+// 每日次数不可累加：只会把每日池补到每日上限，昨天没用掉的次数不会叠加。
+// 返回本次实际新增的次数（已经在每日上限时返回 0）。
+func GrantDailyLotteryTickets(db *gorm.DB, userId int, dailyDraws int) (int, error) {
+	if dailyDraws <= 0 {
+		dailyDraws = 1
+	}
+	state, err := ensureLotteryTicketState(db, userId)
+	if err != nil {
+		return 0, err
+	}
+	if state.DailyTickets >= dailyDraws {
+		return 0, nil
+	}
+	delta := dailyDraws - state.DailyTickets
+	if err := addUserLotteryTicketsTo(db, userId, lotteryTicketPoolDaily, delta, LotteryTicketReasonClaim); err != nil {
+		return 0, err
+	}
+	return delta, nil
+}
+
+// GrantTopUpLotteryTickets 按累计充值到账额度赠送抽奖次数（不参与每日封顶，也不会过期）
+func GrantTopUpLotteryTickets(db *gorm.DB, userId int, creditedQuota int) (int, error) {
+	if db == nil {
+		db = DB
+	}
+	if operation_setting.GetCheckinTopUpStepQuota() <= 0 || creditedQuota <= 0 {
+		return 0, nil
+	}
+	if !operation_setting.IsCheckinEnabled() {
+		return 0, nil
+	}
+
+	state, err := ensureLotteryTicketState(db, userId)
+	if err != nil {
+		return 0, err
+	}
+
+	granted, remainder := operation_setting.SplitCheckinTopUpTickets(state.TopUpRemainder, creditedQuota)
+	if granted <= 0 && remainder == state.TopUpRemainder {
+		return 0, nil
+	}
+
+	if granted > 0 {
+		if err := addUserLotteryTicketsTo(db, userId, lotteryTicketPoolBonus, granted, LotteryTicketReasonTopUp); err != nil {
+			return 0, err
+		}
+	}
+	err = db.Model(&CheckinLotteryTicketState{}).Where("user_id = ?", userId).
+		Update("topup_remainder", remainder).Error
+	if err != nil {
+		return 0, err
+	}
+	return granted, nil
+}
+
+// deductUserLotteryTicket 原子扣减一次抽奖次数，优先消耗每日次数（会过期的先花）
+func deductUserLotteryTicket(db *gorm.DB, userId int) (fromDaily bool, ok bool, err error) {
 	if db == nil {
 		db = DB
 	}
 	result := db.Model(&CheckinLotteryTicketState{}).
+		Where("user_id = ? AND daily_tickets > 0", userId).
+		Update("daily_tickets", gorm.Expr("daily_tickets - 1"))
+	if result.Error != nil {
+		return false, false, result.Error
+	}
+	if result.RowsAffected == 1 {
+		return true, true, nil
+	}
+
+	result = db.Model(&CheckinLotteryTicketState{}).
 		Where("user_id = ? AND tickets > 0", userId).
 		Update("tickets", gorm.Expr("tickets - 1"))
 	if result.Error != nil {
-		return false, result.Error
+		return false, false, result.Error
 	}
-	return result.RowsAffected == 1, nil
+	return false, result.RowsAffected == 1, nil
+}
+
+// refundUserLotteryTicket 归还一次抽奖次数到它原本所属的次数池
+func refundUserLotteryTicket(db *gorm.DB, userId int, fromDaily bool) error {
+	pool := lotteryTicketPoolBonus
+	if fromDaily {
+		pool = lotteryTicketPoolDaily
+	}
+	return addUserLotteryTicketsTo(db, userId, pool, 1, LotteryTicketReasonRefund)
 }
 
 // DrawUserLottery 执行一次抽奖
@@ -147,7 +279,7 @@ func DrawUserLottery(userId int) (*CheckinLotteryDraw, error) {
 	}
 
 	err = DB.Transaction(func(tx *gorm.DB) error {
-		ok, err := deductUserLotteryTicket(tx, userId)
+		_, ok, err := deductUserLotteryTicket(tx, userId)
 		if err != nil {
 			return errors.New("抽奖失败，请稍后重试")
 		}
@@ -184,11 +316,11 @@ func DrawUserLottery(userId int) (*CheckinLotteryDraw, error) {
 
 // drawUserLotteryWithoutTransaction 不使用事务执行抽奖（适用于 SQLite）
 func drawUserLotteryWithoutTransaction(userId int, draw *CheckinLotteryDraw) (*CheckinLotteryDraw, error) {
-	rollback := func() {
-		_ = AddUserLotteryTickets(nil, userId, 1, LotteryTicketReasonRefund)
+	rollback := func(fromDaily bool) {
+		_ = refundUserLotteryTicket(nil, userId, fromDaily)
 	}
 
-	ok, err := deductUserLotteryTicket(nil, userId)
+	fromDaily, ok, err := deductUserLotteryTicket(nil, userId)
 	if err != nil {
 		return nil, errors.New("抽奖失败，请稍后重试")
 	}
@@ -197,7 +329,7 @@ func drawUserLotteryWithoutTransaction(userId int, draw *CheckinLotteryDraw) (*C
 	}
 
 	if err := DB.Create(draw).Error; err != nil {
-		rollback()
+		rollback(fromDaily)
 		return nil, errors.New("抽奖失败，请稍后重试")
 	}
 
@@ -208,13 +340,13 @@ func drawUserLotteryWithoutTransaction(userId int, draw *CheckinLotteryDraw) (*C
 		CreatedAt: draw.CreatedAt,
 	}).Error; err != nil {
 		DB.Delete(draw)
-		rollback()
+		rollback(fromDaily)
 		return nil, errors.New("抽奖失败，请稍后重试")
 	}
 
 	if err := IncreaseUserQuota(userId, draw.Quota, true); err != nil {
 		DB.Delete(draw)
-		rollback()
+		rollback(fromDaily)
 		return nil, errors.New("抽奖失败：发放奖励出错")
 	}
 
@@ -244,6 +376,40 @@ func GetUserLotteryStats(userId int) (map[string]any, error) {
 		"total_amount": totals.TotalAmount,
 		"best_amount":  totals.BestAmount,
 	}, nil
+}
+
+// GetUserLotteryDraws 分页获取用户的抽奖记录（最新在前）
+func GetUserLotteryDraws(userId int, pageInfo *common.PageInfo) (draws []*CheckinLotteryDraw, total int64, err error) {
+	err = DB.Model(&CheckinLotteryDraw{}).Where("user_id = ?", userId).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	err = DB.Where("user_id = ?", userId).
+		Order("id desc").
+		Limit(pageInfo.GetPageSize()).
+		Offset(pageInfo.GetStartIdx()).
+		Find(&draws).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return draws, total, nil
+}
+
+// GetUserLotteryTicketLogs 分页获取用户的抽奖次数流水（最新在前）
+func GetUserLotteryTicketLogs(userId int, pageInfo *common.PageInfo) (tickets []*CheckinLotteryTicket, total int64, err error) {
+	err = DB.Model(&CheckinLotteryTicket{}).Where("user_id = ?", userId).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	err = DB.Where("user_id = ?", userId).
+		Order("id desc").
+		Limit(pageInfo.GetPageSize()).
+		Offset(pageInfo.GetStartIdx()).
+		Find(&tickets).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return tickets, total, nil
 }
 
 // LotteryLeaderboardEntry 手气榜条目

@@ -366,6 +366,7 @@ export type BillingSettings = {
   WaffoPancakeProductID: string
   'checkin_setting.enabled': boolean
   'checkin_setting.daily_draws': number
+  'checkin_setting.topup_yuan_per_draw': number
   'checkin_setting.prizes': Array<{ amount: number; weight: number }>
 }
 

@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { CalendarCheck, Sparkles, Ticket, WalletCards } from 'lucide-react'
+import { CalendarCheck, Gift, Ticket, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Card } from '@/components/ui/card'
@@ -26,16 +26,21 @@ import { formatQuota } from '@/lib/format'
 
 interface LotteryStatsProps {
   tickets: number
+  /** Daily tickets left today, capped by `dailyDraws`. */
+  dailyTickets: number
+  /** Permanent tickets earned from top-ups. */
+  bonusTickets: number
   dailyDraws: number
-  checkedInToday: boolean
+  /** Credited CNY that grants one extra ticket, `0` disables the bonus. */
+  topUpYuanPerDraw: number
   balanceQuota: number
   loading?: boolean
 }
 
 /**
- * The four headline numbers of the draw page: available tickets, whether
- * today's ticket has been claimed, how many tickets a check-in grants and
- * the current balance the prizes are paid into.
+ * The four headline numbers of the draw page: total tickets, the daily
+ * bucket (never accumulates), the permanent top-up bucket and the current
+ * balance the prizes are paid into.
  */
 export function LotteryStats(props: LotteryStatsProps) {
   const { t } = useTranslation()
@@ -43,7 +48,7 @@ export function LotteryStats(props: LotteryStatsProps) {
   if (props.loading) {
     return (
       <div className='grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4'>
-        {['tickets', 'today', 'daily', 'balance'].map((key) => (
+        {['tickets', 'daily', 'bonus', 'balance'].map((key) => (
           <Card key={key} className='gap-2 px-4 py-3.5'>
             <Skeleton className='h-8 w-8 rounded-lg' />
             <Skeleton className='h-6 w-16' />
@@ -64,24 +69,27 @@ export function LotteryStats(props: LotteryStatsProps) {
     {
       label: t('Available draws'),
       value: String(props.tickets),
-      hint: t('Tickets you can use right now'),
+      hint: t('Daily and top-up tickets combined'),
       icon: Ticket,
       tone: 'primary',
     },
     {
-      label: t('Today’s claim'),
-      value: props.checkedInToday ? t('Claimed') : t('Not claimed yet'),
-      hint: props.checkedInToday
-        ? t('Come back tomorrow for more')
-        : t('Draw once to claim today’s tickets'),
+      label: t('Daily tickets'),
+      value: `${props.dailyTickets}/${props.dailyDraws}`,
+      hint: t('Does not accumulate, back to full tomorrow'),
       icon: CalendarCheck,
-      tone: props.checkedInToday ? 'success' : 'warning',
+      tone: props.dailyTickets > 0 ? 'success' : 'warning',
     },
     {
-      label: t('Draws per day'),
-      value: `+${props.dailyDraws}`,
-      hint: t('Tickets granted by one check-in'),
-      icon: Sparkles,
+      label: t('Top-up bonus'),
+      value: String(props.bonusTickets),
+      hint:
+        props.topUpYuanPerDraw > 0
+          ? t('One extra draw per ¥{{amount}} credited, never expires', {
+              amount: props.topUpYuanPerDraw,
+            })
+          : t('Top-up bonus is turned off'),
+      icon: Gift,
       tone: 'chart-4',
     },
     {

@@ -107,6 +107,7 @@ const defaultBillingSettings: BillingSettings = {
   WaffoPancakeProductID: '',
   'checkin_setting.enabled': false,
   'checkin_setting.daily_draws': 1,
+  'checkin_setting.topup_yuan_per_draw': 10,
   'checkin_setting.prizes': DEFAULT_CHECKIN_PRIZES,
 }
 

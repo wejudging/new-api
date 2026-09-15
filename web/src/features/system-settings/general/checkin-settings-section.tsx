@@ -53,6 +53,10 @@ const schema = z.object({
     .int()
     .min(1, 'At least one draw per day')
     .max(100, 'At most 100 draws per day'),
+  topUpYuanPerDraw: z.coerce
+    .number()
+    .min(0, 'Cannot be negative')
+    .max(100000, 'Too large'),
 })
 
 type Values = z.infer<typeof schema>
@@ -123,6 +127,8 @@ export function CheckinSettingsSection({
   defaultValues: {
     enabled: boolean
     dailyDraws: number
+    /** Credited CNY that grants one extra draw, `0` turns the bonus off. */
+    topUpYuanPerDraw: number
     prizes: CheckinPrizeOption[]
   }
 }) {
@@ -137,6 +143,7 @@ export function CheckinSettingsSection({
     defaultValues: {
       enabled: defaultValues.enabled,
       dailyDraws: defaultValues.dailyDraws,
+      topUpYuanPerDraw: defaultValues.topUpYuanPerDraw,
     },
   })
 
@@ -238,6 +245,13 @@ export function CheckinSettingsSection({
       })
     }
 
+    if (values.topUpYuanPerDraw !== defaultValues.topUpYuanPerDraw) {
+      updates.push({
+        key: 'checkin_setting.topup_yuan_per_draw',
+        value: String(values.topUpYuanPerDraw),
+      })
+    }
+
     if (prizesDirty) {
       const prizes = collectPrizes()
       if (!prizes) return
@@ -312,6 +326,34 @@ export function CheckinSettingsSection({
                     <FormDescription>
                       {t(
                         'Each check-in hands out this many draw tickets for the prize pool'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='topUpYuanPerDraw'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Top-up amount for one extra draw (CNY)')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={0}
+                        step={0.1}
+                        inputMode='decimal'
+                        placeholder='10'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Every time the credited amount reaches this value the user earns one permanent draw. The credited amount is used, so a discounted top-up counts too. Set 0 to turn the bonus off.'
                       )}
                     </FormDescription>
                     <FormMessage />

@@ -116,6 +116,22 @@ func creditTopUpQuota(tx *gorm.DB, userId int, creditedQuota int, updates map[st
 	return ErrTopUpQuotaLimitExceeded
 }
 
+// creditTopUpQuotaWithLottery 充值到账并顺带结算签到抽奖的赠送次数
+//
+// 赠送门槛按「到账额度」计算，所以充值减免（付 9.9 元到账 10 元）同样计入。
+// 抽奖赠送失败不影响充值本身，只记录错误日志。
+func creditTopUpQuotaWithLottery(tx *gorm.DB, userId int, creditedQuota int, updates map[string]any) error {
+	if err := creditTopUpQuota(tx, userId, creditedQuota, updates); err != nil {
+		return err
+	}
+	if granted, err := GrantTopUpLotteryTickets(tx, userId, creditedQuota); err != nil {
+		common.SysError("grant check-in lottery tickets after topup failed: " + err.Error())
+	} else if granted > 0 {
+		common.SysLog(fmt.Sprintf("充值赠送抽奖次数 user_id=%d tickets=%d", userId, granted))
+	}
+	return nil
+}
+
 func (topUp *TopUp) Update() error {
 	var err error
 	err = DB.Save(topUp).Error
@@ -214,7 +230,7 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		return creditTopUpQuotaWithLottery(tx, topUp.UserId, quotaToAdd, nil)
 	})
 	if err != nil {
 		if !errors.Is(err, ErrTopUpNotFound) && !errors.Is(err, ErrPaymentMethodMismatch) && !errors.Is(err, ErrTopUpStatusInvalid) {
@@ -272,7 +288,7 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		if err != nil || quota <= 0 {
 			return ErrInvalidTopUpQuota
 		}
-		return creditTopUpQuota(tx, topUp.UserId, quota, map[string]any{
+		return creditTopUpQuotaWithLottery(tx, topUp.UserId, quota, map[string]any{
 			"stripe_customer": customerId,
 		})
 	})
@@ -502,7 +518,7 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 		}
 
 		// 增加用户额度（立即写库，保持一致性）
-		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
+		if err := creditTopUpQuotaWithLottery(tx, topUp.UserId, quotaToAdd, nil); err != nil {
 			return err
 		}
 
@@ -579,7 +595,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 			}
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quota, updateFields)
+		return creditTopUpQuotaWithLottery(tx, topUp.UserId, quota, updateFields)
 	})
 
 	if err != nil {
@@ -637,7 +653,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 			return err
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		return creditTopUpQuotaWithLottery(tx, topUp.UserId, quotaToAdd, nil)
 	})
 
 	if err != nil {
@@ -697,7 +713,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 			return err
 		}
 
-		return creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil)
+		return creditTopUpQuotaWithLottery(tx, topUp.UserId, quotaToAdd, nil)
 	})
 
 	if err != nil {

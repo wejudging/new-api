@@ -88,3 +88,79 @@ func TestCheckinPrizeQuotaNeverDropsBelowOne(t *testing.T) {
 	USDExchangeRate = 100000
 	require.Equal(t, 1, CheckinPrizeQuota(0.05))
 }
+
+// stubQuotaUnits 固定汇率与额度单位，让充值赠送的换算结果可预期
+func stubQuotaUnits(t *testing.T) {
+	t.Helper()
+	originalRate := USDExchangeRate
+	originalQuotaPerUnit := common.QuotaPerUnit
+	t.Cleanup(func() {
+		USDExchangeRate = originalRate
+		common.QuotaPerUnit = originalQuotaPerUnit
+	})
+	USDExchangeRate = 1
+	common.QuotaPerUnit = 500000
+}
+
+func TestCheckinTopUpTicketsUseTheCreditedAmount(t *testing.T) {
+	stubQuotaUnits(t)
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:          true,
+		DailyDraws:       1,
+		TopUpYuanPerDraw: 10,
+	})
+
+	step := GetCheckinTopUpStepQuota()
+	require.Equal(t, CheckinPrizeQuota(10), step)
+	require.Equal(t, 5000000, step)
+
+	// 到账 10 元即赠送 1 次
+	granted, remainder := SplitCheckinTopUpTickets(0, CheckinPrizeQuota(10))
+	require.Equal(t, 1, granted)
+	require.Equal(t, int64(0), remainder)
+
+	// 支付 9.9 元但按到账 10 元计算，减免部分不影响赠送
+	granted, remainder = SplitCheckinTopUpTickets(0, CheckinPrizeQuota(9.9))
+	require.Equal(t, 0, granted)
+	require.Equal(t, int64(CheckinPrizeQuota(9.9)), remainder)
+
+	granted, remainder = SplitCheckinTopUpTickets(remainder, CheckinPrizeQuota(10)-CheckinPrizeQuota(9.9))
+	require.Equal(t, 1, granted)
+	require.Equal(t, int64(0), remainder)
+}
+
+func TestCheckinTopUpTicketsAccumulateAcrossOrders(t *testing.T) {
+	stubQuotaUnits(t)
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:          true,
+		DailyDraws:       1,
+		TopUpYuanPerDraw: 10,
+	})
+
+	// 单笔 20 元 → 2 次
+	granted, remainder := SplitCheckinTopUpTickets(0, CheckinPrizeQuota(20))
+	require.Equal(t, 2, granted)
+	require.Equal(t, int64(0), remainder)
+
+	// 5 元 + 5 元 → 1 次，余量跨订单累计
+	granted, remainder = SplitCheckinTopUpTickets(0, CheckinPrizeQuota(5))
+	require.Equal(t, 0, granted)
+	granted, remainder = SplitCheckinTopUpTickets(remainder, CheckinPrizeQuota(5))
+	require.Equal(t, 1, granted)
+	require.Equal(t, int64(0), remainder)
+}
+
+func TestCheckinTopUpTicketsStayOffWhenDisabled(t *testing.T) {
+	stubQuotaUnits(t)
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:          true,
+		DailyDraws:       1,
+		TopUpYuanPerDraw: 0,
+	})
+
+	require.Equal(t, 0, GetCheckinTopUpStepQuota())
+
+	granted, remainder := SplitCheckinTopUpTickets(1234, CheckinPrizeQuota(100))
+	require.Equal(t, 0, granted)
+	require.Equal(t, int64(1234), remainder)
+}

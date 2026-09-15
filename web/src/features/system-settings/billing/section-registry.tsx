@@ -197,6 +197,7 @@ const BILLING_SECTIONS = [
         defaultValues={{
           enabled: settings['checkin_setting.enabled'],
           dailyDraws: settings['checkin_setting.daily_draws'],
+          topUpYuanPerDraw: settings['checkin_setting.topup_yuan_per_draw'],
           prizes: settings['checkin_setting.prizes'],
         }}
       />

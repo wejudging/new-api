@@ -59,6 +59,12 @@ export interface CheckinLotteryLeaderboardEntry {
 export interface CheckinLotteryStatus {
   enabled: boolean
   daily_draws: number
+  /** Daily tickets that reset every day (never accumulate) */
+  daily_tickets: number
+  /** Permanent tickets granted by top-ups */
+  bonus_tickets: number
+  /** Credited amount in CNY that grants one extra ticket, `0` disables it */
+  topup_yuan_per_draw: number
   tickets: number
   checked_in_today: boolean
   prizes: CheckinLotteryPrize[]
@@ -79,4 +85,36 @@ export interface CheckinLotteryDrawResult {
   checked_in_today: boolean
   stats: CheckinLotteryStats
   rank: number
+}
+
+/** Pagination envelope shared by the lottery record endpoints */
+export interface CheckinLotteryRecordPage<T> {
+  page: number
+  page_size: number
+  total: number
+  items: T[]
+}
+
+/** One row of `GET /api/user/lottery/records?type=draw` */
+export interface CheckinLotteryDrawRecord {
+  id: number
+  user_id: number
+  /** Prize amount in CNY yuan */
+  amount: number
+  /** Quota actually credited to the balance */
+  quota: number
+  created_at: number
+}
+
+/** Reason of a ticket ledger entry */
+export type CheckinLotteryTicketReason = 'claim' | 'draw' | 'refund' | 'topup'
+
+/** One row of `GET /api/user/lottery/records?type=ticket` */
+export interface CheckinLotteryTicketRecord {
+  id: number
+  user_id: number
+  /** `+1` when granted, `-1` when spent */
+  delta: number
+  reason: CheckinLotteryTicketReason
+  created_at: number
 }

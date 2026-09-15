@@ -48,7 +48,10 @@ func HasCheckedInToday(userId int) (bool, error) {
 	return count > 0, err
 }
 
-// UserCheckin 执行用户签到，返回签到记录与本次领取的抽奖次数
+// UserCheckin 执行用户签到，返回签到记录与本次新增的抽奖次数
+//
+// 每日抽奖次数不可累加：签到只会把每日次数补到上限，已经领过且没用掉的次数不叠加，
+// 因此这里返回的是实际新增的次数（可能是 0）。
 // MySQL 和 PostgreSQL 使用事务保证原子性
 // SQLite 不支持嵌套事务，使用顺序操作 + 手动回滚
 func UserCheckin(userId int) (*Checkin, int, error) {
@@ -89,6 +92,7 @@ func UserCheckin(userId int) (*Checkin, int, error) {
 
 // userCheckinWithTransaction 使用事务执行签到（适用于 MySQL 和 PostgreSQL）
 func userCheckinWithTransaction(checkin *Checkin, userId int, tickets int) (*Checkin, int, error) {
+	granted := 0
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		// 步骤1: 创建签到记录
 		// 数据库有唯一约束 (user_id, checkin_date)，可以防止并发重复签到
@@ -96,8 +100,10 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, tickets int) (*Che
 			return errors.New("签到失败，请稍后重试")
 		}
 
-		// 步骤2: 在事务中发放抽奖次数并记录流水
-		if err := AddUserLotteryTickets(tx, userId, tickets, LotteryTicketReasonClaim); err != nil {
+		// 步骤2: 在事务中发放抽奖次数并记录流水（每日次数不可累加）
+		var err error
+		granted, err = GrantDailyLotteryTickets(tx, userId, tickets)
+		if err != nil {
 			return errors.New("签到失败：发放抽奖次数出错")
 		}
 
@@ -108,7 +114,7 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, tickets int) (*Che
 		return nil, 0, err
 	}
 
-	return checkin, tickets, nil
+	return checkin, granted, nil
 }
 
 // userCheckinWithoutTransaction 不使用事务执行签到（适用于 SQLite）
@@ -119,14 +125,15 @@ func userCheckinWithoutTransaction(checkin *Checkin, userId int, tickets int) (*
 		return nil, 0, errors.New("签到失败，请稍后重试")
 	}
 
-	// 步骤2: 发放抽奖次数并记录流水
-	if err := AddUserLotteryTickets(nil, userId, tickets, LotteryTicketReasonClaim); err != nil {
+	// 步骤2: 发放抽奖次数并记录流水（每日次数不可累加）
+	granted, err := GrantDailyLotteryTickets(nil, userId, tickets)
+	if err != nil {
 		// 如果发放抽奖次数失败，需要回滚签到记录
 		DB.Delete(checkin)
 		return nil, 0, errors.New("签到失败：发放抽奖次数出错")
 	}
 
-	return checkin, tickets, nil
+	return checkin, granted, nil
 }
 
 // GetUserCheckinStats 获取用户签到统计信息

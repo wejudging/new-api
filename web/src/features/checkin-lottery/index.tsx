@@ -16,17 +16,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { CalendarX } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { History } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { LotteryDrawCard } from './components/lottery-draw-card'
 import { LotteryStats } from './components/lottery-stats'
+import { LotteryUnavailableCard } from './components/lottery-unavailable-card'
 import { LuckLeaderboard } from './components/luck-leaderboard'
 import { useCheckinLotteryStatus } from './hooks/use-checkin-lottery'
 
@@ -52,30 +54,28 @@ export function CheckinLottery() {
           {t('Claim your daily draws and convert them into balance rewards')}
         </span>
       </SectionPageLayout.Title>
+      <SectionPageLayout.Actions>
+        <Button
+          variant='outline'
+          size='sm'
+          render={<Link to='/checkin/records' />}
+        >
+          <History className='size-4' />
+          {t('Draw records')}
+        </Button>
+      </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-5'>
-          {!enabled ? (
-            <Card className='gap-2 px-6 py-10'>
-              <div className='flex flex-col items-center gap-2 text-center'>
-                <CalendarX className='text-muted-foreground size-6' />
-                <p className='text-sm font-semibold'>
-                  {t('Daily draw is not available right now')}
-                </p>
-                <p className='text-muted-foreground max-w-md text-xs'>
-                  {t(
-                    'The administrator has not enabled the check-in lottery yet. Please come back later.'
-                  )}
-                </p>
-              </div>
-            </Card>
-          ) : loading ? (
-            <DrawPageSkeleton />
-          ) : (
+          {!enabled && <LotteryUnavailableCard />}
+          {enabled && loading && <DrawPageSkeleton />}
+          {enabled && !loading && (
             <>
               <LotteryStats
                 tickets={payload?.tickets ?? 0}
+                dailyTickets={payload?.daily_tickets ?? 0}
+                bonusTickets={payload?.bonus_tickets ?? 0}
                 dailyDraws={payload?.daily_draws ?? 1}
-                checkedInToday={payload?.checked_in_today ?? false}
+                topUpYuanPerDraw={payload?.topup_yuan_per_draw ?? 0}
                 balanceQuota={user?.quota ?? 0}
               />
 

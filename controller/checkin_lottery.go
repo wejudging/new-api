@@ -19,7 +19,7 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	userId := c.GetInt("id")
 
-	tickets, err := model.GetUserLotteryTickets(userId)
+	dailyTickets, bonusTickets, err := model.GetUserLotteryTicketBuckets(userId)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -52,16 +52,19 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"enabled":           setting.Enabled,
-			"daily_draws":       operation_setting.GetCheckinDailyDraws(),
-			"tickets":           tickets,
-			"checked_in_today":  checkedInToday,
-			"prizes":            buildLotteryPrizePayload(),
-			"expected_amount":   operation_setting.GetCheckinPrizeExpectedAmount(),
-			"stats":             stats,
-			"rank":              rank,
-			"leaderboard":       leaderboard,
-			"leaderboard_count": lotteryLeaderboardSize,
+			"enabled":             setting.Enabled,
+			"daily_draws":         operation_setting.GetCheckinDailyDraws(),
+			"tickets":             dailyTickets + bonusTickets,
+			"daily_tickets":       dailyTickets,
+			"bonus_tickets":       bonusTickets,
+			"topup_yuan_per_draw": operation_setting.GetCheckinTopUpYuanPerDraw(),
+			"checked_in_today":    checkedInToday,
+			"prizes":              buildLotteryPrizePayload(),
+			"expected_amount":     operation_setting.GetCheckinPrizeExpectedAmount(),
+			"stats":               stats,
+			"rank":                rank,
+			"leaderboard":         leaderboard,
+			"leaderboard_count":   lotteryLeaderboardSize,
 		},
 	})
 }
@@ -85,8 +88,12 @@ func DoCheckinLotteryDraw(c *gin.Context) {
 	// 没有可用次数时，先尝试领取当日次数（今日已签到会返回错误）
 	if tickets < 1 {
 		if _, claimed, err := model.UserCheckin(userId); err == nil {
-			tickets = claimed
-			model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("用户签到，获得 %d 次抽奖机会", claimed))
+			message := "用户签到"
+			if claimed > 0 {
+				message = fmt.Sprintf("用户签到，获得 %d 次抽奖机会", claimed)
+			}
+			model.RecordLog(userId, model.LogTypeSystem, message)
+			tickets, _ = model.GetUserLotteryTickets(userId)
 		}
 	}
 
@@ -150,6 +157,35 @@ func buildLotteryPrizePayload() []gin.H {
 		})
 	}
 	return payload
+}
+
+// GetCheckinLotteryRecords 获取当前用户的抽奖记录 / 抽奖次数流水
+//
+// 查询参数 type=draw 返回抽奖记录（默认），type=ticket 返回次数流水。
+func GetCheckinLotteryRecords(c *gin.Context) {
+	userId := c.GetInt("id")
+	pageInfo := common.GetPageQuery(c)
+
+	if c.Query("type") == "ticket" {
+		logs, total, err := model.GetUserLotteryTicketLogs(userId, pageInfo)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		pageInfo.SetTotal(int(total))
+		pageInfo.SetItems(logs)
+		common.ApiSuccess(c, pageInfo)
+		return
+	}
+
+	draws, total, err := model.GetUserLotteryDraws(userId, pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(draws)
+	common.ApiSuccess(c, pageInfo)
 }
 
 // formatLotteryAmount 格式化奖品金额（人民币元）
