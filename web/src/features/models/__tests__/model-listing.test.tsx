@@ -693,7 +693,7 @@ it('opens the effective expression breakdown from the price without creating met
   expect(preview).toHaveTextContent('long')
   expect(preview).toHaveTextContent('0.3')
   expect(preview).toHaveTextContent('0.6')
-  expect(preview).toHaveTextContent('x-priority')
+  expect(preview).not.toHaveTextContent('x-priority')
   expect(write).not.toHaveBeenCalled()
 })
 

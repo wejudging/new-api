@@ -27,20 +27,12 @@ import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import {
   BILLING_PRICING_VARS,
-  MATCH_CONTAINS,
-  MATCH_EQ,
-  MATCH_EXISTS,
-  MATCH_GTE,
-  MATCH_LT,
-  MATCH_RANGE,
-  SOURCE_TIME,
   parseTiersFromExpr,
   requestRuleGroupsFromTrace,
   splitBillingExprAndRequestRules,
   tryParseRequestRuleExpr,
   type ParsedTaskTier,
   type ParsedTier,
-  type RequestCondition,
   type RequestRuleGroup,
   type RequestRuleTrace,
   type TierCondition,
@@ -54,11 +46,7 @@ import {
   type DynamicPriceLabelKind,
   type DynamicPriceOptions,
 } from '../lib/dynamic-price'
-import {
-  discountPercentFromMultiplier,
-  ruleDiscountLabel,
-  ruleDiscountPercent,
-} from '../lib/request-rule-discount'
+import { discountPercentFromMultiplier } from '../lib/request-rule-discount'
 import { getTaskPricingDisplayTiers } from '../lib/task-matrix-display'
 import {
   taskPriceLabel,
@@ -140,13 +128,6 @@ const OP_LABELS: Record<string, string> = {
   '>': '>',
   '>=': '≥',
 }
-const TIME_FUNC_LABELS: Record<string, string> = {
-  hour: 'Hour',
-  minute: 'Minute',
-  weekday: 'Weekday',
-  month: 'Month',
-  day: 'Day',
-}
 
 function formatTokenHint(value: string | number): string {
   const n = Number(value)
@@ -226,54 +207,6 @@ function formatBreakdownPrice(
   if (field.unit === 'request') return `${amount}/${t('request')}`
   if (field.unit === 'image') return `${amount}/${t('image')}`
   return amount
-}
-
-function describeCondition(
-  cond: RequestCondition,
-  t: (key: string) => string
-): string {
-  if (cond.source === SOURCE_TIME) {
-    const fn = t(TIME_FUNC_LABELS[cond.timeFunc] || cond.timeFunc)
-    const tz = cond.timezone || 'UTC'
-    if (cond.mode === MATCH_RANGE) {
-      return `${fn} ${cond.rangeStart}:00~${cond.rangeEnd}:00 (${tz})`
-    }
-    const opMap: Record<string, string> = {
-      [MATCH_EQ]: '=',
-      [MATCH_GTE]: '≥',
-      [MATCH_LT]: '<',
-    }
-    return `${fn} ${opMap[cond.mode] || '='} ${cond.value} (${tz})`
-  }
-  const src = cond.source === 'header' ? t('Header') : t('Body param')
-  const path = cond.path || ''
-  if (cond.mode === MATCH_EXISTS) return `${src} ${path} ${t('Exists')}`
-  if (cond.mode === MATCH_CONTAINS) {
-    return `${src} ${path} ${t('Contains')} "${cond.value}"`
-  }
-  const opMap: Record<string, string> = {
-    eq: '=',
-    gt: '>',
-    gte: '≥',
-    lt: '<',
-    lte: '≤',
-  }
-  return `${src} ${path} ${opMap[cond.mode] || '='} ${cond.value}`
-}
-
-function describeGroup(
-  group: RequestRuleGroup,
-  t: (key: string) => string,
-  locale: string
-): string {
-  if (group.conditionText) {
-    const formatted = formatBillingCondition(group.conditionText, t, locale)
-    if (formatted) return formatted
-  }
-  const description = (group.conditions || [])
-    .map((condition) => describeCondition(condition, t))
-    .join(' && ')
-  return description || group.conditionText || ''
 }
 
 function nextOccurrenceKey(
@@ -357,14 +290,10 @@ export function DynamicPricingBreakdown({
   }, [expr, usageSchema, requestRules])
 
   const hasTiers = tiers.length > 0
-  const hasRules = ruleGroups.length > 0
-  // Rules that lower the price are a campaign customers can read, so the block
-  // stops being a technical list of conditional multipliers.
-  const hasDiscountOffer = ruleGroups.some(
-    (group) => ruleDiscountPercent(group.multiplier) > 0
-  )
-  // The tier rows carry the price the engine multiplies, so an active campaign
-  // has to reach them as well — otherwise the table contradicts the total.
+  // Request rules stay out of the customer-facing copy: the conditions and
+  // multipliers are an operator concern, and printing them next to the
+  // campaign price reads as a second discount. The rows therefore carry only
+  // the price the engine actually charges.
   const activeRuleMultiplier = useMemo(() => {
     const now = new Date()
     let factor = 1
@@ -376,9 +305,8 @@ export function DynamicPricingBreakdown({
     }
     return factor
   }, [ruleGroups])
-  const tierDiscountPercent =
-    discountPercentFromMultiplier(activeRuleMultiplier)
-  const hasTierDiscount = tierDiscountPercent > 0
+  const hasTierDiscount =
+    discountPercentFromMultiplier(activeRuleMultiplier) > 0
 
   if (!expr) return null
 
@@ -495,7 +423,6 @@ export function DynamicPricingBreakdown({
     return fields
   })()
   const mobileTierKeyOccurrences = new Map<string, number>()
-  const requestRuleKeyOccurrences = new Map<string, number>()
 
   /** Tier price, struck through next to the campaign price while one is live. */
   const renderTierPrice = (
@@ -546,7 +473,7 @@ export function DynamicPricingBreakdown({
       )}
 
       {hasTiers && (
-        <div className={cn(compact ? cn(hasRules && 'mb-2') : 'mb-3 sm:mb-4')}>
+        <div className={compact ? undefined : 'mb-3 sm:mb-4'}>
           {!usageSchema && (
             <div
               className={
@@ -556,17 +483,6 @@ export function DynamicPricingBreakdown({
               }
             >
               {t('Tiered price table')}
-            </div>
-          )}
-          {hasTierDiscount && (
-            <div
-              className={cn(
-                'text-xs font-medium text-red-500',
-                compact ? 'mb-1.5' : 'mb-2'
-              )}
-            >
-              {t('Limited-time offer')} ·{' '}
-              {ruleDiscountLabel(tierDiscountPercent, t)}
             </div>
           )}
           <div className='space-y-1.5 sm:hidden'>
@@ -750,66 +666,6 @@ export function DynamicPricingBreakdown({
               })),
             ]}
           />
-        </div>
-      )}
-
-      {hasRules && (
-        <div>
-          <div
-            className={
-              compact
-                ? 'text-muted-foreground mb-1.5 text-xs font-medium'
-                : 'text-foreground mb-2 text-sm font-semibold'
-            }
-          >
-            {hasDiscountOffer
-              ? t('Limited-time offer')
-              : t('Conditional multipliers')}
-          </div>
-          <ul className='space-y-1.5'>
-            {ruleGroups.map((group) => {
-              const isMatched = group.matched === true
-              const offPercent = ruleDiscountPercent(group.multiplier)
-              const rowKey = nextOccurrenceKey(
-                `${group.conditionText || JSON.stringify(group.conditions)}:${group.multiplier}`,
-                requestRuleKeyOccurrences
-              )
-              return (
-                <li
-                  key={`group-${rowKey}`}
-                  className={cn(
-                    'bg-muted/50 flex items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2',
-                    isMatched && 'border-emerald-500/40 bg-emerald-500/10'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'text-foreground break-all',
-                      compact ? 'text-xs' : 'text-sm'
-                    )}
-                  >
-                    {describeGroup(group, t, i18n.language)}
-                  </span>
-                  <Badge
-                    variant='secondary'
-                    className={cn(
-                      'shrink-0',
-                      offPercent > 0
-                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300'
-                        : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
-                      isMatched &&
-                        'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-                    )}
-                  >
-                    {offPercent > 0
-                      ? ruleDiscountLabel(offPercent, t)
-                      : `${group.multiplier}x`}
-                    {isMatched && ` · ${t('Matched')}`}
-                  </Badge>
-                </li>
-              )
-            })}
-          </ul>
         </div>
       )}
     </section>

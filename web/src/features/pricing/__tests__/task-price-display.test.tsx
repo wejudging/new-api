@@ -76,7 +76,7 @@ it('renders weekday and hour conditions as time windows instead of expression so
   expect(screen.queryByText(/weekday\(/)).not.toBeInTheDocument()
 })
 
-it('prints request rule multipliers as time windows instead of expression source', () => {
+it('hides request rule multipliers and their windows from the breakdown', () => {
   const peakWindows =
     '(hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6 ? 2 : 1) * (hour("Asia/Shanghai") >= 14 && hour("Asia/Shanghai") < 18 && weekday("Asia/Shanghai") >= 1 && weekday("Asia/Shanghai") < 6 ? 2 : 1)'
   render(
@@ -84,16 +84,15 @@ it('prints request rule multipliers as time windows instead of expression source
       billingExpr={`tier("off_peak", p * 0.4 + c * 1.6 + cr * 0.008) * ${peakWindows}`}
     />
   )
+  expect(screen.getAllByText('Tiered price table').length).toBeGreaterThan(0)
   expect(
-    screen.getAllByText('Mon–Fri 09:00–12:00 (Asia/Shanghai)').length
-  ).toBeGreaterThan(0)
-  expect(
-    screen.getAllByText('Mon–Fri 14:00–18:00 (Asia/Shanghai)').length
-  ).toBeGreaterThan(0)
+    screen.queryByText('Mon–Fri 09:00–12:00 (Asia/Shanghai)')
+  ).not.toBeInTheDocument()
+  expect(screen.queryByText('Conditional multipliers')).not.toBeInTheDocument()
   expect(screen.queryByText(/hour\(/)).not.toBeInTheDocument()
 })
 
-it('presents a conditional discount as a limited-time offer', () => {
+it('prices a conditional discount without printing the request rule', () => {
   const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
   render(
     <DynamicPricingBreakdown
@@ -101,14 +100,16 @@ it('presents a conditional discount as a limited-time offer', () => {
     />
   )
 
-  expect(screen.getByText('Limited-time offer')).toBeInTheDocument()
-  expect(screen.getByText('50% off')).toBeInTheDocument()
-  expect(screen.getByText('Sep 1–Sep 20 (Asia/Shanghai)')).toBeInTheDocument()
+  expect(screen.queryByText('Limited-time offer')).not.toBeInTheDocument()
+  expect(screen.queryByText('50% off')).not.toBeInTheDocument()
+  expect(
+    screen.queryByText('Sep 1–Sep 20 (Asia/Shanghai)')
+  ).not.toBeInTheDocument()
   expect(screen.queryByText('Conditional multipliers')).not.toBeInTheDocument()
   expect(screen.queryByText(/month\(/)).not.toBeInTheDocument()
 })
 
-it('keeps the multiplier wording for surcharges that raise the price', () => {
+it('keeps surcharge multipliers out of the breakdown as well', () => {
   const condition = 'hour("Asia/Shanghai") >= 9 && hour("Asia/Shanghai") < 12'
   render(
     <DynamicPricingBreakdown
@@ -116,8 +117,8 @@ it('keeps the multiplier wording for surcharges that raise the price', () => {
     />
   )
 
-  expect(screen.getByText('Conditional multipliers')).toBeInTheDocument()
-  expect(screen.getByText('2x')).toBeInTheDocument()
+  expect(screen.queryByText('Conditional multipliers')).not.toBeInTheDocument()
+  expect(screen.queryByText('2x')).not.toBeInTheDocument()
   expect(screen.queryByText('Limited-time offer')).not.toBeInTheDocument()
 })
 
@@ -134,9 +135,7 @@ it('prices the tier rows with the discount while the campaign runs', () => {
 
     expect(screen.getAllByText('$0.4000').length).toBeGreaterThan(0)
     expect(screen.getAllByText('$0.2000').length).toBeGreaterThan(0)
-    expect(
-      screen.getAllByText('Limited-time offer · 50% off').length
-    ).toBeGreaterThan(0)
+    expect(screen.queryByText('50% off')).not.toBeInTheDocument()
   } finally {
     vi.useRealTimers()
   }
@@ -155,7 +154,7 @@ it('keeps the listed tier prices once the campaign window has passed', () => {
 
     expect(screen.getAllByText('$0.4000').length).toBeGreaterThan(0)
     expect(screen.queryByText('$0.2000')).not.toBeInTheDocument()
-    expect(screen.queryByText(/Limited-time offer ·/)).not.toBeInTheDocument()
+    expect(screen.queryByText('50% off')).not.toBeInTheDocument()
   } finally {
     vi.useRealTimers()
   }
