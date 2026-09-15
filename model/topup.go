@@ -124,12 +124,42 @@ func creditTopUpQuotaWithLottery(tx *gorm.DB, userId int, creditedQuota int, upd
 	if err := creditTopUpQuota(tx, userId, creditedQuota, updates); err != nil {
 		return err
 	}
-	if granted, err := GrantTopUpLotteryTickets(tx, userId, creditedQuota); err != nil {
+	if granted, err := grantTopUpLotteryTickets(tx, userId, creditedQuota); err != nil {
 		common.SysError("grant check-in lottery tickets after topup failed: " + err.Error())
 	} else if granted > 0 {
 		common.SysLog(fmt.Sprintf("充值赠送抽奖次数 user_id=%d tickets=%d", userId, granted))
 	}
 	return nil
+}
+
+// grantTopUpLotteryTickets 在保存点内结算充值赠送的抽奖次数
+//
+// 赠送只是充值到账的附带权益，但它和充值共用一个事务：一旦赠送语句报错，
+// PostgreSQL 会把整个事务标记为 aborted，调用方随后的 COMMIT 直接变成回滚，
+// 结果就是用户付了钱却没到账。用保存点把赠送圈起来，出错时只回滚赠送本身，
+// 充值到账不受影响。
+//
+// SQLite 走单连接、不支持嵌套事务，而且出错后事务仍可继续执行，保持直接调用。
+func grantTopUpLotteryTickets(tx *gorm.DB, userId int, creditedQuota int) (int, error) {
+	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
+		return GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+	}
+
+	const savepoint = "hohai_topup_lottery"
+	if err := tx.SavePoint(savepoint).Error; err != nil {
+		// 保存点不可用时退化为直接赠送，避免因为隔离机制本身丢掉赠送权益。
+		common.SysError("create topup lottery savepoint failed: " + err.Error())
+		return GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+	}
+
+	granted, err := GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+	if err == nil {
+		return granted, nil
+	}
+	if rbErr := tx.RollbackTo(savepoint).Error; rbErr != nil {
+		common.SysError("rollback topup lottery savepoint failed: " + rbErr.Error())
+	}
+	return 0, err
 }
 
 func (topUp *TopUp) Update() error {

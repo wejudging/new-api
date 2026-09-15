@@ -147,7 +147,10 @@ func addUserLotteryTicketsTo(db *gorm.DB, userId int, pool string, delta int, re
 	err := db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}},
 		DoUpdates: clause.Assignments(map[string]any{
-			pool:         gorm.Expr(pool+" + ?", delta),
+			// 列名必须带表名：ON CONFLICT ... DO UPDATE 里的裸列名在 PostgreSQL
+			// 属于歧义引用（SQLSTATE 42702），报错后事务会被标记为 aborted，
+			// 调用方（含充值）的 COMMIT 随即失败并整笔回滚。
+			pool:         gorm.Expr("checkin_lottery_ticket_states."+pool+" + ?", delta),
 			"touched_at": now,
 		}),
 	}).Create(state).Error
