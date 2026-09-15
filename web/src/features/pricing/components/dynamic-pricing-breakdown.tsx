@@ -47,6 +47,7 @@ import {
 } from '../lib/billing-expr'
 import { formatBillingCondition } from '../lib/billing-expression/condition-display'
 import { compileBillingExpression } from '../lib/billing-expression/parser'
+import { evaluateBillingCondition } from '../lib/billing-expression/runtime'
 import { isBreakdownTierMatched } from '../lib/breakdown-tier-match'
 import {
   formatTaskUsageUnitPrice,
@@ -54,6 +55,7 @@ import {
   type DynamicPriceOptions,
 } from '../lib/dynamic-price'
 import {
+  discountPercentFromMultiplier,
   ruleDiscountLabel,
   ruleDiscountPercent,
 } from '../lib/request-rule-discount'
@@ -64,6 +66,7 @@ import {
   taskPricingConditions,
 } from '../lib/task-price-display'
 import type { BillingUsageSchema, BillingUsageUnit } from '../types'
+import { PromoPrice } from './promo-price'
 
 type DynamicPricingBreakdownProps = {
   billingExpr: string | null | undefined
@@ -282,6 +285,21 @@ function nextOccurrenceKey(
   return `${baseKey}:${occurrence}`
 }
 
+/**
+ * Whether a request rule applies to the price right now. A settlement trace
+ * answers for one finished request; a pricing preview without a trace resolves
+ * the condition against the current time, so a running campaign can advertise
+ * the price it actually charges.
+ */
+function ruleAppliesNow(group: RequestRuleGroup, now: Date): boolean {
+  if (group.matched !== undefined) return group.matched
+  const condition = group.conditionText
+  if (!condition) return false
+  const compiled = compileBillingExpression(condition)
+  if (compiled.status !== 'ready') return false
+  return evaluateBillingCondition(compiled, compiled.ast, now) === true
+}
+
 export function DynamicPricingBreakdown({
   billingExpr,
   matchedTierLabel,
@@ -345,6 +363,22 @@ export function DynamicPricingBreakdown({
   const hasDiscountOffer = ruleGroups.some(
     (group) => ruleDiscountPercent(group.multiplier) > 0
   )
+  // The tier rows carry the price the engine multiplies, so an active campaign
+  // has to reach them as well — otherwise the table contradicts the total.
+  const activeRuleMultiplier = useMemo(() => {
+    const now = new Date()
+    let factor = 1
+    for (const group of ruleGroups) {
+      if (!ruleAppliesNow(group, now)) continue
+      const multiplier = Number(group.multiplier)
+      if (!Number.isFinite(multiplier) || multiplier <= 0) continue
+      factor *= multiplier
+    }
+    return factor
+  }, [ruleGroups])
+  const tierDiscountPercent =
+    discountPercentFromMultiplier(activeRuleMultiplier)
+  const hasTierDiscount = tierDiscountPercent > 0
 
   if (!expr) return null
 
@@ -463,6 +497,36 @@ export function DynamicPricingBreakdown({
   const mobileTierKeyOccurrences = new Map<string, number>()
   const requestRuleKeyOccurrences = new Map<string, number>()
 
+  /** Tier price, struck through next to the campaign price while one is live. */
+  const renderTierPrice = (
+    value: number,
+    field: BreakdownPriceField
+  ): ReactNode => {
+    const priceable =
+      value > 0 ||
+      ((field.unit === 'request' || field.unit === 'image') &&
+        Number.isFinite(value))
+    if (!priceable) return '-'
+
+    const format = (amount: number) =>
+      formatBreakdownPrice(
+        amount,
+        field,
+        symbol,
+        rate,
+        t,
+        taskPriceOptions,
+        i18n.language
+      )
+    if (!hasTierDiscount) return format(value)
+    return (
+      <PromoPrice
+        original={format(value)}
+        promo={format(value * activeRuleMultiplier)}
+      />
+    )
+  }
+
   return (
     <section className={cn('min-w-0', !compact && 'py-3 sm:py-4')}>
       {!compact && !usageSchema && (
@@ -492,6 +556,17 @@ export function DynamicPricingBreakdown({
               }
             >
               {t('Tiered price table')}
+            </div>
+          )}
+          {hasTierDiscount && (
+            <div
+              className={cn(
+                'text-xs font-medium text-red-500',
+                compact ? 'mb-1.5' : 'mb-2'
+              )}
+            >
+              {t('Limited-time offer')} ·{' '}
+              {ruleDiscountLabel(tierDiscountPercent, t)}
             </div>
           )}
           <div className='space-y-1.5 sm:hidden'>
@@ -565,20 +640,7 @@ export function DynamicPricingBreakdown({
                               compact ? 'text-xs' : 'text-sm font-semibold'
                             )}
                           >
-                            {value > 0 ||
-                            ((field.unit === 'request' ||
-                              field.unit === 'image') &&
-                              Number.isFinite(value))
-                              ? formatBreakdownPrice(
-                                  value,
-                                  field,
-                                  symbol,
-                                  rate,
-                                  t,
-                                  taskPriceOptions,
-                                  i18n.language
-                                )
-                              : '-'}
+                            {renderTierPrice(value, field)}
                           </div>
                         </div>
                       )
@@ -680,26 +742,11 @@ export function DynamicPricingBreakdown({
                   'text-right align-top font-mono',
                   compact ? 'py-2' : 'py-2.5'
                 ),
-                cell: (tier: BreakdownTier) => {
-                  const value = field.value(tier)
-                  return value > 0 ||
-                    ((field.unit === 'request' || field.unit === 'image') &&
-                      Number.isFinite(value)) ? (
-                    <span className={cn(!compact && 'font-semibold')}>
-                      {formatBreakdownPrice(
-                        value,
-                        field,
-                        symbol,
-                        rate,
-                        t,
-                        taskPriceOptions,
-                        i18n.language
-                      )}
-                    </span>
-                  ) : (
-                    '-'
-                  )
-                },
+                cell: (tier: BreakdownTier) => (
+                  <span className={cn(!compact && 'font-semibold')}>
+                    {renderTierPrice(field.value(tier), field)}
+                  </span>
+                ),
               })),
             ]}
           />

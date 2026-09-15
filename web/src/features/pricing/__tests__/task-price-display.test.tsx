@@ -121,6 +121,46 @@ it('keeps the multiplier wording for surcharges that raise the price', () => {
   expect(screen.queryByText('Limited-time offer')).not.toBeInTheDocument()
 })
 
+it('prices the tier rows with the discount while the campaign runs', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-09-07T10:00:00+08:00'))
+  try {
+    const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
+    render(
+      <DynamicPricingBreakdown
+        billingExpr={`tier("off_peak", p * 0.4 + c * 1.6) * (${condition} ? 0.5 : 1)`}
+      />
+    )
+
+    expect(screen.getAllByText('$0.4000').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('$0.2000').length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText('Limited-time offer · 50% off').length
+    ).toBeGreaterThan(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('keeps the listed tier prices once the campaign window has passed', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-10-05T10:00:00+08:00'))
+  try {
+    const condition = 'month("Asia/Shanghai") == 9 && day("Asia/Shanghai") < 21'
+    render(
+      <DynamicPricingBreakdown
+        billingExpr={`tier("off_peak", p * 0.4 + c * 1.6) * (${condition} ? 0.5 : 1)`}
+      />
+    )
+
+    expect(screen.getAllByText('$0.4000').length).toBeGreaterThan(0)
+    expect(screen.queryByText('$0.2000')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Limited-time offer ·/)).not.toBeInTheDocument()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
 const model: PricingModel = {
   id: 1,
   model_name: 'incho_music',

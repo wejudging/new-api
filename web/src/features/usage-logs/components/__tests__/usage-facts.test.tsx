@@ -240,6 +240,9 @@ describe('usage facts billing details', () => {
     // The settled 5000 quota is the discounted half of the campaign price.
     expect(rowValue('Price before discount')).toBe(formatLogQuota(10000))
     expect(rowValue('Total Cost')).toBe(formatLogQuota(5000))
+    // The tier table quotes the campaign price next to the listed one.
+    expect(screen.getAllByText('$0.4000').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('$0.2000').length).toBeGreaterThan(0)
   })
 
   test('leaves the price story untouched when no discount rule fired', () => {
@@ -258,6 +261,7 @@ describe('usage facts billing details', () => {
 
     expect(screen.queryByText('Discount')).toBeNull()
     expect(screen.queryByText('Price before discount')).toBeNull()
+    expect(screen.queryByText('$0.2000')).toBeNull()
     expect(rowValue('Total Cost')).toBe(formatLogQuota(5000))
   })
 })
