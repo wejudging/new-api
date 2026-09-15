@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '../components/settings-page'
+import { DEFAULT_CHECKIN_PRIZES } from '../general/checkin-settings-section'
 import type { BillingSettings } from '../types'
 import {
   BILLING_DEFAULT_SECTION,
@@ -105,8 +106,8 @@ const defaultBillingSettings: BillingSettings = {
   WaffoPancakeStoreID: '',
   WaffoPancakeProductID: '',
   'checkin_setting.enabled': false,
-  'checkin_setting.min_quota': 1000,
-  'checkin_setting.max_quota': 10000,
+  'checkin_setting.daily_draws': 1,
+  'checkin_setting.prizes': DEFAULT_CHECKIN_PRIZES,
 }
 
 export function BillingSettings() {

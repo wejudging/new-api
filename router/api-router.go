@@ -136,6 +136,10 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/checkin", controller.GetCheckinStatus)
 				selfRoute.POST("/checkin", middleware.TurnstileCheck(), controller.DoCheckin)
 
+				// Check-in lottery routes
+				selfRoute.GET("/lottery", controller.GetCheckinLotteryStatus)
+				selfRoute.POST("/lottery/draw", middleware.TurnstileCheck(), controller.DoCheckinLotteryDraw)
+
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)

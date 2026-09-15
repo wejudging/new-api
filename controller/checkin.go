@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
@@ -32,18 +31,22 @@ func GetCheckinStatus(c *gin.Context) {
 		return
 	}
 
+	tickets, _ := model.GetUserLotteryTickets(userId)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"enabled":   setting.Enabled,
-			"min_quota": setting.MinQuota,
-			"max_quota": setting.MaxQuota,
-			"stats":     stats,
+			"enabled":     setting.Enabled,
+			"min_quota":   setting.MinQuota,
+			"max_quota":   setting.MaxQuota,
+			"daily_draws": operation_setting.GetCheckinDailyDraws(),
+			"tickets":     tickets,
+			"stats":       stats,
 		},
 	})
 }
 
-// DoCheckin 执行用户签到
+// DoCheckin 执行用户签到（领取每日抽奖次数）
 func DoCheckin(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
@@ -53,7 +56,7 @@ func DoCheckin(c *gin.Context) {
 
 	userId := c.GetInt("id")
 
-	checkin, err := model.UserCheckin(userId)
+	checkin, tickets, err := model.UserCheckin(userId)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -61,12 +64,16 @@ func DoCheckin(c *gin.Context) {
 		})
 		return
 	}
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("用户签到，获得额度 %s", logger.LogQuota(checkin.QuotaAwarded)))
+	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("用户签到，获得 %d 次抽奖机会", tickets))
+	total, _ := model.GetUserLotteryTickets(userId)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "签到成功",
 		"data": gin.H{
-			"quota_awarded": checkin.QuotaAwarded,
-			"checkin_date":  checkin.CheckinDate},
+			"quota_awarded":   checkin.QuotaAwarded,
+			"checkin_date":    checkin.CheckinDate,
+			"tickets_awarded": tickets,
+			"tickets":         total,
+		},
 	})
 }

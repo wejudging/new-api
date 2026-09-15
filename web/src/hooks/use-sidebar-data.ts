@@ -25,6 +25,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  Gift,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -87,6 +88,11 @@ export function useSidebarData(): SidebarData {
             title: t('Overview'),
             url: '/dashboard/overview',
             icon: Activity,
+          },
+          {
+            title: t('Check-in draw'),
+            url: '/checkin',
+            icon: Gift,
           },
           {
             title: t('API Keys'),

@@ -365,8 +365,8 @@ export type BillingSettings = {
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
   'checkin_setting.enabled': boolean
-  'checkin_setting.min_quota': number
-  'checkin_setting.max_quota': number
+  'checkin_setting.daily_draws': number
+  'checkin_setting.prizes': Array<{ amount: number; weight: number }>
 }
 
 export type OperationsSettings = {

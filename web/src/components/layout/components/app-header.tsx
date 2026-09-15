@@ -20,6 +20,7 @@ import { ConfigDrawer } from '@/components/config-drawer'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { CheckinLotteryEntry } from '@/features/checkin-lottery/components/checkin-lottery-entry'
 import { SystemUpdateAction } from '@/features/system-update/system-update-action'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
@@ -123,13 +124,16 @@ export function AppHeader({
             </div>
           )}
           {showNotifications && (
-            <NotificationPopover
-              open={notifications.popoverOpen}
-              onOpenChange={notifications.setPopoverOpen}
-              unreadCount={notifications.unreadCount}
-              notice={notifications.notice}
-              loading={notifications.loading}
-            />
+            <>
+              <CheckinLotteryEntry />
+              <NotificationPopover
+                open={notifications.popoverOpen}
+                onOpenChange={notifications.setPopoverOpen}
+                unreadCount={notifications.unreadCount}
+                notice={notifications.notice}
+                loading={notifications.loading}
+              />
+            </>
           )}
           <LanguageSwitcher />
           {showConfigDrawer && <ConfigDrawer />}

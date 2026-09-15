@@ -102,6 +102,7 @@ describe('security sidebar visibility', () => {
     expect(workspace?.title).toBe('')
     expect(workspace?.items.map((item) => item.title)).toEqual([
       'Overview',
+      'Check-in draw',
       'API Keys',
       'Wallet',
       'Security & Access',
