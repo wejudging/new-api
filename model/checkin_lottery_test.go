@@ -83,3 +83,32 @@ func TestLotteryTicketUpsertQualifiesColumns(t *testing.T) {
 	require.Contains(t, upsert, "checkin_lottery_ticket_states."+lotteryTicketPoolBonus+" +",
 		"SET 子句里的列名必须带表名，否则 PostgreSQL 事务会被整笔 abort")
 }
+
+// TestMaskLotteryUsernameHidesTheMiddle 覆盖手气榜用户名的半隐藏规则。
+//
+// 榜单对所有登录用户可见，用户名必须留下首尾、遮住中间；一旦哪天改成原样返回，
+// 把完整账号泄露给整个站点的就只有这个函数了。
+func TestMaskLotteryUsernameHidesTheMiddle(t *testing.T) {
+	cases := []struct {
+		username string
+		expected string
+	}{
+		{"hohai", "h***i"},
+		{"张三丰", "张***丰"},
+		{"alice@example.com", "a***m"},
+		{"ab", "a***"},
+		{"a", "*"},
+		{"", ""},
+		{"   hohai   ", "h***i"},
+	}
+	for _, testCase := range cases {
+		require.Equal(t, testCase.expected, MaskLotteryUsername(testCase.username), "username=%q", testCase.username)
+	}
+
+	// 长度 >= 3 的用户名不允许把原文整个露出来
+	for _, username := range []string{"hohai", "张三丰", "alice@example.com", "abc"} {
+		masked := MaskLotteryUsername(username)
+		require.NotEqual(t, username, masked, "username=%q", username)
+		require.NotContains(t, masked, username, "username=%q", username)
+	}
+}

@@ -500,7 +500,7 @@ func GetUserLotteryRank(userId int) (int, float64, error) {
 	return int(ahead) + 1, mine.TotalAmount, nil
 }
 
-// lotteryAccountLabel 手气榜展示用的账号信息：完整用户名 + 脱敏邮箱
+// lotteryAccountLabel 手气榜展示用的账号信息：半隐藏用户名 + 脱敏邮箱
 type lotteryAccountLabel struct {
 	Username string
 	Email    string
@@ -508,7 +508,8 @@ type lotteryAccountLabel struct {
 
 // lotteryAccountLabels 获取手气榜展示用的用户名与脱敏邮箱
 //
-// 用户名按用户要求原样展示，不做打码；邮箱仍然脱敏，避免公开邮箱地址。
+// 用户名与邮箱都在服务端脱敏：榜单对所有登录用户可见，接口不能把完整账号信息发出去，
+// 只在前端打码的话任何人直接请求接口就能拿到原文。
 func lotteryAccountLabels(userIds []int) map[int]lotteryAccountLabel {
 	labels := make(map[int]lotteryAccountLabel, len(userIds))
 	if len(userIds) == 0 {
@@ -526,11 +527,29 @@ func lotteryAccountLabels(userIds []int) map[int]lotteryAccountLabel {
 	}
 	for _, user := range users {
 		labels[user.Id] = lotteryAccountLabel{
-			Username: strings.TrimSpace(user.Username),
+			Username: MaskLotteryUsername(user.Username),
 			Email:    MaskLotteryEmail(user.Email),
 		}
 	}
 	return labels
+}
+
+// MaskLotteryUsername 半隐藏展示用户名：保留首尾字符，中间用 *** 替代
+//
+// 例如 hohai -> h***i、张三丰 -> 张***丰。太短的用户名没有中间部分可用，
+// 就只保留首位、其余全部打码，避免把整个用户名露出来。
+func MaskLotteryUsername(username string) string {
+	runes := []rune(strings.TrimSpace(username))
+	switch len(runes) {
+	case 0:
+		return ""
+	case 1:
+		return "*"
+	case 2:
+		return string(runes[0]) + "***"
+	default:
+		return string(runes[0]) + "***" + string(runes[len(runes)-1])
+	}
 }
 
 // MaskLotteryEmail 脱敏展示邮箱，例如 r***@g***.com；没有邮箱时返回空串

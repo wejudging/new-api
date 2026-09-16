@@ -81,19 +81,32 @@ describe('luck leaderboard', () => {
     }
   })
 
-  it('shows the full username in front of the masked email', () => {
-    renderBoard({})
+  it('renders the already masked username in front of the masked email', () => {
+    renderBoard({
+      entries: [
+        {
+          rank: 1,
+          user_id: 1,
+          username: 'h***i',
+          account: 'h***i@g***.com',
+          draws: 3,
+          best_amount: 0.5,
+          total_amount: 1.2,
+        },
+      ],
+    })
 
-    const row = screen.getByText('user0').closest('li')
+    const row = screen.getByText('h***i').closest('li')
     expect(row).not.toBeNull()
     if (!row) return
 
-    const username = within(row).getByText('user0')
-    const email = within(row).getByText('u***0@g***.com')
+    const username = within(row).getByText('h***i')
+    const email = within(row).getByText('h***i@g***.com')
 
     expect(username).toBeVisible()
     expect(email).toBeVisible()
-    expect(username.textContent).not.toContain('*')
+    // 脱敏由服务端完成，前端原样渲染、不再加工一次
+    expect(username.textContent).toBe('h***i')
     expect(
       username.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
