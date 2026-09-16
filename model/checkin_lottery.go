@@ -13,10 +13,11 @@ import (
 
 // 抽奖次数流水的原因
 const (
-	LotteryTicketReasonClaim  = "claim"  // 每日签到领取
-	LotteryTicketReasonDraw   = "draw"   // 抽奖消耗
-	LotteryTicketReasonRefund = "refund" // 失败回滚
-	LotteryTicketReasonTopUp  = "topup"  // 充值赠送
+	LotteryTicketReasonClaim    = "claim"    // 每日签到领取
+	LotteryTicketReasonDraw     = "draw"     // 抽奖消耗
+	LotteryTicketReasonRefund   = "refund"   // 失败回滚
+	LotteryTicketReasonTopUp    = "topup"    // 充值赠送
+	LotteryTicketReasonReferral = "referral" // 邀请好友首充奖励
 )
 
 // 抽奖次数池对应的数据库列名

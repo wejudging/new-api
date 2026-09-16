@@ -56,6 +56,11 @@ const schema = z
       .number()
       .min(0, 'Cannot be negative')
       .max(100000, 'Too large'),
+    referralBaseTickets: z.coerce
+      .number()
+      .int()
+      .min(0, 'Cannot be negative')
+      .max(100, 'At most 100 tickets'),
     prizeMinAmount: z.coerce
       .number()
       .min(0.01, 'The lowest prize cannot be under ¥0.01')
@@ -97,6 +102,8 @@ export function CheckinSettingsSection({
     dailyDraws: number
     /** Credited CNY that grants one extra draw, `0` turns the bonus off. */
     topUpYuanPerDraw: number
+    /** Tickets both sides get when the first top-up stays under the step. */
+    referralBaseTickets: number
     /** Lowest prize amount of the pool, in CNY. */
     prizeMinAmount: number
     /** Highest prize amount of the pool, in CNY. */
@@ -117,6 +124,7 @@ export function CheckinSettingsSection({
       requireTopUp: defaultValues.requireTopUp,
       dailyDraws: defaultValues.dailyDraws,
       topUpYuanPerDraw: defaultValues.topUpYuanPerDraw,
+      referralBaseTickets: defaultValues.referralBaseTickets,
       prizeMinAmount: defaultValues.prizeMinAmount,
       prizeMaxAmount: defaultValues.prizeMaxAmount,
       prizeExpected: defaultValues.prizeExpected,
@@ -162,6 +170,13 @@ export function CheckinSettingsSection({
       updates.push({
         key: 'checkin_setting.topup_yuan_per_draw',
         value: String(values.topUpYuanPerDraw),
+      })
+    }
+
+    if (values.referralBaseTickets !== defaultValues.referralBaseTickets) {
+      updates.push({
+        key: 'checkin_setting.referral_base_tickets',
+        value: String(values.referralBaseTickets),
       })
     }
 
@@ -312,6 +327,34 @@ export function CheckinSettingsSection({
                     <FormDescription>
                       {t(
                         'Every time the credited amount reaches this value the user earns one permanent draw. The credited amount is used, so a discounted top-up counts too. Set 0 to turn the bonus off.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='referralBaseTickets'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Invite tickets for a small first top-up')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={0}
+                        max={100}
+                        step={1}
+                        placeholder='1'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'When an invited friend tops up for the first time, the inviter and the friend both earn one draw per step above. If that first top-up stays under one step they still earn this many draws each, so small top-ups keep inviting worthwhile. Set 0 to only reward top-ups that reach the step.'
                       )}
                     </FormDescription>
                     <FormMessage />

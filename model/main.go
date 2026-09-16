@@ -363,6 +363,7 @@ func migrateDB() error {
 		&CheckinLotteryDraw{},
 		&CheckinLotteryTicket{},
 		&CheckinLotteryTicketState{},
+		&ReferralReward{},
 		&SubscriptionOrder{},
 		&UserSubscription{},
 		&SubscriptionPreConsumeRecord{},

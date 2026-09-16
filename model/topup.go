@@ -119,45 +119,68 @@ func creditTopUpQuota(tx *gorm.DB, userId int, creditedQuota int, updates map[st
 // creditTopUpQuotaWithLottery 充值到账并顺带结算签到抽奖的赠送次数
 //
 // 赠送门槛按「到账额度」计算，所以充值减免（付 9.9 元到账 10 元）同样计入。
-// 抽奖赠送失败不影响充值本身，只记录错误日志。
+// 两笔赠送（充值赠送、邀请好友首充奖励）都只是充值到账的附带权益，
+// 失败不影响充值本身，只记录错误日志。
 func creditTopUpQuotaWithLottery(tx *gorm.DB, userId int, creditedQuota int, updates map[string]any) error {
 	if err := creditTopUpQuota(tx, userId, creditedQuota, updates); err != nil {
 		return err
 	}
+	topUpGranted := 0
 	if granted, err := grantTopUpLotteryTickets(tx, userId, creditedQuota); err != nil {
 		common.SysError("grant check-in lottery tickets after topup failed: " + err.Error())
 	} else if granted > 0 {
+		topUpGranted = granted
 		common.SysLog(fmt.Sprintf("充值赠送抽奖次数 user_id=%d tickets=%d", userId, granted))
+	}
+	if granted, err := grantReferralLotteryTickets(tx, userId, creditedQuota, topUpGranted); err != nil {
+		common.SysError("settle referral lottery tickets after topup failed: " + err.Error())
+	} else if granted > 0 {
+		common.SysLog(fmt.Sprintf("邀请好友首充奖励结算 user_id=%d tickets=%d", userId, granted))
 	}
 	return nil
 }
 
 // grantTopUpLotteryTickets 在保存点内结算充值赠送的抽奖次数
+func grantTopUpLotteryTickets(tx *gorm.DB, userId int, creditedQuota int) (int, error) {
+	return withLotterySavepoint(tx, "hohai_topup_lottery", func(db *gorm.DB) (int, error) {
+		return GrantTopUpLotteryTickets(db, userId, creditedQuota)
+	})
+}
+
+// grantReferralLotteryTickets 在保存点内结算邀请好友首充奖励的抽奖次数
 //
-// 赠送只是充值到账的附带权益，但它和充值共用一个事务：一旦赠送语句报错，
-// PostgreSQL 会把整个事务标记为 aborted，调用方随后的 COMMIT 直接变成回滚，
-// 结果就是用户付了钱却没到账。用保存点把赠送圈起来，出错时只回滚赠送本身，
-// 充值到账不受影响。
+// 和充值赠送共用同一套保护：邀请奖励写库出错时只回滚奖励本身，
+// 已经到账的充值与写入的结算记录不会被牵连。
+func grantReferralLotteryTickets(tx *gorm.DB, userId int, creditedQuota int, topUpGranted int) (int, error) {
+	return withLotterySavepoint(tx, "hohai_referral_lottery", func(db *gorm.DB) (int, error) {
+		return SettleReferralLotteryTickets(db, userId, creditedQuota, topUpGranted)
+	})
+}
+
+// withLotterySavepoint 在保存点内执行一段抽奖赠送逻辑
+//
+// 赠送逻辑与充值共用同一个事务：一旦其中某条语句报错，PostgreSQL 会把整个事务
+// 标记为 aborted，调用方随后的 COMMIT 直接变成回滚，结果就是用户付了钱却没到账。
+// 用保存点把赠送圈起来，出错时只回滚赠送这一次的写入，充值到账不受影响。
 //
 // SQLite 走单连接、不支持嵌套事务，而且出错后事务仍可继续执行，保持直接调用。
-func grantTopUpLotteryTickets(tx *gorm.DB, userId int, creditedQuota int) (int, error) {
+func withLotterySavepoint(tx *gorm.DB, name string, fn func(*gorm.DB) (int, error)) (int, error) {
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
-		return GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+		return fn(tx)
 	}
 
-	const savepoint = "hohai_topup_lottery"
-	if err := tx.SavePoint(savepoint).Error; err != nil {
+	if err := tx.SavePoint(name).Error; err != nil {
 		// 保存点不可用时退化为直接赠送，避免因为隔离机制本身丢掉赠送权益。
-		common.SysError("create topup lottery savepoint failed: " + err.Error())
-		return GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+		common.SysError("create lottery savepoint " + name + " failed: " + err.Error())
+		return fn(tx)
 	}
 
-	granted, err := GrantTopUpLotteryTickets(tx, userId, creditedQuota)
+	granted, err := fn(tx)
 	if err == nil {
 		return granted, nil
 	}
-	if rbErr := tx.RollbackTo(savepoint).Error; rbErr != nil {
-		common.SysError("rollback topup lottery savepoint failed: " + rbErr.Error())
+	if rbErr := tx.RollbackTo(name).Error; rbErr != nil {
+		common.SysError("rollback lottery savepoint " + name + " failed: " + rbErr.Error())
 	}
 	return 0, err
 }

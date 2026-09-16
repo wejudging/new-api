@@ -199,6 +199,8 @@ const BILLING_SECTIONS = [
           requireTopUp: settings['checkin_setting.require_topup'],
           dailyDraws: settings['checkin_setting.daily_draws'],
           topUpYuanPerDraw: settings['checkin_setting.topup_yuan_per_draw'],
+          referralBaseTickets:
+            settings['checkin_setting.referral_base_tickets'],
           prizeMinAmount: settings['checkin_setting.prize_min_amount'],
           prizeMaxAmount: settings['checkin_setting.prize_max_amount'],
           prizeExpected: settings['checkin_setting.prize_expected_amount'],

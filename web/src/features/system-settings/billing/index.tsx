@@ -108,6 +108,7 @@ const defaultBillingSettings: BillingSettings = {
   'checkin_setting.require_topup': true,
   'checkin_setting.daily_draws': 1,
   'checkin_setting.topup_yuan_per_draw': 10,
+  'checkin_setting.referral_base_tickets': 1,
   'checkin_setting.prize_min_amount': 0.01,
   'checkin_setting.prize_max_amount': 1,
   'checkin_setting.prize_expected_amount': 0.1,

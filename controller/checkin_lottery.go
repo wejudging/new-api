@@ -14,6 +14,9 @@ import (
 
 const lotteryLeaderboardSize = 20
 
+// referralInviteeLimit 邀请记录里最多展示的被邀请人数量
+const referralInviteeLimit = 50
+
 // GetCheckinLotteryStatus 获取签到抽奖状态、奖池与手气榜
 func GetCheckinLotteryStatus(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
@@ -55,6 +58,8 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 		return
 	}
 
+	referral := buildLotteryReferralPayload(userId)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
@@ -73,8 +78,44 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 			"rank":                rank,
 			"leaderboard":         leaderboard,
 			"leaderboard_count":   lotteryLeaderboardSize,
+			"referral":            referral,
 		},
 	})
+}
+
+// buildLotteryReferralPayload 组装邀请奖励概览
+//
+// 邀请奖励已经取代「注册即返额度」与「转移到余额」：好友首次充值成功后，
+// 邀请双方各得抽奖次数，具体次数由基础次数与充值到账额度共同决定。
+// 这里只做展示，任何一步失败都退化成空数据，不影响签到抽奖主流程。
+func buildLotteryReferralPayload(userId int) gin.H {
+	affCode, err := model.EnsureUserAffCode(userId)
+	if err != nil {
+		common.SysError("load aff code for lottery referral failed: " + err.Error())
+		affCode = ""
+	}
+	inviteCount, err := model.GetUserInviteeCount(userId)
+	if err != nil {
+		common.SysError("count referral invitees failed: " + err.Error())
+	}
+	rewardedCount, err := model.GetUserReferralRewardedCount(userId)
+	if err != nil {
+		common.SysError("count referral rewards failed: " + err.Error())
+	}
+	referralTickets, err := model.GetUserReferralTickets(userId)
+	if err != nil {
+		common.SysError("sum referral tickets failed: " + err.Error())
+	}
+	return gin.H{
+		"aff_code":       affCode,
+		"invite_count":   inviteCount,
+		"rewarded_count": rewardedCount,
+		"tickets":        referralTickets,
+		"base_tickets":   operation_setting.GetCheckinReferralBaseTickets(),
+		"step_yuan":      operation_setting.GetCheckinTopUpYuanPerDraw(),
+		"enabled":        operation_setting.GetCheckinReferralBaseTickets() > 0 ||
+			operation_setting.GetCheckinTopUpStepQuota() > 0,
+	}
 }
 
 // DoCheckinLotteryDraw 执行一次签到抽奖（次数不足时自动领取当日次数）
@@ -202,6 +243,25 @@ func GetCheckinLotteryRecords(c *gin.Context) {
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(draws)
 	common.ApiSuccess(c, pageInfo)
+}
+
+// GetCheckinLotteryReferral 获取邀请记录：邀请链接、邀请人数与每位好友的结算情况
+func GetCheckinLotteryReferral(c *gin.Context) {
+	userId := c.GetInt("id")
+
+	invitees, err := model.GetUserReferralInvitees(userId, referralInviteeLimit)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	payload := buildLotteryReferralPayload(userId)
+	payload["invitees"] = invitees
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    payload,
+	})
 }
 
 // formatLotteryAmount 格式化奖品金额（人民币元）

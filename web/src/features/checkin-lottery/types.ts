@@ -81,6 +81,43 @@ export interface CheckinLotteryStatus {
   rank: number
   leaderboard: CheckinLotteryLeaderboardEntry[]
   leaderboard_count: number
+  /** Invite-friend rewards summary, riding along with the snapshot */
+  referral: CheckinLotteryReferral
+}
+
+/** Response of `GET /api/user/lottery/referral` */
+export interface CheckinLotteryReferral {
+  /** Invite code of the signed-in user, empty when it could not be loaded */
+  aff_code: string
+  /** Users that registered through the invite link */
+  invite_count: number
+  /** Invitees whose first top-up already paid out tickets */
+  rewarded_count: number
+  /** Tickets earned from invitees in total */
+  tickets: number
+  /** Fallback tickets paid when the first top-up stays under the step */
+  base_tickets: number
+  /** Credited CNY that grants one extra ticket per side, `0` disables it */
+  step_yuan: number
+  /** Whether the invite program is active at all */
+  enabled: boolean
+  /** Invitee breakdown, only returned by the dedicated referral endpoint */
+  invitees?: CheckinLotteryReferralInvitee[]
+}
+
+/** One invitee row of the referral breakdown */
+export interface CheckinLotteryReferralInvitee {
+  user_id: number
+  /** Partially masked username, the server does the masking */
+  username: string
+  registered_at: number
+  /** Whether the first top-up already paid out tickets */
+  settled: boolean
+  /** Tickets this invitee earned for the inviter */
+  tickets: number
+  /** Credited quota that triggered the payout */
+  credited_quota: number
+  settled_at: number
 }
 
 /** Response of `POST /api/user/lottery/draw` */
@@ -113,7 +150,12 @@ export interface CheckinLotteryDrawRecord {
 }
 
 /** Reason of a ticket ledger entry */
-export type CheckinLotteryTicketReason = 'claim' | 'draw' | 'refund' | 'topup'
+export type CheckinLotteryTicketReason =
+  | 'claim'
+  | 'draw'
+  | 'refund'
+  | 'topup'
+  | 'referral'
 
 /** One row of `GET /api/user/lottery/records?type=ticket` */
 export interface CheckinLotteryTicketRecord {

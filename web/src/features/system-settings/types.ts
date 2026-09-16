@@ -369,6 +369,8 @@ export type BillingSettings = {
   'checkin_setting.require_topup': boolean
   'checkin_setting.daily_draws': number
   'checkin_setting.topup_yuan_per_draw': number
+  /** Tickets both sides get when the first top-up stays under the step. */
+  'checkin_setting.referral_base_tickets': number
   /** Lowest prize amount of the pool, in CNY. */
   'checkin_setting.prize_min_amount': number
   /** Highest prize amount of the pool, in CNY. */

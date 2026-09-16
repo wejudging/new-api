@@ -23,6 +23,7 @@ import type {
   CheckinLotteryDrawRecord,
   CheckinLotteryDrawResult,
   CheckinLotteryRecordPage,
+  CheckinLotteryReferral,
   CheckinLotteryStatus,
   CheckinLotteryTicketRecord,
 } from './types'
@@ -96,4 +97,17 @@ export function getCheckinLotteryTicketRecords(options: {
     ...options,
     type: 'ticket',
   })
+}
+
+/**
+ * Load the invite-friend summary together with the invitee breakdown.
+ *
+ * The snapshot endpoint already carries the headline numbers, this one adds
+ * the per-invitee list used by the referral card dialog.
+ */
+export async function getCheckinLotteryReferral(): Promise<
+  CheckinLotteryApiResponse<CheckinLotteryReferral>
+> {
+  const res = await api.get('/api/user/lottery/referral')
+  return res.data
 }

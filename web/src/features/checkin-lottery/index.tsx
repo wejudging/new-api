@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { InviteFriendsCard } from './components/invite-friends-card'
 import { LotteryDrawCard } from './components/lottery-draw-card'
 import { LotteryStats } from './components/lottery-stats'
 import { LotteryUnavailableCard } from './components/lottery-unavailable-card'
@@ -92,6 +93,8 @@ export function CheckinLottery() {
                 topUpYuanPerDraw={payload?.topup_yuan_per_draw ?? 0}
                 balanceQuota={user?.quota ?? 0}
               />
+
+              <InviteFriendsCard referral={payload?.referral} />
 
               <LotteryDrawCard
                 prizes={payload?.prizes ?? []}

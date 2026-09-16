@@ -70,6 +70,15 @@ function status(
     rank: 0,
     leaderboard: [],
     leaderboard_count: 20,
+    referral: {
+      aff_code: 'abcd',
+      invite_count: 0,
+      rewarded_count: 0,
+      tickets: 0,
+      base_tickets: 1,
+      step_yuan: 10,
+      enabled: true,
+    },
     ...overrides,
   }
 }
@@ -102,9 +111,10 @@ describe('top-up gate on the daily draw page', () => {
     renderPage()
 
     expect(screen.getByText('Top up to join the daily draw')).toBeVisible()
-    expect(
-      screen.getByRole('link', { name: /Top up now/ })
-    ).toHaveAttribute('href', '/wallet')
+    expect(screen.getByRole('link', { name: /Top up now/ })).toHaveAttribute(
+      'href',
+      '/wallet'
+    )
     expect(screen.queryByText('Prize pool')).not.toBeInTheDocument()
   })
 
@@ -115,9 +125,7 @@ describe('top-up gate on the daily draw page', () => {
       screen.queryByText('Top up to join the daily draw')
     ).not.toBeInTheDocument()
     expect(screen.getByText('Prize pool')).toBeVisible()
-    expect(
-      screen.getByRole('button', { name: /Check-in draw/ })
-    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Check-in draw/ })).toBeEnabled()
   })
 
   it('leaves the draw open while the restriction is switched off', () => {

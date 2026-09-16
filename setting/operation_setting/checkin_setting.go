@@ -18,16 +18,17 @@ type CheckinPrize struct {
 
 // CheckinSetting 签到抽奖功能配置
 type CheckinSetting struct {
-	Enabled          bool    `json:"enabled"`               // 是否启用签到功能
-	RequireTopUp     bool    `json:"require_topup"`         // 是否仅限有过成功充值记录的用户参与
-	MinQuota         int     `json:"min_quota"`             // 旧版随机签到额度下限（保留兼容）
-	MaxQuota         int     `json:"max_quota"`             // 旧版随机签到额度上限（保留兼容）
-	DailyDraws       int     `json:"daily_draws"`           // 每日可领取的抽奖次数
-	TopUpYuanPerDraw float64 `json:"topup_yuan_per_draw"`   // 累计充值满多少元赠送 1 次抽奖，<=0 表示不赠送
-	PrizeMinAmount   float64 `json:"prize_min_amount"`      // 奖池最低金额（人民币元）
-	PrizeMaxAmount   float64 `json:"prize_max_amount"`      // 奖池最高金额（人民币元）
-	PrizeExpected    float64 `json:"prize_expected_amount"` // 单次抽奖期望金额（人民币元），档位权重由此反推
-	PrizeTiers       int     `json:"prize_tiers"`           // 奖池档位数量（前台按 4 列铺开，默认 12 档 = 4×3）
+	Enabled             bool    `json:"enabled"`                // 是否启用签到功能
+	RequireTopUp        bool    `json:"require_topup"`          // 是否仅限有过成功充值记录的用户参与
+	MinQuota            int     `json:"min_quota"`              // 旧版随机签到额度下限（保留兼容）
+	MaxQuota            int     `json:"max_quota"`              // 旧版随机签到额度上限（保留兼容）
+	DailyDraws          int     `json:"daily_draws"`            // 每日可领取的抽奖次数
+	TopUpYuanPerDraw    float64 `json:"topup_yuan_per_draw"`    // 累计充值满多少元赠送 1 次抽奖，<=0 表示不赠送
+	ReferralBaseTickets int     `json:"referral_base_tickets"`  // 好友首次充值不足门槛时双方各得的基础邀请次数
+	PrizeMinAmount      float64 `json:"prize_min_amount"`       // 奖池最低金额（人民币元）
+	PrizeMaxAmount      float64 `json:"prize_max_amount"`       // 奖池最高金额（人民币元）
+	PrizeExpected       float64 `json:"prize_expected_amount"`  // 单次抽奖期望金额（人民币元），档位权重由此反推
+	PrizeTiers          int     `json:"prize_tiers"`            // 奖池档位数量（前台按 4 列铺开，默认 12 档 = 4×3）
 }
 
 const (
@@ -41,6 +42,13 @@ const (
 	DefaultCheckinPrizeTiers = 12
 	// MaxCheckinPrizeTiers 档位数量上限
 	MaxCheckinPrizeTiers = 30
+	// DefaultCheckinReferralBaseTickets 默认基础邀请抽奖次数
+	//
+	// 好友首次充值不足「充值赠送门槛」时，邀请双方各得这个基础次数，
+	// 保证小额首充的邀请关系同样有奖励。
+	DefaultCheckinReferralBaseTickets = 1
+	// MaxCheckinReferralBaseTickets 基础邀请抽奖次数上限
+	MaxCheckinReferralBaseTickets = 100
 
 	// checkinPrizeAmountStep 金额最小步长，奖池金额按分取整
 	checkinPrizeAmountStep = 0.01
@@ -67,16 +75,17 @@ const (
 
 // 默认配置
 var checkinSetting = CheckinSetting{
-	Enabled:          false,                             // 默认关闭
-	RequireTopUp:     true,                              // 默认仅限有过充值记录的用户参与，抵御批量注册
-	MinQuota:         1000,                              // 默认最小额度 1000 (约 0.002 USD)
-	MaxQuota:         10000,                             // 默认最大额度 10000 (约 0.02 USD)
-	DailyDraws:       1,                                 // 默认每日 1 次抽奖
-	TopUpYuanPerDraw: 10,                                // 默认每累计充值 10 元赠送 1 次抽奖
-	PrizeMinAmount:   DefaultCheckinPrizeMinAmount,      // 默认最低 ¥0.01
-	PrizeMaxAmount:   DefaultCheckinPrizeMaxAmount,      // 默认最高 ¥1.00
-	PrizeExpected:    DefaultCheckinPrizeExpectedAmount, // 默认单次期望 ¥0.10
-	PrizeTiers:       DefaultCheckinPrizeTiers,          // 默认 12 档
+	Enabled:             false,                             // 默认关闭
+	RequireTopUp:        true,                              // 默认仅限有过充值记录的用户参与，抵御批量注册
+	MinQuota:            1000,                              // 默认最小额度 1000 (约 0.002 USD)
+	MaxQuota:            10000,                             // 默认最大额度 10000 (约 0.02 USD)
+	DailyDraws:          1,                                 // 默认每日 1 次抽奖
+	TopUpYuanPerDraw:    10,                                // 默认每累计充值 10 元赠送 1 次抽奖
+	ReferralBaseTickets: DefaultCheckinReferralBaseTickets, // 默认邀请首充基础次数 1 次
+	PrizeMinAmount:      DefaultCheckinPrizeMinAmount,      // 默认最低 ¥0.01
+	PrizeMaxAmount:      DefaultCheckinPrizeMaxAmount,      // 默认最高 ¥1.00
+	PrizeExpected:       DefaultCheckinPrizeExpectedAmount, // 默认单次期望 ¥0.10
+	PrizeTiers:          DefaultCheckinPrizeTiers,          // 默认 12 档
 }
 
 func init() {
@@ -443,6 +452,40 @@ func SplitCheckinTopUpTickets(remainderQuota int64, creditedQuota int) (granted 
 	}
 	total := remainderQuota + int64(creditedQuota)
 	return int(total / step), total % step
+}
+
+// GetCheckinReferralBaseTickets 好友首次充值不足门槛时双方各得的基础邀请次数
+//
+// 配成 0 表示小额首充不再保底，只有达到「充值赠送门槛」的整数倍才有邀请奖励。
+func GetCheckinReferralBaseTickets() int {
+	base := checkinSetting.ReferralBaseTickets
+	if base < 0 {
+		return 0
+	}
+	if base > MaxCheckinReferralBaseTickets {
+		return MaxCheckinReferralBaseTickets
+	}
+	return base
+}
+
+// GetCheckinReferralTickets 好友首次充值结算时，邀请双方各自获得的抽奖次数
+//
+// 规则：每满一次「充值赠送门槛」（默认 10 元）双方各得 1 次；首充不足门槛时
+// 按基础邀请次数保底。到账额度参与计算，所以充值减免（付 9.9 元到账 10 元）
+// 同样按 10 元结算。
+func GetCheckinReferralTickets(creditedQuota int) int {
+	base := GetCheckinReferralBaseTickets()
+	if creditedQuota <= 0 {
+		return base
+	}
+	step := GetCheckinTopUpStepQuota()
+	if step <= 0 {
+		return base
+	}
+	if fromStep := creditedQuota / step; fromStep > base {
+		return fromStep
+	}
+	return base
 }
 
 // GetCheckinPrizeWeights 获取奖池总权重
