@@ -27,8 +27,8 @@ interface PrizeBoardProps {
   prizes: CheckinLotteryPrize[]
   /** Tier currently highlighted by the rolling animation. */
   rollingIndex: number | null
-  /** Amount of the tier the last draw landed on. */
-  wonAmount: number | null
+  /** Tier the last draw landed on, highlighted once the roll has stopped. */
+  wonIndex: number | null
   disabled?: boolean
 }
 
@@ -51,11 +51,10 @@ export function PrizeBoard(props: PrizeBoardProps) {
       )}
     >
       {props.prizes.map((prize, index) => {
-        const isRolling = props.rollingIndex === index && props.disabled
-        const isWon =
-          !props.disabled &&
-          props.wonAmount != null &&
-          prize.amount === props.wonAmount
+        // The landed tier and the won tier are the same index, so the
+        // highlight the roll stops on is always the tier that pays out.
+        const isRolling = props.rollingIndex === index
+        const isWon = props.rollingIndex == null && props.wonIndex === index
         const isTop = prize.amount === topAmount && topAmount > 0
 
         return (

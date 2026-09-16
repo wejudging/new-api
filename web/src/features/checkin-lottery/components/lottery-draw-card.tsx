@@ -50,7 +50,7 @@ interface LotteryDrawCardProps {
 export function LotteryDrawCard(props: LotteryDrawCardProps) {
   const { t } = useTranslation()
   const drawState = useCheckinDraw({
-    prizeCount: props.prizes.length,
+    prizes: props.prizes,
     onSuccess: props.onDrawComplete,
   })
 
@@ -85,7 +85,7 @@ export function LotteryDrawCard(props: LotteryDrawCardProps) {
         <PrizeBoard
           prizes={props.prizes}
           rollingIndex={drawState.rollingIndex}
-          wonAmount={drawState.result?.amount ?? null}
+          wonIndex={drawState.wonIndex}
           disabled={drawState.drawing}
         />
 

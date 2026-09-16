@@ -25,26 +25,197 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { drawCheckinLottery } from '../api'
-import type { CheckinLotteryDrawResult } from '../types'
+import type { CheckinLotteryDrawResult, CheckinLotteryPrize } from '../types'
 import { CHECKIN_LOTTERY_QUERY_KEY } from './use-checkin-lottery'
 
 /**
- * How long the roll keeps spinning before the prize is revealed. The API
- * normally answers in a few hundred milliseconds, so without a floor the
- * highlight would blink once and jump straight to the result, which reads as
- * a glitch rather than a draw.
+ * Speed of the first phase of the roll, in milliseconds per tier. The API
+ * normally answers in a few hundred milliseconds, so the whole pool is spun
+ * at this pace until `ROLL_MIN_SPIN_MS` has elapsed.
  */
-const MIN_DRAW_ANIMATION_MS = 2600
+const ROLL_SPIN_INTERVAL_MS = 80
 
-/** Highlight speed at the start and at the end of the roll, in milliseconds. */
-const ROLL_START_INTERVAL_MS = 70
-const ROLL_END_INTERVAL_MS = 260
+/**
+ * Floor for the fast phase. Without it a fast API would land almost
+ * immediately and the draw would read as a glitch rather than a draw.
+ */
+const ROLL_MIN_SPIN_MS = 1300
 
-/** Resolves after `ms`, used to hold the reveal until the roll has played. */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
+/**
+ * Total duration of the landing phase, in milliseconds. The roll slows down
+ * over this window and stops exactly on the tier that was drawn.
+ */
+const ROLL_LANDING_MS = 1250
+
+/** Shortest pause between two tiers during the landing phase, in milliseconds. */
+const ROLL_LANDING_MIN_STEP_MS = 45
+
+/**
+ * The landing phase always travels at least this many tiers, so the
+ * deceleration is long enough to read as "slowing down" instead of a jump.
+ */
+const ROLL_MIN_LANDING_STEPS = 8
+
+/**
+ * How long the highlight rests on the winning tier before the result is
+ * revealed, in milliseconds.
+ */
+const ROLL_HOLD_MS = 450
+
+/** A running prize roll: spin fast, then land on the tier the backend drew. */
+export interface PrizeRoll {
+  /** Resolves once the highlight has landed and rested on the winning tier. */
+  finished: Promise<void>
+  /** Aim the roll at `index`; safe to call before or during the fast phase. */
+  land: (index: number) => void
+  /** Abort the roll (unmount, or a draw that ends without a result). */
+  cancel: () => void
+}
+
+/**
+ * How many tiers the landing phase travels from `from` to `target`. Always a
+ * positive number, and always a multiple of the pool size plus the offset, so
+ * the roll stops on `target`.
+ */
+export function landingSteps(
+  from: number,
+  target: number,
+  count: number
+): number {
+  const delta = (target - from + count) % count
+  // Landing on the tier we already sit on would look like a freeze, so a full
+  // lap is the minimum travel. Everything else keeps the same offset modulo
+  // the pool size, which is what makes the roll stop on `target`.
+  const base = delta === 0 ? count : delta
+  const extraLaps = Math.max(
+    0,
+    Math.ceil((ROLL_MIN_LANDING_STEPS - base) / count)
+  )
+  return base + extraLaps * count
+}
+
+/**
+ * Drive one roll of the prize board.
+ *
+ * The highlight used to be pure decoration: it kept cycling while the request
+ * was in flight and then vanished wherever it happened to be, so the tier the
+ * animation stopped on had nothing to do with the tier that was actually won.
+ * Now the roll is aimed: it spins at full speed until `land()` reports the
+ * drawn tier, then decelerates and stops on that exact tier.
+ */
+export function startPrizeRoll(config: {
+  count: number
+  /** Tier the highlight starts from, so a re-draw continues from the last stop. */
+  startIndex: number
+  onIndex: (index: number) => void
+}): PrizeRoll {
+  const { count, startIndex, onIndex } = config
+  if (count <= 0) {
+    return { finished: Promise.resolve(), land: () => {}, cancel: () => {} }
+  }
+
+  let cancelled = false
+  let target: number | null = null
+  let interrupt: (() => void) | null = null
+  let resolveFinished: () => void = () => {}
+  const finished = new Promise<void>((resolve) => {
+    resolveFinished = resolve
   })
+
+  // The fast phase always waits out the step it is on, so the highlight keeps
+  // an even rhythm; an interrupt only exists to cut a cancelled roll short.
+  const wait = (ms: number) =>
+    new Promise<void>((resolve) => {
+      const id = window.setTimeout(() => {
+        interrupt = null
+        resolve()
+      }, ms)
+      interrupt = () => {
+        window.clearTimeout(id)
+        interrupt = null
+        resolve()
+      }
+    })
+
+  const run = async () => {
+    try {
+      const startedAt = Date.now()
+      let index = startIndex
+
+      // Phase one: sprint through the pool until the backend has picked a
+      // tier and the roll has been visible for long enough to feel like one.
+      while (
+        !cancelled &&
+        (target === null || Date.now() - startedAt < ROLL_MIN_SPIN_MS)
+      ) {
+        index = (index + 1) % count
+        onIndex(index)
+        await wait(ROLL_SPIN_INTERVAL_MS)
+      }
+      if (cancelled || target === null) return
+
+      // Phase two: ease out from the current tier onto the drawn tier. The
+      // step count is picked so the highlight stops on `target`, and the
+      // delays grow quadratically so the last few tiers crawl.
+      const steps = landingSteps(index, target, count)
+      const squares = (steps * (steps + 1) * (2 * steps + 1)) / 6
+      const spread = Math.max(
+        ROLL_LANDING_MS - ROLL_LANDING_MIN_STEP_MS * steps,
+        0
+      )
+      for (let step = 1; step <= steps; step += 1) {
+        index = (index + 1) % count
+        onIndex(index)
+        await wait(ROLL_LANDING_MIN_STEP_MS + (spread * step * step) / squares)
+        if (cancelled) return
+      }
+
+      // Let the landing highlight sit on the winning tier for a beat before
+      // the result takes over.
+      await wait(ROLL_HOLD_MS)
+    } finally {
+      resolveFinished()
+    }
+  }
+
+  void run()
+
+  return {
+    finished,
+    land: (index: number) => {
+      target = index
+    },
+    cancel: () => {
+      cancelled = true
+      interrupt?.()
+      resolveFinished()
+    },
+  }
+}
+
+/**
+ * Index of the tier that matches the drawn amount. Amounts are unique per
+ * pool, so an exact match always exists; if the pool was edited between the
+ * page load and the draw we fall back to the closest tier so the roll still
+ * has somewhere to stop.
+ */
+export function findPrizeIndex(
+  prizes: CheckinLotteryPrize[],
+  amount: number
+): number {
+  if (prizes.length === 0) return 0
+  const exact = prizes.findIndex((prize) => prize.amount === amount)
+  if (exact >= 0) return exact
+  let closest = 0
+  let closestDiff = Number.POSITIVE_INFINITY
+  prizes.forEach((prize, index) => {
+    const diff = Math.abs(prize.amount - amount)
+    if (diff < closestDiff) {
+      closestDiff = diff
+      closest = index
+    }
+  })
+  return closest
 }
 
 function isTurnstileError(message?: string): boolean {
@@ -52,8 +223,8 @@ function isTurnstileError(message?: string): boolean {
 }
 
 interface UseCheckinDrawOptions {
-  /** Number of prize tiers, used to cycle the rolling highlight. */
-  prizeCount: number
+  /** Prize pool, used both to cycle the highlight and to aim the landing. */
+  prizes: CheckinLotteryPrize[]
   /** Called after a successful draw so the page can play its reveal. */
   onSuccess?: (result: CheckinLotteryDrawResult) => void
 }
@@ -69,6 +240,7 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
 
   const [drawing, setDrawing] = useState(false)
   const [rollingIndex, setRollingIndex] = useState<number | null>(null)
+  const [wonIndex, setWonIndex] = useState<number | null>(null)
   const [result, setResult] = useState<CheckinLotteryDrawResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [turnstileOpen, setTurnstileOpen] = useState(false)
@@ -77,50 +249,42 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
   const optionsRef = useRef(options)
   optionsRef.current = options
 
+  /** Tier the last roll stopped on, so a re-draw continues from there. */
+  const lastIndexRef = useRef(-1)
+  const rollRef = useRef<PrizeRoll | null>(null)
+
   const turnstileEnabled = Boolean(status?.turnstile_check)
   const turnstileSiteKey = String(status?.turnstile_site_key ?? '')
 
   useEffect(() => {
-    if (!drawing) {
-      setRollingIndex(null)
-      return
-    }
-    const count = optionsRef.current.prizeCount
-    if (count <= 0) return
-    const startedAt = Date.now()
-    let timer = 0
-    const roll = () => {
-      setRollingIndex((current) => {
-        const next = current == null ? 0 : current + 1
-        return next % count
-      })
-      const progress = Math.min(
-        (Date.now() - startedAt) / MIN_DRAW_ANIMATION_MS,
-        1
-      )
-      // Ease out: sprint through the pool first, then glide to a stop so the
-      // reveal lands as a punchline instead of an instant flash.
-      const delay =
-        ROLL_START_INTERVAL_MS +
-        (ROLL_END_INTERVAL_MS - ROLL_START_INTERVAL_MS) * progress ** 2
-      timer = window.setTimeout(roll, delay)
-    }
-    timer = window.setTimeout(roll, ROLL_START_INTERVAL_MS)
-    return () => window.clearTimeout(timer)
-  }, [drawing])
+    return () => rollRef.current?.cancel()
+  }, [])
 
   const draw = useCallback(
     async (turnstileToken?: string) => {
       setDrawing(true)
       setErrorMessage(null)
-      // Start the roll timer next to the request: the reveal waits for
-      // whichever finishes last, so a fast API still shows the full animation.
-      const reveal = sleep(MIN_DRAW_ANIMATION_MS)
+      const prizes = optionsRef.current.prizes
+      const roll = startPrizeRoll({
+        count: prizes.length,
+        startIndex: lastIndexRef.current,
+        onIndex: (index) => {
+          lastIndexRef.current = index
+          setRollingIndex(index)
+        },
+      })
+      rollRef.current = roll
       try {
         const res = await drawCheckinLottery(turnstileToken)
         if (res.success && res.data) {
           const drawn = res.data
-          await reveal
+          // Aim the roll at the tier the backend drew before it can land, so
+          // the tier the animation stops on is always the tier that was won.
+          const prizeIndex = findPrizeIndex(prizes, drawn.amount)
+          roll.land(prizeIndex)
+          await roll.finished
+          setRollingIndex(null)
+          setWonIndex(prizeIndex)
           setResult(drawn)
           setTurnstileOpen(false)
 
@@ -161,6 +325,9 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
         )
         handleServerError(error, t('Draw failed'))
       } finally {
+        rollRef.current = null
+        roll.cancel()
+        setRollingIndex(null)
         setDrawing(false)
       }
     },
@@ -169,6 +336,7 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
 
   const resetResult = useCallback(() => {
     setResult(null)
+    setWonIndex(null)
     setErrorMessage(null)
   }, [])
 
@@ -176,6 +344,7 @@ export function useCheckinDraw(options: UseCheckinDrawOptions) {
     draw,
     drawing,
     rollingIndex,
+    wonIndex,
     result,
     errorMessage,
     resetResult,
