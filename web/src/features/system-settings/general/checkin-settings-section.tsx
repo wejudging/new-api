@@ -334,33 +334,42 @@ export function CheckinSettingsSection({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name='referralBaseTickets'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('Invite tickets for a small first top-up')}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        min={0}
-                        max={100}
-                        step={1}
-                        placeholder='1'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        'When an invited friend tops up for the first time, the inviter and the friend both earn one draw per step above. If that first top-up stays under one step they still earn this many draws each, so small top-ups keep inviting worthwhile. Set 0 to only reward top-ups that reach the step. The invited friend also keeps their own top-up bonus, so the first top-up pays both rewards.'
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className='space-y-4 rounded-lg border p-4'>
+                <div className='min-w-0'>
+                  <p className='text-sm font-medium'>{t('Invite rewards')}</p>
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      "Draw tickets for the inviter and the invited friend after the friend's first top-up"
+                    )}
+                  </p>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name='referralBaseTickets'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Base invite draw tickets')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='number'
+                          min={0}
+                          max={100}
+                          step={1}
+                          placeholder='1'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'When an invited friend tops up for the first time, the inviter and the friend both earn one draw per step above. If that first top-up stays under one step they still earn this many draws each, so small top-ups keep inviting worthwhile. Set 0 to only reward top-ups that reach the step. The invited friend also keeps their own top-up bonus, so the first top-up pays both rewards.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className='space-y-4 rounded-lg border p-4'>
                 <div className='min-w-0'>
