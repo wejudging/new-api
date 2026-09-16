@@ -2,6 +2,7 @@ package operation_setting
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -45,6 +46,23 @@ const (
 	checkinPrizeAmountStep = 0.01
 	// checkinPrizeWeightTotal 权重总和，权重取整后的精度
 	checkinPrizeWeightTotal = 100000
+	// checkinPrizeGapJitterMin / Max 相邻档位间距的扰动倍数区间（对数均匀）
+	//
+	// 基准间距来自等比数列，乘上这个区间的随机倍数再归一化回总跨度后，档位金额就会
+	// 错落开，不再是一眼看得出的等差/等比数列。区间不能太宽，否则会出现一大一小
+	// 交替的锯齿感。
+	checkinPrizeGapJitterMin = 0.4
+	checkinPrizeGapJitterMax = 2.5
+	// checkinPrizeBandLow / High 扰动后的档位金额相对等比基准的偏移限制
+	//
+	// 只靠间距扰动有可能把某一档推得太高或太低，用这个区间把金额圈在基准附近，
+	// 奖池整体仍是「低档密集、高档稀疏」的形状。
+	checkinPrizeBandLow  = 0.6
+	checkinPrizeBandHigh = 1.7
+	// checkinPrizeJitterSalt 奖池扰动的盐值，只用来挑选一条固定的扰动量
+	//
+	// 换掉它会得到另一套金额，但档位数量、金额范围与单次期望都不受影响。
+	checkinPrizeJitterSalt = "hohai-lottery-mix"
 )
 
 // 默认配置
@@ -152,24 +170,146 @@ func GetCheckinPrizeTierCount() int {
 	return tiers
 }
 
-// buildCheckinPrizeAmounts 在金额范围内生成等比递增的档位金额
+// checkinPrizeRandom 奖池专用的确定性伪随机数发生器（splitmix64）
+//
+// 档位金额既要在前端展示、又要在抽奖时结算，两处必须完全一致，所以这里不能用
+// math/rand 的全局源（它带时间种子），也不能依赖任何外部状态：发生器只由配置驱动，
+// 同一套配置在任何机器、任何时间都生成同一份奖池。
+type checkinPrizeRandom struct {
+	state uint64
+}
+
+func newCheckinPrizeRandom(seed uint64) *checkinPrizeRandom {
+	if seed == 0 {
+		seed = 0x9E3779B97F4A7C15
+	}
+	return &checkinPrizeRandom{state: seed}
+}
+
+func (random *checkinPrizeRandom) next() uint64 {
+	random.state += 0x9E3779B97F4A7C15
+	value := random.state
+	value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9
+	value = (value ^ (value >> 27)) * 0x94D049BB133111EB
+	return value ^ (value >> 31)
+}
+
+// nextFloat 返回 [0, 1) 区间的浮点数
+func (random *checkinPrizeRandom) nextFloat() float64 {
+	return float64(random.next()>>11) / float64(uint64(1)<<53)
+}
+
+// checkinPrizeSeed 由金额范围与档位数量推导奖池种子（FNV-1a）
+func checkinPrizeSeed(minAmount, maxAmount float64, tiers int) uint64 {
+	key := fmt.Sprintf("%.2f|%.2f|%d|%s", minAmount, maxAmount, tiers, checkinPrizeJitterSalt)
+	hash := uint64(0xcbf29ce484222325)
+	for i := 0; i < len(key); i++ {
+		hash ^= uint64(key[i])
+		hash *= 0x100000001b3
+	}
+	return hash
+}
+
+// checkinPrizeJitterFactor 返回一个对数均匀的间距扰动倍数
+func checkinPrizeJitterFactor(random *checkinPrizeRandom) float64 {
+	lowest := math.Log(checkinPrizeGapJitterMin)
+	highest := math.Log(checkinPrizeGapJitterMax)
+	return math.Exp(lowest + random.nextFloat()*(highest-lowest))
+}
+
+// buildCheckinPrizeAmounts 生成奖池的档位金额
+//
+// 首档固定是最低金额、末档固定是最高金额，中间档位在等比基准上做确定性扰动：相邻
+// 间距乘上 0.4~2.5 倍的随机倍数后重新归一化回总跨度，金额因此错落有致，不再是能
+// 一眼看穿的等差/等比数列。生成结果始终满足：
+//   - 按分对齐、严格递增，相邻档位至少相差 ¥0.01
+//   - 首尾金额等于配置的最低/最高金额，总跨度一分不差
+//   - 同一套配置永远生成同一份奖池，卡片上展示的金额就是结算的金额
 func buildCheckinPrizeAmounts(minAmount, maxAmount float64, tiers int) []float64 {
-	amounts := make([]float64, 0, tiers)
-	if tiers <= 1 {
-		return append(amounts, roundToCents(minAmount))
+	minAmount = roundToCents(minAmount)
+	maxAmount = roundToCents(maxAmount)
+	if tiers <= 1 || maxAmount <= minAmount {
+		return []float64{minAmount}
 	}
+	spanCents := int(math.Round((maxAmount - minAmount) / checkinPrizeAmountStep))
+	if spanCents < 1 {
+		return []float64{minAmount}
+	}
+	if room := spanCents + 1; tiers > room {
+		tiers = room
+	}
+
+	// 等比基准：第 i 档相对最低金额的偏移（单位：分）
+	// 它既是扰动的锚点，也是形状的约束线，保证奖池整体仍是「低档密集、高档稀疏」
 	ratio := math.Pow(maxAmount/minAmount, 1/float64(tiers-1))
-	for i := 0; i < tiers; i++ {
-		amount := roundToCents(minAmount * math.Pow(ratio, float64(i)))
-		if i == tiers-1 {
-			amount = roundToCents(maxAmount)
-		}
-		if i > 0 && amount <= amounts[i-1] {
-			amount = roundToCents(amounts[i-1] + checkinPrizeAmountStep)
-		}
-		amounts = append(amounts, amount)
+	baseCents := make([]float64, tiers)
+	for i := range baseCents {
+		baseCents[i] = (minAmount*math.Pow(ratio, float64(i)) - minAmount) / checkinPrizeAmountStep
 	}
-	return amounts
+	baseCents[0] = 0
+	baseCents[tiers-1] = float64(spanCents)
+
+	random := newCheckinPrizeRandom(checkinPrizeSeed(minAmount, maxAmount, tiers))
+	gaps := make([]int, tiers-1)
+	scaled := make([]float64, len(gaps))
+	scaledTotal := 0.0
+	for i := range scaled {
+		scaled[i] = (baseCents[i+1] - baseCents[i]) * checkinPrizeJitterFactor(random)
+		scaledTotal += scaled[i]
+	}
+	total := 0
+	for i, value := range scaled {
+		gap := int(math.Round(value / scaledTotal * float64(spanCents)))
+		if gap < 1 {
+			gap = 1
+		}
+		gaps[i] = gap
+		total += gap
+	}
+	// 取整偏差逐步摊到当前最宽的间距上，保证间距之和精确等于总跨度
+	//
+	// total 必须跟着一起走：只看初始偏差的话，差额永远补不平，循环会一直转下去。
+	for {
+		drift := spanCents - total
+		if drift == 0 {
+			break
+		}
+		widest := 0
+		for i, gap := range gaps {
+			if gap > gaps[widest] {
+				widest = i
+			}
+		}
+		if drift < 0 {
+			if gaps[widest] <= 1 {
+				break
+			}
+			gaps[widest]--
+			total--
+			continue
+		}
+		gaps[widest]++
+		total++
+	}
+
+	amounts := make([]float64, 0, tiers)
+	amounts = append(amounts, minAmount)
+	cursor := 0
+	placed := 0
+	for i := 1; i < tiers-1; i++ {
+		cursor += gaps[i-1]
+		offset := math.Min(float64(cursor), math.Floor(checkinPrizeBandHigh*baseCents[i]))
+		offset = math.Max(offset, math.Ceil(checkinPrizeBandLow*baseCents[i]))
+		if lowest := float64(placed + 1); offset < lowest {
+			offset = lowest
+		}
+		if highest := float64(spanCents - (tiers - 1 - i)); offset > highest {
+			offset = highest
+		}
+		placed = int(offset)
+		amounts = append(amounts, roundToCents(minAmount+offset*checkinPrizeAmountStep))
+	}
+	return append(amounts, maxAmount)
 }
 
 // checkinPrizeDecayExpected 指数衰减权重下奖池的单次期望金额
@@ -260,8 +400,8 @@ func buildCheckinPrizeWeights(amounts []float64, target float64) []int {
 
 // GetCheckinPrizes 获取生效的奖池
 //
-// 奖池由「金额范围 + 单次期望 + 档位数量」自动生成：金额在范围内等比递增铺开，
-// 权重按指数衰减反推，使单次期望等于配置值。
+// 奖池由「金额范围 + 单次期望 + 档位数量」自动生成：金额在范围内错落铺开（首尾金额
+// 固定，中间档位带确定性扰动），权重按指数衰减反推，使单次期望等于配置值。
 func GetCheckinPrizes() []CheckinPrize {
 	minAmount, maxAmount := GetCheckinPrizeAmountRange()
 	tiers := GetCheckinPrizeTierCount()

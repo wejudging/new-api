@@ -71,6 +71,89 @@ func TestCheckinPrizePoolFollowsTheConfiguredRange(t *testing.T) {
 	require.InDelta(t, 0.2, GetCheckinPrizeExpectedAmount(), 0.0005)
 }
 
+// TestCheckinPrizeAmountsStayVariedInsideTheRange 覆盖奖池金额的扰动生成
+//
+// 首尾金额固定、中间档位错落铺开：金额必须按分对齐、严格递增（重复的档位等于白送
+// 用户一个占位格子），并且相邻间距不能整齐划一，否则奖池又能被一眼算出来。
+func TestCheckinPrizeAmountsStayVariedInsideTheRange(t *testing.T) {
+	withCheckinSetting(t, defaultPrizeSetting())
+
+	prizes := GetCheckinPrizes()
+	require.Len(t, prizes, DefaultCheckinPrizeTiers)
+
+	amounts := make([]float64, 0, len(prizes))
+	for _, prize := range prizes {
+		amounts = append(amounts, prize.Amount)
+	}
+	require.Equal(t, DefaultCheckinPrizeMinAmount, amounts[0], "最低档必须等于配置的下限")
+	require.Equal(t, DefaultCheckinPrizeMaxAmount, amounts[len(amounts)-1], "最高档必须等于配置的上限")
+
+	gaps := map[int]struct{}{}
+	for i := 1; i < len(amounts); i++ {
+		require.Greater(t, amounts[i], amounts[i-1], "金额必须严格递增，不允许重复档位")
+		require.InDelta(t, 0, amounts[i]*100-math.Round(amounts[i]*100), 1e-6, "金额必须按分对齐")
+		gaps[int(math.Round((amounts[i]-amounts[i-1])*100))] = struct{}{}
+	}
+	require.Greater(t, len(gaps), 4, "相邻间距应当错落，不能是均匀数列")
+}
+
+// TestCheckinPrizePoolIsDeterministic 同一套配置必须生成同一份奖池
+//
+// 金额既用于前台展示、又用于抽奖结算，两次调用只要有一点差别，卡片上写的就不是
+// 实际会抽到的金额。
+func TestCheckinPrizePoolIsDeterministic(t *testing.T) {
+	withCheckinSetting(t, defaultPrizeSetting())
+
+	first := GetCheckinPrizes()
+	second := GetCheckinPrizes()
+	require.Equal(t, first, second)
+
+	// 默认奖池是用户每天都会看到的那张卡片，金额固定下来才算契约：
+	// 首尾仍是 ¥0.01 / ¥1.00，中间十档错落铺开，不再是等比数列
+	expected := []float64{0.01, 0.02, 0.03, 0.05, 0.06, 0.12, 0.17, 0.24, 0.27, 0.40, 0.48, 1.00}
+	require.Len(t, first, len(expected))
+	for i, amount := range expected {
+		require.InDelta(t, amount, first[i].Amount, 1e-9, "第 %d 档金额", i)
+	}
+
+	// 换掉档位数量会得到另一条曲线，但金额范围与期望仍由配置说话
+	withCheckinSetting(t, CheckinSetting{
+		PrizeMinAmount: DefaultCheckinPrizeMinAmount,
+		PrizeMaxAmount: DefaultCheckinPrizeMaxAmount,
+		PrizeExpected:  DefaultCheckinPrizeExpectedAmount,
+		PrizeTiers:     6,
+	})
+	other := GetCheckinPrizes()
+	require.Len(t, other, 6)
+	require.NotEqual(t, first, other)
+	require.Equal(t, DefaultCheckinPrizeMinAmount, other[0].Amount)
+	require.Equal(t, DefaultCheckinPrizeMaxAmount, other[len(other)-1].Amount)
+	require.InDelta(t, DefaultCheckinPrizeExpectedAmount, GetCheckinPrizeExpectedAmount(), 0.0005)
+}
+
+// TestCheckinPrizeAmountsStayInsideTheConfiguredRange 多组金额范围下的扰动结果
+func TestCheckinPrizeAmountsStayInsideTheConfiguredRange(t *testing.T) {
+	cases := []CheckinSetting{
+		{PrizeMinAmount: 0.01, PrizeMaxAmount: 1, PrizeExpected: 0.1, PrizeTiers: 12},
+		{PrizeMinAmount: 0.02, PrizeMaxAmount: 2, PrizeExpected: 0.2, PrizeTiers: 8},
+		{PrizeMinAmount: 0.05, PrizeMaxAmount: 0.5, PrizeExpected: 0.1, PrizeTiers: 6},
+		{PrizeMinAmount: 0.01, PrizeMaxAmount: 20, PrizeExpected: 0.5, PrizeTiers: 12},
+		{PrizeMinAmount: 0.01, PrizeMaxAmount: 1, PrizeExpected: 0.1, PrizeTiers: 30},
+	}
+	for _, setting := range cases {
+		withCheckinSetting(t, setting)
+
+		prizes := GetCheckinPrizes()
+		require.NotEmpty(t, prizes)
+		require.Equal(t, setting.PrizeMinAmount, prizes[0].Amount)
+		require.Equal(t, setting.PrizeMaxAmount, prizes[len(prizes)-1].Amount)
+		for i := 1; i < len(prizes); i++ {
+			require.Greater(t, prizes[i].Amount, prizes[i-1].Amount)
+			require.Greater(t, prizes[i-1].Weight, prizes[i].Weight)
+		}
+	}
+}
+
 func TestCheckinPrizeTiersCollapseWhenTheRangeIsTiny(t *testing.T) {
 	withCheckinSetting(t, CheckinSetting{
 		PrizeMinAmount: 0.01,
