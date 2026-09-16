@@ -138,6 +138,21 @@ func InitEnv() {
 	initConstantEnv()
 }
 
+// ApplyPersistedSessionSecret 用持久化的密钥替换启动时随机生成的会话密钥
+//
+// 密钥只有在数据库就绪之后才能读取，所以这一步不能放在 InitEnv 里。
+// SESSION_SECRET 环境变量优先级最高：运维显式配置过就完全不做覆盖；
+// CRYPTO_SECRET 未配置时继续跟随 SessionSecret，与 InitEnv 的回落规则保持一致。
+func ApplyPersistedSessionSecret(secret string) {
+	if secret == "" || os.Getenv("SESSION_SECRET") != "" {
+		return
+	}
+	SessionSecret = secret
+	if os.Getenv("CRYPTO_SECRET") == "" {
+		CryptoSecret = secret
+	}
+}
+
 func initUserSessionSettings() {
 	UserSessionActiveLimit = positiveUserSessionEnv("USER_SESSION_ACTIVE_LIMIT", DefaultUserSessionActiveLimit)
 	UserSessionIssuanceLimit = positiveUserSessionEnv("USER_SESSION_ISSUANCE_LIMIT", DefaultUserSessionIssuanceLimit)

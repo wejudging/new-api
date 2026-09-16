@@ -316,6 +316,10 @@ func InitResources() error {
 		common.FatalLog("failed to initialize database: " + err.Error())
 		return err
 	}
+	// 会话签名密钥必须在数据库就绪后尽早载入，否则重启会换掉密钥并让所有已登录用户掉线
+	if err := model.InitSessionSecret(); err != nil {
+		common.SysError("failed to load the persisted session secret, login sessions will not survive a restart: " + err.Error())
+	}
 	if err = authz.Init(model.DB); err != nil {
 		common.FatalLog("failed to initialize authorization: " + err.Error())
 		return err
