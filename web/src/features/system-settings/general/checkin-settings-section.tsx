@@ -354,7 +354,7 @@ export function CheckinSettingsSection({
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'When an invited friend tops up for the first time, the inviter and the friend both earn one draw per step above. If that first top-up stays under one step they still earn this many draws each, so small top-ups keep inviting worthwhile. Set 0 to only reward top-ups that reach the step.'
+                        'When an invited friend tops up for the first time, the inviter and the friend both earn one draw per step above. If that first top-up stays under one step they still earn this many draws each, so small top-ups keep inviting worthwhile. Set 0 to only reward top-ups that reach the step. The invited friend also keeps their own top-up bonus, so the first top-up pays both rewards.'
                       )}
                     </FormDescription>
                     <FormMessage />
