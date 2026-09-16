@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { useCheckinLotteryStatus } from '../hooks/use-checkin-lottery'
+import { resolveAvailableDraws } from '../lib/available-draws'
 
 interface CheckinLotteryEntryProps {
   className?: string
@@ -34,7 +35,11 @@ interface CheckinLotteryEntryProps {
 
 /**
  * Header entry of the daily draw page. It sits next to the notification
- * bell and carries the number of tickets the user can still spend today.
+ * bell and carries the number of draws the user can still spend.
+ *
+ * The count folds in today's unclaimed daily draw, because the draw endpoint
+ * claims it lazily: a snapshot taken before the first draw of the day reports
+ * zero tickets even though the user can still spin.
  */
 export function CheckinLotteryEntry(props: CheckinLotteryEntryProps) {
   const { t } = useTranslation()
@@ -43,7 +48,8 @@ export function CheckinLotteryEntry(props: CheckinLotteryEntryProps) {
 
   const visible = Boolean(status?.checkin_enabled) && Boolean(user)
   const lotteryQuery = useCheckinLotteryStatus(visible)
-  const tickets = lotteryQuery.data?.data?.tickets ?? 0
+  const payload = lotteryQuery.data?.data
+  const tickets = payload ? resolveAvailableDraws(payload).tickets : 0
 
   if (!visible) return null
 

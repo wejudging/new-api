@@ -365,6 +365,8 @@ export type BillingSettings = {
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
   'checkin_setting.enabled': boolean
+  /** Only accounts with a successful top-up may check in and draw. */
+  'checkin_setting.require_topup': boolean
   'checkin_setting.daily_draws': number
   'checkin_setting.topup_yuan_per_draw': number
   /** Lowest prize amount of the pool, in CNY. */

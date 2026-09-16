@@ -46,6 +46,10 @@ export function CheckinLottery() {
   const lotteryQuery = useCheckinLotteryStatus(enabled)
   const payload = lotteryQuery.data?.data
   const loading = enabled && lotteryQuery.isPending
+  // Accounts without a single top-up are held at the door: the draw itself is
+  // rejected by the backend, so the page explains what unlocks it instead.
+  const topUpBlocked =
+    Boolean(payload?.require_topup) && payload?.topup_satisfied === false
   const available = resolveAvailableDraws({
     daily_tickets: payload?.daily_tickets ?? 0,
     bonus_tickets: payload?.bonus_tickets ?? 0,
@@ -75,7 +79,10 @@ export function CheckinLottery() {
         <div className='mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-5'>
           {!enabled && <LotteryUnavailableCard />}
           {enabled && loading && <DrawPageSkeleton />}
-          {enabled && !loading && (
+          {enabled && !loading && topUpBlocked && (
+            <LotteryUnavailableCard reason='topup-required' />
+          )}
+          {enabled && !loading && !topUpBlocked && (
             <>
               <LotteryStats
                 tickets={available.tickets}

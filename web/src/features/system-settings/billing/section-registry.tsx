@@ -196,6 +196,7 @@ const BILLING_SECTIONS = [
       <CheckinSettingsSection
         defaultValues={{
           enabled: settings['checkin_setting.enabled'],
+          requireTopUp: settings['checkin_setting.require_topup'],
           dailyDraws: settings['checkin_setting.daily_draws'],
           topUpYuanPerDraw: settings['checkin_setting.topup_yuan_per_draw'],
           prizeMinAmount: settings['checkin_setting.prize_min_amount'],

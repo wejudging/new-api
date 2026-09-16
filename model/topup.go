@@ -342,6 +342,23 @@ func topUpQueryCutoff() int64 {
 	return common.GetTimestamp() - topUpQueryWindowSeconds
 }
 
+// HasSuccessfulTopUp 判断用户是否至少有一笔成功到账的充值记录
+//
+// 只有 status = success 的订单算数：待支付、失败与过期的订单都不计入，
+// 因此该判定可以直接用作「是否充值过」的门槛。
+func HasSuccessfulTopUp(userId int) (bool, error) {
+	if userId <= 0 {
+		return false, nil
+	}
+	var count int64
+	if err := DB.Model(&TopUp{}).
+		Where("user_id = ? AND status = ?", userId, common.TopUpStatusSuccess).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func GetUserTopUps(userId int, pageInfo *common.PageInfo) (topups []*TopUp, total int64, err error) {
 	// Start transaction
 	tx := DB.Begin()

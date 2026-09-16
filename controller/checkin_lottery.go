@@ -19,6 +19,12 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	userId := c.GetInt("id")
 
+	requireTopUp, topUpSatisfied, err := checkinTopUpGate(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
 	dailyTickets, bonusTickets, err := model.GetUserLotteryTicketBuckets(userId)
 	if err != nil {
 		common.ApiError(c, err)
@@ -53,6 +59,8 @@ func GetCheckinLotteryStatus(c *gin.Context) {
 		"success": true,
 		"data": gin.H{
 			"enabled":             setting.Enabled,
+			"require_topup":       requireTopUp,
+			"topup_satisfied":     topUpSatisfied,
 			"daily_draws":         operation_setting.GetCheckinDailyDraws(),
 			"tickets":             dailyTickets + bonusTickets,
 			"daily_tickets":       dailyTickets,
@@ -78,6 +86,14 @@ func DoCheckinLotteryDraw(c *gin.Context) {
 	}
 
 	userId := c.GetInt("id")
+
+	if _, satisfied, err := checkinTopUpGate(c); err != nil {
+		common.ApiError(c, err)
+		return
+	} else if !satisfied {
+		common.ApiError(c, ErrCheckinTopUpRequired)
+		return
+	}
 
 	tickets, err := model.GetUserLotteryTickets(userId)
 	if err != nil {

@@ -58,6 +58,10 @@ export interface CheckinLotteryLeaderboardEntry {
 /** Response of `GET /api/user/lottery` */
 export interface CheckinLotteryStatus {
   enabled: boolean
+  /** Whether the draw is restricted to accounts that have topped up */
+  require_topup: boolean
+  /** Whether the signed-in user already has a successful top-up */
+  topup_satisfied: boolean
   daily_draws: number
   /** Daily tickets that reset every day (never accumulate) */
   daily_tickets: number

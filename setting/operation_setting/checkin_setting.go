@@ -18,6 +18,7 @@ type CheckinPrize struct {
 // CheckinSetting 签到抽奖功能配置
 type CheckinSetting struct {
 	Enabled          bool    `json:"enabled"`               // 是否启用签到功能
+	RequireTopUp     bool    `json:"require_topup"`         // 是否仅限有过成功充值记录的用户参与
 	MinQuota         int     `json:"min_quota"`             // 旧版随机签到额度下限（保留兼容）
 	MaxQuota         int     `json:"max_quota"`             // 旧版随机签到额度上限（保留兼容）
 	DailyDraws       int     `json:"daily_draws"`           // 每日可领取的抽奖次数
@@ -49,6 +50,7 @@ const (
 // 默认配置
 var checkinSetting = CheckinSetting{
 	Enabled:          false,                             // 默认关闭
+	RequireTopUp:     true,                              // 默认仅限有过充值记录的用户参与，抵御批量注册
 	MinQuota:         1000,                              // 默认最小额度 1000 (约 0.002 USD)
 	MaxQuota:         10000,                             // 默认最大额度 10000 (约 0.02 USD)
 	DailyDraws:       1,                                 // 默认每日 1 次抽奖
@@ -72,6 +74,13 @@ func GetCheckinSetting() *CheckinSetting {
 // IsCheckinEnabled 是否启用签到功能
 func IsCheckinEnabled() bool {
 	return checkinSetting.Enabled
+}
+
+// IsCheckinTopUpRequired 是否仅限有过成功充值记录的用户参与签到抽奖
+//
+// 该门槛用于拦住批量注册的小号：新账号不充值就只能看到提示，不能签到抽奖。
+func IsCheckinTopUpRequired() bool {
+	return checkinSetting.RequireTopUp
 }
 
 // GetCheckinQuotaRange 获取签到额度范围

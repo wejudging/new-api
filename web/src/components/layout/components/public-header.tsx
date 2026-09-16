@@ -27,6 +27,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CheckinLotteryEntry } from '@/features/checkin-lottery/components/checkin-lottery-entry'
 import { SystemUpdateAction } from '@/features/system-update/system-update-action'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
@@ -296,13 +297,16 @@ export function PublicHeader(props: PublicHeaderProps) {
               {showLanguageSwitcher && <LanguageSwitcher />}
               {showThemeSwitch && <ThemeSwitch />}
               {showNotifications && (
-                <NotificationPopover
-                  open={notifications.popoverOpen}
-                  onOpenChange={notifications.setPopoverOpen}
-                  unreadCount={notifications.unreadCount}
-                  notice={notifications.notice}
-                  loading={notifications.loading}
-                />
+                <>
+                  <CheckinLotteryEntry />
+                  <NotificationPopover
+                    open={notifications.popoverOpen}
+                    onOpenChange={notifications.setPopoverOpen}
+                    unreadCount={notifications.unreadCount}
+                    notice={notifications.notice}
+                    loading={notifications.loading}
+                  />
+                </>
               )}
 
               {showAuthButtons && (

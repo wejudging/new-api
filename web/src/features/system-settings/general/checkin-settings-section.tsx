@@ -46,6 +46,7 @@ import { useUpdateOption } from '../hooks/use-update-option'
 const schema = z
   .object({
     enabled: z.boolean(),
+    requireTopUp: z.boolean(),
     dailyDraws: z.coerce
       .number()
       .int()
@@ -91,6 +92,8 @@ export function CheckinSettingsSection({
 }: {
   defaultValues: {
     enabled: boolean
+    /** Only accounts with a successful top-up may check in and draw. */
+    requireTopUp: boolean
     dailyDraws: number
     /** Credited CNY that grants one extra draw, `0` turns the bonus off. */
     topUpYuanPerDraw: number
@@ -111,6 +114,7 @@ export function CheckinSettingsSection({
     resolver: zodResolver(schema) as unknown as Resolver<Values>,
     defaultValues: {
       enabled: defaultValues.enabled,
+      requireTopUp: defaultValues.requireTopUp,
       dailyDraws: defaultValues.dailyDraws,
       topUpYuanPerDraw: defaultValues.topUpYuanPerDraw,
       prizeMinAmount: defaultValues.prizeMinAmount,
@@ -137,6 +141,13 @@ export function CheckinSettingsSection({
       updates.push({
         key: 'checkin_setting.enabled',
         value: String(values.enabled),
+      })
+    }
+
+    if (values.requireTopUp !== defaultValues.requireTopUp) {
+      updates.push({
+        key: 'checkin_setting.require_topup',
+        value: String(values.requireTopUp),
       })
     }
 
@@ -228,6 +239,32 @@ export function CheckinSettingsSection({
 
           {enabled && (
             <>
+              <FormField
+                control={form.control}
+                name='requireTopUp'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>
+                        {t('Only users with a top-up can join')}
+                      </FormLabel>
+                      <FormDescription>
+                        {t(
+                          'When on, only accounts with a successful top-up can check in and draw, which keeps bulk-registered accounts out of the prize pool. Administrators stay exempt so you can still test.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={updateOption.isPending || isSubmitting}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name='dailyDraws'

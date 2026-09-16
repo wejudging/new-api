@@ -16,14 +16,48 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { CalendarX } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { CalendarX, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
-/** Shown when the administrator has not enabled the check-in lottery. */
-export function LotteryUnavailableCard() {
+/** Why the daily draw cannot be played right now. */
+export type LotteryUnavailableReason = 'disabled' | 'topup-required'
+
+interface LotteryUnavailableCardProps {
+  reason?: LotteryUnavailableReason
+}
+
+/**
+ * Shown when the daily draw cannot be played: either the administrator has not
+ * enabled it, or the account has to top up once before joining.
+ */
+export function LotteryUnavailableCard(props: LotteryUnavailableCardProps) {
   const { t } = useTranslation()
+
+  if (props.reason === 'topup-required') {
+    return (
+      <Card className='gap-2 px-6 py-10'>
+        <div className='flex flex-col items-center gap-2 text-center'>
+          <WalletCards className='text-muted-foreground size-6' />
+          <p className='text-sm font-semibold'>
+            {t('Top up to join the daily draw')}
+          </p>
+          <p className='text-muted-foreground max-w-md text-xs'>
+            {t(
+              'The daily draw is only open to accounts with a top-up on record, so freshly registered accounts cannot farm it. Top up any amount and come back to spin.'
+            )}
+          </p>
+          <Button className='mt-2' size='sm' render={<Link to='/wallet' />}>
+            <WalletCards className='size-4' />
+            {t('Top up now')}
+          </Button>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <Card className='gap-2 px-6 py-10'>
