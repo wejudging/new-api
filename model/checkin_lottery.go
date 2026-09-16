@@ -421,6 +421,7 @@ func GetUserLotteryTicketLogs(userId int, pageInfo *common.PageInfo) (tickets []
 type LotteryLeaderboardEntry struct {
 	Rank        int     `json:"rank"`
 	UserId      int     `json:"user_id"`
+	Username    string  `json:"username"`
 	Account     string  `json:"account"`
 	Draws       int     `json:"draws"`
 	BestAmount  float64 `json:"best_amount"`
@@ -430,7 +431,7 @@ type LotteryLeaderboardEntry struct {
 // GetLotteryLeaderboard 获取手气榜前 N 名（按累计中奖金额排序）
 func GetLotteryLeaderboard(limit int) ([]LotteryLeaderboardEntry, error) {
 	if limit <= 0 {
-		limit = 10
+		limit = 20
 	}
 
 	var rows []struct {
@@ -457,14 +458,16 @@ func GetLotteryLeaderboard(limit int) ([]LotteryLeaderboardEntry, error) {
 
 	entries := make([]LotteryLeaderboardEntry, 0, len(rows))
 	for index, row := range rows {
-		account := labels[row.UserId]
-		if account == "" {
-			account = "***"
+		label := labels[row.UserId]
+		username := label.Username
+		if username == "" {
+			username = "***"
 		}
 		entries = append(entries, LotteryLeaderboardEntry{
 			Rank:        index + 1,
 			UserId:      row.UserId,
-			Account:     account,
+			Username:    username,
+			Account:     label.Email,
 			Draws:       row.Draws,
 			BestAmount:  row.BestAmount,
 			TotalAmount: row.TotalAmount,
@@ -497,9 +500,17 @@ func GetUserLotteryRank(userId int) (int, float64, error) {
 	return int(ahead) + 1, mine.TotalAmount, nil
 }
 
-// lotteryAccountLabels 获取脱敏后的用户展示名
-func lotteryAccountLabels(userIds []int) map[int]string {
-	labels := make(map[int]string, len(userIds))
+// lotteryAccountLabel 手气榜展示用的账号信息：完整用户名 + 脱敏邮箱
+type lotteryAccountLabel struct {
+	Username string
+	Email    string
+}
+
+// lotteryAccountLabels 获取手气榜展示用的用户名与脱敏邮箱
+//
+// 用户名按用户要求原样展示，不做打码；邮箱仍然脱敏，避免公开邮箱地址。
+func lotteryAccountLabels(userIds []int) map[int]lotteryAccountLabel {
+	labels := make(map[int]lotteryAccountLabel, len(userIds))
 	if len(userIds) == 0 {
 		return labels
 	}
@@ -514,34 +525,29 @@ func lotteryAccountLabels(userIds []int) map[int]string {
 		return labels
 	}
 	for _, user := range users {
-		labels[user.Id] = MaskLotteryAccount(user.Username, user.Email)
+		labels[user.Id] = lotteryAccountLabel{
+			Username: strings.TrimSpace(user.Username),
+			Email:    MaskLotteryEmail(user.Email),
+		}
 	}
 	return labels
 }
 
-// MaskLotteryAccount 脱敏展示账号，例如 r***@g***.com 或 p***1
-func MaskLotteryAccount(username, email string) string {
+// MaskLotteryEmail 脱敏展示邮箱，例如 r***@g***.com；没有邮箱时返回空串
+func MaskLotteryEmail(email string) string {
 	email = strings.TrimSpace(email)
-	if at := strings.LastIndex(email, "@"); at > 0 {
-		local := email[:at]
-		domain := email[at+1:]
-		segments := strings.Split(domain, ".")
-		maskedDomain := maskLotterySegment(segments[0])
-		if len(segments) > 1 {
-			maskedDomain += "." + strings.Join(segments[1:], ".")
-		}
-		return maskLotterySegment(local) + "@" + maskedDomain
+	at := strings.LastIndex(email, "@")
+	if at <= 0 {
+		return ""
 	}
-
-	runes := []rune(strings.TrimSpace(username))
-	switch len(runes) {
-	case 0:
-		return "***"
-	case 1:
-		return string(runes[0]) + "***"
-	default:
-		return string(runes[0]) + "***" + string(runes[len(runes)-1])
+	local := email[:at]
+	domain := email[at+1:]
+	segments := strings.Split(domain, ".")
+	maskedDomain := maskLotterySegment(segments[0])
+	if len(segments) > 1 {
+		maskedDomain += "." + strings.Join(segments[1:], ".")
 	}
+	return maskLotterySegment(local) + "@" + maskedDomain
 }
 
 // maskLotterySegment 保留首字符，其余用 *** 替代

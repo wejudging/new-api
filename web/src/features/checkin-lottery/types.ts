@@ -48,7 +48,9 @@ export interface CheckinLotteryStats {
 export interface CheckinLotteryLeaderboardEntry {
   rank: number
   user_id: number
-  /** Masked account label, e.g. `r***@g***.com` */
+  /** Unmasked username, e.g. `hohai` */
+  username: string
+  /** Masked email, e.g. `r***@g***.com`; empty when the user has no email */
   account: string
   draws: number
   best_amount: number

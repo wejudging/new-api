@@ -43,15 +43,14 @@ interface LuckLeaderboardProps {
   loading?: boolean
 }
 
-function rankToneClass(rank: number): string {
-  if (rank === 1) return 'bg-warning/15 text-warning'
-  if (rank === 2) return 'bg-muted text-foreground'
-  if (rank === 3) return 'bg-chart-4/15 text-chart-4'
-  return 'bg-muted/60 text-muted-foreground'
+const RANK_MEDALS: Record<number, string> = {
+  1: '🥇',
+  2: '🥈',
+  3: '🥉',
 }
 
 /**
- * Luck leaderboard: the top ten players by total winnings, followed by a
+ * Luck leaderboard: the top twenty players by total winnings, followed by a
  * highlighted summary bar for the signed-in user's own position.
  */
 export function LuckLeaderboard(props: LuckLeaderboardProps) {
@@ -73,7 +72,7 @@ export function LuckLeaderboard(props: LuckLeaderboardProps) {
           {t('Luck leaderboard')}
         </CardTitle>
         <CardDescription className='text-xs'>
-          {t('Top 10 players ranked by total winnings')}
+          {t('Top 20 players ranked by total winnings')}
         </CardDescription>
       </CardHeader>
 
@@ -124,6 +123,7 @@ function LeaderboardBody(props: LeaderboardBodyProps) {
     <ul className='divide-border/60 divide-y'>
       {props.entries.map((entry) => {
         const isMe = props.myUserId != null && entry.user_id === props.myUserId
+        const medal = RANK_MEDALS[entry.rank]
         return (
           <li
             key={`${entry.rank}-${entry.user_id}`}
@@ -132,18 +132,29 @@ function LeaderboardBody(props: LeaderboardBodyProps) {
               isMe && 'bg-primary/5'
             )}
           >
-            <span
-              className={cn(
-                'flex size-6 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-semibold tabular-nums',
-                rankToneClass(entry.rank)
-              )}
-            >
-              {entry.rank}
-            </span>
+            {medal ? (
+              <span
+                aria-hidden='true'
+                className='flex size-6 shrink-0 items-center justify-center text-base leading-none'
+              >
+                {medal}
+              </span>
+            ) : (
+              <span className='bg-muted/60 text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-semibold tabular-nums'>
+                {entry.rank}
+              </span>
+            )}
 
             <div className='min-w-0 flex-1'>
-              <div className='truncate text-sm font-medium'>
-                {entry.account}
+              <div className='flex min-w-0 items-baseline gap-1.5'>
+                <span className='truncate text-sm font-medium'>
+                  {entry.username}
+                </span>
+                {entry.account ? (
+                  <span className='text-muted-foreground/60 truncate text-xs'>
+                    {entry.account}
+                  </span>
+                ) : null}
               </div>
               <div className='text-muted-foreground/70 text-xs'>
                 {t('{{count}} draws', { count: entry.draws })}

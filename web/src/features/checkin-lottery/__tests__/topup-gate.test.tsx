@@ -69,7 +69,7 @@ function status(
     stats: { total_draws: 0, total_amount: 0, best_amount: 0 },
     rank: 0,
     leaderboard: [],
-    leaderboard_count: 10,
+    leaderboard_count: 20,
     ...overrides,
   }
 }

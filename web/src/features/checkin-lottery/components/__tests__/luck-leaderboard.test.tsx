@@ -16,19 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import type { CheckinLotteryLeaderboardEntry } from '../../types'
 import { LuckLeaderboard } from '../luck-leaderboard'
 
 const entries: CheckinLotteryLeaderboardEntry[] = Array.from(
-  { length: 10 },
+  { length: 20 },
   (_, index) => ({
     rank: index + 1,
     user_id: 100 + index,
+    username: `user${index}`,
     account: `u***${index}@g***.com`,
-    draws: 12 - index,
+    draws: 22 - index,
     best_amount: 0.5,
     total_amount: 2.4 - index * 0.1,
   })
@@ -53,12 +54,52 @@ describe('luck leaderboard', () => {
   it('lists exactly the rows the server returned', () => {
     renderBoard({})
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(10)
-    expect(screen.getByText('u***0@g***.com')).toBeVisible()
-    expect(screen.getByText('u***9@g***.com')).toBeVisible()
+    expect(screen.getAllByRole('listitem')).toHaveLength(20)
+    expect(screen.getByText('user0')).toBeVisible()
+    expect(screen.getByText('user19')).toBeVisible()
+    expect(
+      screen.getByText('Top 20 players ranked by total winnings')
+    ).toBeVisible()
   })
 
-  it('shows the personal rank underneath the top ten', () => {
+  it('awards medals to the top three rows and numbers the rest', () => {
+    renderBoard({})
+
+    for (const [index, medal] of ['🥇', '🥈', '🥉'].entries()) {
+      const row = screen.getByText(`user${index}`).closest('li')
+      expect(row).not.toBeNull()
+      if (!row) continue
+
+      expect(within(row).getByText(medal)).toBeVisible()
+    }
+
+    const fourth = screen.getByText('user3').closest('li')
+    expect(fourth).not.toBeNull()
+    if (fourth) {
+      expect(within(fourth).getByText('4')).toBeVisible()
+      expect(within(fourth).queryByText('🥇')).toBeNull()
+    }
+  })
+
+  it('shows the full username in front of the masked email', () => {
+    renderBoard({})
+
+    const row = screen.getByText('user0').closest('li')
+    expect(row).not.toBeNull()
+    if (!row) return
+
+    const username = within(row).getByText('user0')
+    const email = within(row).getByText('u***0@g***.com')
+
+    expect(username).toBeVisible()
+    expect(email).toBeVisible()
+    expect(username.textContent).not.toContain('*')
+    expect(
+      username.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('shows the personal rank underneath the board', () => {
     renderBoard({ rank: 42, myUserId: 999 })
 
     expect(

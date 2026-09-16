@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const lotteryLeaderboardSize = 10
+const lotteryLeaderboardSize = 20
 
 // GetCheckinLotteryStatus 获取签到抽奖状态、奖池与手气榜
 func GetCheckinLotteryStatus(c *gin.Context) {
