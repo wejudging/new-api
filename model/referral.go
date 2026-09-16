@@ -21,7 +21,6 @@ type ReferralReward struct {
 	InviteeId     int   `json:"invitee_id" gorm:"not null;uniqueIndex:idx_referral_invitee"`
 	CreditedQuota int   `json:"credited_quota" gorm:"not null;default:0"` // 触发结算的到账额度
 	Tickets       int   `json:"tickets" gorm:"not null;default:0"`        // 双方各得的抽奖次数
-	InviteeExtra  int   `json:"invitee_extra" gorm:"not null;default:0"`  // 被邀请人额外补发的次数（扣除充值赠送后）
 	CreatedAt     int64 `json:"created_at" gorm:"bigint;not null;index:idx_referral_created"`
 }
 
@@ -43,10 +42,11 @@ type ReferralInvitee struct {
 // SettleReferralLotteryTickets 结算「好友首次充值」的邀请抽奖次数
 //
 // 触发条件：被邀请人有一笔充值到账、且这位被邀请人还没有结算记录。
-// 结算金额：双方各得 GetCheckinReferralTickets(到账额度) 次；被邀请人自己
-// 已经通过「充值赠送」拿到的次数会先抵扣，保证不会比普通用户多拿一份。
+// 结算金额：双方各得 GetCheckinReferralTickets(到账额度) 次，两份是独立的
+// 权益 —— 被邀请人除了这份邀请次数，仍然照常拿自己的「充值赠送」次数。
+// 只结算一次，所以这份多出来的次数仅限于首次充值那一刻。
 // 返回值为双方各得的次数（本次没有结算时返回 0）。
-func SettleReferralLotteryTickets(db *gorm.DB, inviteeId int, creditedQuota int, topUpGranted int) (int, error) {
+func SettleReferralLotteryTickets(db *gorm.DB, inviteeId int, creditedQuota int) (int, error) {
 	if db == nil {
 		db = DB
 	}
@@ -71,17 +71,11 @@ func SettleReferralLotteryTickets(db *gorm.DB, inviteeId int, creditedQuota int,
 		return 0, nil
 	}
 
-	extra := tickets - topUpGranted
-	if extra < 0 {
-		extra = 0
-	}
-
 	reward := ReferralReward{
 		InviterId:     invitee.InviterId,
 		InviteeId:     inviteeId,
 		CreditedQuota: creditedQuota,
 		Tickets:       tickets,
-		InviteeExtra:  extra,
 		CreatedAt:     time.Now().Unix(),
 	}
 	// 唯一索引挡重复：并发/重复回调时只有一条能写进去，写不进去就是已经结算过。
@@ -96,10 +90,8 @@ func SettleReferralLotteryTickets(db *gorm.DB, inviteeId int, creditedQuota int,
 	if err := addUserLotteryTicketsTo(db, invitee.InviterId, lotteryTicketPoolBonus, tickets, LotteryTicketReasonReferral); err != nil {
 		return 0, err
 	}
-	if extra > 0 {
-		if err := addUserLotteryTicketsTo(db, inviteeId, lotteryTicketPoolBonus, extra, LotteryTicketReasonReferral); err != nil {
-			return 0, err
-		}
+	if err := addUserLotteryTicketsTo(db, inviteeId, lotteryTicketPoolBonus, tickets, LotteryTicketReasonReferral); err != nil {
+		return 0, err
 	}
 	return tickets, nil
 }

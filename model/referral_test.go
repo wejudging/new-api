@@ -97,7 +97,7 @@ func TestSettleReferralLotteryTicketsPaysBothSidesOnASmallFirstTopUp(t *testing.
 	require.Greater(t, step, 0)
 
 	// 首充 5 元：充值赠送拿不到次数，保底双方各 1 次
-	granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step/2, 0)
+	granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step/2)
 	require.NoError(t, err)
 	require.Equal(t, 1, granted)
 
@@ -107,11 +107,11 @@ func TestSettleReferralLotteryTicketsPaysBothSidesOnASmallFirstTopUp(t *testing.
 	require.Equal(t, 1, referralLedgerOf(t, invitee.Id))
 }
 
-// TestSettleReferralLotteryTicketsMatchesTopUpGrantOnALargeFirstTopUp 覆盖达标首充的奖励。
+// TestSettleReferralLotteryTicketsStacksWithTheTopUpGrant 覆盖达标首充的奖励。
 //
-// 到账 25 元时双方各得 2 次；被邀请人已经通过充值赠送拿到同样多的次数，
-// 不能因为多了一条邀请关系就比普通用户多拿一份。
-func TestSettleReferralLotteryTicketsMatchesTopUpGrantOnALargeFirstTopUp(t *testing.T) {
+// 到账 25 元时双方各得 2 次；这份邀请次数是被邀请人的独立权益，
+// 不会抵扣掉他本来就有的充值赠送次数（首充那一笔两份都拿，仅限首次）。
+func TestSettleReferralLotteryTicketsStacksWithTheTopUpGrant(t *testing.T) {
 	migrateReferralTables(t)
 	withTopUpStep(t, 10)
 	withReferralBaseTickets(t, 1)
@@ -124,18 +124,17 @@ func TestSettleReferralLotteryTicketsMatchesTopUpGrantOnALargeFirstTopUp(t *test
 	require.NoError(t, err)
 	require.Equal(t, 2, topUpGranted)
 
-	granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step*2+step/2, topUpGranted)
+	granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step*2+step/2)
 	require.NoError(t, err)
 	require.Equal(t, 2, granted, "25 元首充双方各得 2 次")
 
 	require.Equal(t, 2, bonusTicketsOf(t, inviter.Id))
-	require.Equal(t, 2, bonusTicketsOf(t, invitee.Id), "被邀请人最终次数不能超过充值赠送")
-	require.Equal(t, 0, referralLedgerOf(t, invitee.Id), "被邀请人没有额外补发，不该留下邀请流水")
+	require.Equal(t, 4, bonusTicketsOf(t, invitee.Id), "被邀请人两份都拿：充值赠送 + 邀请次数")
+	require.Equal(t, 2, referralLedgerOf(t, invitee.Id), "被邀请人也要留下邀请流水")
 
 	var reward ReferralReward
 	require.NoError(t, DB.Where("invitee_id = ?", invitee.Id).First(&reward).Error)
 	require.Equal(t, 2, reward.Tickets)
-	require.Equal(t, 0, reward.InviteeExtra)
 }
 
 // TestSettleReferralLotteryTicketsSettlesOnlyOnce 覆盖重复回调的幂等性。
@@ -151,7 +150,7 @@ func TestSettleReferralLotteryTicketsSettlesOnlyOnce(t *testing.T) {
 	step := operation_setting.GetCheckinTopUpStepQuota()
 
 	for i := 0; i < 5; i++ {
-		granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step, 1)
+		granted, err := SettleReferralLotteryTickets(DB, invitee.Id, step)
 		require.NoError(t, err)
 		if i == 0 {
 			require.Equal(t, 1, granted)
@@ -188,7 +187,7 @@ func TestSettleReferralLotteryTicketsConcurrentCallbacksPayOnce(t *testing.T) {
 		go func(index int) {
 			defer waitGroup.Done()
 			<-start
-			grantedTotal[index], errs[index] = SettleReferralLotteryTickets(DB, invitee.Id, step*2, 2)
+			grantedTotal[index], errs[index] = SettleReferralLotteryTickets(DB, invitee.Id, step*2)
 		}(i)
 	}
 	close(start)
@@ -230,7 +229,7 @@ func TestSettleReferralLotteryTicketsSkipsSelfInvite(t *testing.T) {
 	require.NoError(t, DB.Create(&selfInvite).Error)
 	require.NoError(t, DB.Model(&User{}).Where("id = ?", selfInvite.Id).Update("inviter_id", selfInvite.Id).Error)
 
-	granted, err := SettleReferralLotteryTickets(DB, selfInvite.Id, step*2, 0)
+	granted, err := SettleReferralLotteryTickets(DB, selfInvite.Id, step*2)
 	require.NoError(t, err)
 	require.Equal(t, 0, granted)
 
@@ -246,7 +245,7 @@ func TestSettleReferralLotteryTicketsSkipsSelfInvite(t *testing.T) {
 	}
 	require.NoError(t, DB.Create(&orphan).Error)
 
-	granted, err = SettleReferralLotteryTickets(DB, orphan.Id, step*2, 0)
+	granted, err = SettleReferralLotteryTickets(DB, orphan.Id, step*2)
 	require.NoError(t, err)
 	require.Equal(t, 0, granted)
 
@@ -274,7 +273,7 @@ func TestCreditTopUpQuotaWithLotterySettlesReferral(t *testing.T) {
 	inviteeAfter := User{}
 	require.NoError(t, DB.Select("quota").First(&inviteeAfter, invitee.Id).Error)
 	require.Equal(t, step, inviteeAfter.Quota, "充值必须到账")
-	require.Equal(t, 1, bonusTicketsOf(t, invitee.Id))
+	require.Equal(t, 2, bonusTicketsOf(t, invitee.Id), "被邀请人：充值赠送 1 次 + 邀请 1 次")
 	require.Equal(t, 1, bonusTicketsOf(t, inviter.Id))
 }
 
@@ -296,7 +295,7 @@ func TestGetUserReferralInviteesMasksUsernames(t *testing.T) {
 	require.Equal(t, MaskLotteryUsername(invitee.Username), invitees[0].Username)
 	require.NotEqual(t, invitee.Username, invitees[0].Username)
 
-	_, err = SettleReferralLotteryTickets(DB, invitee.Id, step, 1)
+	_, err = SettleReferralLotteryTickets(DB, invitee.Id, step)
 	require.NoError(t, err)
 
 	invitees, err = GetUserReferralInvitees(inviter.Id, 50)

@@ -125,14 +125,12 @@ func creditTopUpQuotaWithLottery(tx *gorm.DB, userId int, creditedQuota int, upd
 	if err := creditTopUpQuota(tx, userId, creditedQuota, updates); err != nil {
 		return err
 	}
-	topUpGranted := 0
 	if granted, err := grantTopUpLotteryTickets(tx, userId, creditedQuota); err != nil {
 		common.SysError("grant check-in lottery tickets after topup failed: " + err.Error())
 	} else if granted > 0 {
-		topUpGranted = granted
 		common.SysLog(fmt.Sprintf("充值赠送抽奖次数 user_id=%d tickets=%d", userId, granted))
 	}
-	if granted, err := grantReferralLotteryTickets(tx, userId, creditedQuota, topUpGranted); err != nil {
+	if granted, err := grantReferralLotteryTickets(tx, userId, creditedQuota); err != nil {
 		common.SysError("settle referral lottery tickets after topup failed: " + err.Error())
 	} else if granted > 0 {
 		common.SysLog(fmt.Sprintf("邀请好友首充奖励结算 user_id=%d tickets=%d", userId, granted))
@@ -151,9 +149,9 @@ func grantTopUpLotteryTickets(tx *gorm.DB, userId int, creditedQuota int) (int, 
 //
 // 和充值赠送共用同一套保护：邀请奖励写库出错时只回滚奖励本身，
 // 已经到账的充值与写入的结算记录不会被牵连。
-func grantReferralLotteryTickets(tx *gorm.DB, userId int, creditedQuota int, topUpGranted int) (int, error) {
+func grantReferralLotteryTickets(tx *gorm.DB, userId int, creditedQuota int) (int, error) {
 	return withLotterySavepoint(tx, "hohai_referral_lottery", func(db *gorm.DB) (int, error) {
-		return SettleReferralLotteryTickets(db, userId, creditedQuota, topUpGranted)
+		return SettleReferralLotteryTickets(db, userId, creditedQuota)
 	})
 }
 

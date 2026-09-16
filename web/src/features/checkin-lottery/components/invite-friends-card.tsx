@@ -169,7 +169,13 @@ export function InviteFriendsCard({ referral }: InviteFriendsCardProps) {
   )
 }
 
-/** Rule line under the invite link, adapted to the configured payout. */
+/**
+ * Rule line under the invite link, adapted to the configured payout.
+ *
+ * When the top-up step is on, the invitee keeps their own top-up bonus next to
+ * the invite reward, so the rule line spells that second grant out — otherwise
+ * a friend receiving two payouts looks like a mistake.
+ */
 function buildRuleText(
   t: (key: string, options?: Record<string, unknown>) => string,
   referral?: CheckinLotteryReferral
@@ -180,17 +186,26 @@ function buildRuleText(
   if (!referral?.enabled) {
     return t('Invite rewards are turned off right now.')
   }
+  const stackNote = t(
+    'Your friend still earns the regular top-up bonus, so the first top-up pays both rewards.'
+  )
   if (step > 0 && base > 0) {
-    return t(
-      "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you, with at least {{base}} each. The credited amount counts, so a discounted top-up qualifies.",
-      { step, base }
-    )
+    return [
+      t(
+        "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you, with at least {{base}} each. The credited amount counts, so a discounted top-up qualifies.",
+        { step, base }
+      ),
+      stackNote,
+    ].join(' ')
   }
   if (step > 0) {
-    return t(
-      "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you. The credited amount counts, so a discounted top-up qualifies.",
-      { step }
-    )
+    return [
+      t(
+        "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you. The credited amount counts, so a discounted top-up qualifies.",
+        { step }
+      ),
+      stackNote,
+    ].join(' ')
   }
   if (base > 0) {
     return t(
