@@ -341,3 +341,81 @@ func TestGetUserReferralInviteesMasksUsernames(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, inviteeCount)
 }
+
+// TestCreditTopUpQuotaWithLotteryPaysReferralOnlyOnTheFirstTopUp 覆盖「仅限首次充值」。
+//
+// 同一被邀请人后续的每一笔充值都会再走一遍到账链路：他自己照常拿充值赠送，
+// 但邀请奖励只在首充那一刻结算过一次，邀请人与被邀请人都不再重复发放。
+func TestCreditTopUpQuotaWithLotteryPaysReferralOnlyOnTheFirstTopUp(t *testing.T) {
+	migrateReferralTables(t)
+	withTopUpStep(t, 10)
+	withReferralBaseTickets(t, 1)
+
+	inviter, invitee := seedReferralPair(t, 990391, 990392)
+	step := operation_setting.GetCheckinTopUpStepQuota()
+	require.Greater(t, step, 0)
+
+	// 首充 5 元：不足一个档位，双方各得基础的 1 次
+	require.NoError(t, creditTopUpQuotaWithLottery(DB, invitee.Id, step/2, map[string]any{}))
+	require.Equal(t, 1, bonusTicketsOf(t, inviter.Id))
+	require.Equal(t, 1, bonusTicketsOf(t, invitee.Id))
+
+	// 第二笔 100 元：被邀请人只拿充值赠送的 10 次，邀请奖励不再结算
+	require.NoError(t, creditTopUpQuotaWithLottery(DB, invitee.Id, step*10, map[string]any{}))
+	require.Equal(t, 1, bonusTicketsOf(t, inviter.Id), "邀请人只在首充结算一次")
+	require.Equal(t, 1+10, bonusTicketsOf(t, invitee.Id), "第二笔只有充值赠送")
+
+	// 第三笔 10 元：同样只加充值赠送的 1 次
+	require.NoError(t, creditTopUpQuotaWithLottery(DB, invitee.Id, step, map[string]any{}))
+	require.Equal(t, 1, bonusTicketsOf(t, inviter.Id))
+	require.Equal(t, 1+10+1, bonusTicketsOf(t, invitee.Id))
+
+	var rewards []ReferralReward
+	require.NoError(t, DB.Where("invitee_id = ?", invitee.Id).Find(&rewards).Error)
+	require.Len(t, rewards, 1, "一位被邀请人只有一条结算记录")
+	require.Equal(t, inviter.Id, rewards[0].InviterId)
+	require.Equal(t, step/2, rewards[0].CreditedQuota, "结算记录停在首充的到账额度")
+
+	require.Equal(t, 1, referralLedgerOf(t, inviter.Id))
+	require.Equal(t, 1, referralLedgerOf(t, invitee.Id))
+}
+
+// TestRedeemCodeDoesNotSettleReferralTickets 兑换码不是充值，不结算邀请奖励。
+//
+// 兑换码只增加额度（走 creditTopUpQuota），因此被邀请人先兑换、后真实充值，
+// 那份「首次充值」的邀请奖励依然留给他真正付费的那一笔。
+func TestRedeemCodeDoesNotSettleReferralTickets(t *testing.T) {
+	migrateReferralTables(t)
+	withTopUpStep(t, 10)
+	withReferralBaseTickets(t, 1)
+	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+
+	inviter, invitee := seedReferralPair(t, 990381, 990382)
+	step := operation_setting.GetCheckinTopUpStepQuota()
+
+	key := "hohai-referral-" + common.GetRandomString(8)
+	redemption := Redemption{
+		Name:        "referral-redeem",
+		Key:         key,
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       step * 3,
+		CreatedTime: common.GetTimestamp(),
+	}
+	require.NoError(t, DB.Create(&redemption).Error)
+
+	credited, err := Redeem(key, invitee.Id)
+	require.NoError(t, err)
+	require.Equal(t, step*3, credited)
+
+	require.Zero(t, bonusTicketsOf(t, invitee.Id), "兑换码不发抽奖次数")
+	require.Zero(t, bonusTicketsOf(t, inviter.Id), "兑换码不结算邀请奖励")
+
+	var rewards int64
+	require.NoError(t, DB.Model(&ReferralReward{}).Where("invitee_id = ?", invitee.Id).Count(&rewards).Error)
+	require.Zero(t, rewards)
+
+	// 之后的首次真实充值照常结算：被邀请人 1 次充值赠送 + 2 次邀请奖励
+	require.NoError(t, creditTopUpQuotaWithLottery(DB, invitee.Id, step, map[string]any{}))
+	require.Equal(t, 2, bonusTicketsOf(t, inviter.Id))
+	require.Equal(t, 3, bonusTicketsOf(t, invitee.Id))
+}

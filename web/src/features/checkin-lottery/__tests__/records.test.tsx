@@ -65,6 +65,7 @@ const ticketItems: CheckinLotteryTicketRecord[] = [
   { id: 2, user_id: 7, delta: -1, reason: 'draw', created_at: 1750000000 },
   { id: 3, user_id: 7, delta: 1, reason: 'refund', created_at: 1750000000 },
   { id: 4, user_id: 7, delta: 1, reason: 'topup', created_at: 1750000000 },
+  { id: 5, user_id: 7, delta: 1, reason: 'referral', created_at: 1750000000 },
 ]
 
 beforeEach(() => {
@@ -120,7 +121,7 @@ describe('draw records page', () => {
 
   it('explains each ticket ledger entry on the second tab', async () => {
     const user = userEvent.setup()
-    records.ticket = { items: ticketItems, total: 4, loading: false }
+    records.ticket = { items: ticketItems, total: 5, loading: false }
 
     render(<CheckinLotteryRecords />)
 
@@ -130,13 +131,15 @@ describe('draw records page', () => {
     expect(screen.getByText('Lottery draw')).toBeVisible()
     expect(screen.getByText('Refund')).toBeVisible()
     expect(screen.getByText('Top-up bonus')).toBeVisible()
-    expect(screen.getAllByText('+1')).toHaveLength(3)
+    // 邀请奖励只在好友首充时结算一次，流水文案必须写明「首充」
+    expect(screen.getByText('Invite friend first-top-up bonus')).toBeVisible()
+    expect(screen.getAllByText('+1')).toHaveLength(4)
     expect(screen.getByText('-1')).toBeVisible()
   })
 
   it('labels a spent ticket as a lottery draw, not as an image-generation job', async () => {
     const user = userEvent.setup()
-    records.ticket = { items: ticketItems, total: 4, loading: false }
+    records.ticket = { items: ticketItems, total: 5, loading: false }
     i18next.addResourceBundle(
       'zhCN',
       'translation',

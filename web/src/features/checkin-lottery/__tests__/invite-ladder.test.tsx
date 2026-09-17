@@ -61,6 +61,11 @@ describe('invite reward ladder', () => {
         'Every ¥10 your friend tops up pays you 1 ticket and your friend 2, plus 1 ticket(s) each.'
       )
     ).toBeVisible()
+
+    // 「仅限首次充值」在开启档位时也必须可见，不能只在关闭档位时才出现
+    expect(
+      screen.getByText('Tickets are paid once, on the first top-up only.')
+    ).toBeVisible()
   })
 
   it('falls back to a single flat row when the step is off', () => {

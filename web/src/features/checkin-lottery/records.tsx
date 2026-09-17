@@ -296,7 +296,7 @@ const REASON_LABELS: Record<CheckinLotteryTicketReason, string> = {
   draw: 'Lottery draw',
   refund: 'Refund',
   topup: 'Top-up bonus',
-  referral: 'Invite friend bonus',
+  referral: 'Invite friend first-top-up bonus',
 }
 
 function TicketRecordsList({ items }: { items: CheckinLotteryTicketRecord[] }) {

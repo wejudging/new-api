@@ -310,18 +310,19 @@ function InviteRewardLadder({ referral }: InviteFriendsCardProps) {
         </table>
       </div>
 
-      <p className='text-muted-foreground/70 text-[11px] leading-relaxed'>
-        {step > 0
-          ? [
-              t(
-                'Your friend keeps their own top-up bonus, so every ¥{{step}} adds 2 tickets on their side.',
-                { step }
-              ),
-              t(
-                'The credited amount counts, so a discounted top-up qualifies.'
-              ),
-            ].join(' ')
-          : t('Tickets are paid once, on the first top-up only.')}
+      {step > 0 ? (
+        <p className='text-muted-foreground/70 text-[11px] leading-relaxed'>
+          {[
+            t(
+              'Your friend keeps their own top-up bonus, so every ¥{{step}} adds 2 tickets on their side.',
+              { step }
+            ),
+            t('The credited amount counts, so a discounted top-up qualifies.'),
+          ].join(' ')}
+        </p>
+      ) : null}
+      <p className='text-muted-foreground text-[11px] leading-relaxed'>
+        {t('Tickets are paid once, on the first top-up only.')}
       </p>
     </div>
   )
