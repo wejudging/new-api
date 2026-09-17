@@ -329,3 +329,42 @@ func TestCheckinTopUpTicketsStayOffWhenDisabled(t *testing.T) {
 	require.Equal(t, 0, granted)
 	require.Equal(t, int64(1234), remainder)
 }
+
+// TestCheckinReferralTicketsFollowTheInviteLadder 锁定对外承诺的邀请奖励阶梯。
+//
+// 基础次数是「叠加」而不是「顶替」：首充 5 元双方各得基础次数，首充 10 元双方
+// 各得基础次数 + 1，首充 100 元双方各得基础次数 + 10。这里返回的是单方（邀请
+// 人或被邀请人）的邀请奖励；被邀请人另外还会拿到自己的充值赠送次数。
+func TestCheckinReferralTicketsFollowTheInviteLadder(t *testing.T) {
+	stubQuotaUnits(t)
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:             true,
+		DailyDraws:          1,
+		TopUpYuanPerDraw:    10,
+		ReferralBaseTickets: 1,
+	})
+
+	require.Equal(t, 1, GetCheckinReferralTickets(CheckinPrizeQuota(5)), "首充 5 元：只有基础次数")
+	require.Equal(t, 2, GetCheckinReferralTickets(CheckinPrizeQuota(10)), "首充 10 元：基础 + 1")
+	require.Equal(t, 11, GetCheckinReferralTickets(CheckinPrizeQuota(100)), "首充 100 元：基础 + 10")
+	require.Equal(t, 12, GetCheckinReferralTickets(CheckinPrizeQuota(105)), "不足一档的余额不进位")
+
+	// 没有门槛（关闭充值赠送）时只剩基础次数
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:             true,
+		DailyDraws:          1,
+		TopUpYuanPerDraw:    0,
+		ReferralBaseTickets: 3,
+	})
+	require.Equal(t, 3, GetCheckinReferralTickets(CheckinPrizeQuota(100)))
+
+	// 基础次数配成 0：小额首充没有奖励，达标部分照发
+	withCheckinSetting(t, CheckinSetting{
+		Enabled:             true,
+		DailyDraws:          1,
+		TopUpYuanPerDraw:    10,
+		ReferralBaseTickets: 0,
+	})
+	require.Equal(t, 0, GetCheckinReferralTickets(CheckinPrizeQuota(5)))
+	require.Equal(t, 1, GetCheckinReferralTickets(CheckinPrizeQuota(10)))
+}

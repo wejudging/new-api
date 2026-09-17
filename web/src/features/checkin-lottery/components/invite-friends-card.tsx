@@ -16,7 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Check, Clock, ListChecks, Ticket, UserPlus, Users } from 'lucide-react'
+import {
+  Check,
+  Clock,
+  Gift,
+  ListChecks,
+  Ticket,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -154,6 +162,10 @@ export function InviteFriendsCard({ referral }: InviteFriendsCardProps) {
         </div>
       </CardContent>
 
+      <CardContent className='border-t p-4 sm:p-5'>
+        <InviteRewardLadder referral={referral} />
+      </CardContent>
+
       <Dialog
         open={recordsOpen}
         onOpenChange={setRecordsOpen}
@@ -172,9 +184,9 @@ export function InviteFriendsCard({ referral }: InviteFriendsCardProps) {
 /**
  * Rule line under the invite link, adapted to the configured payout.
  *
- * When the top-up step is on, the invitee keeps their own top-up bonus next to
- * the invite reward, so the rule line spells that second grant out — otherwise
- * a friend receiving two payouts looks like a mistake.
+ * The step payout is asymmetric on purpose: the inviter earns one ticket per
+ * step, while the invited friend earns two — one from this program and one from
+ * the top-up bonus they keep — so the line has to name both numbers.
  */
 function buildRuleText(
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -186,26 +198,17 @@ function buildRuleText(
   if (!referral?.enabled) {
     return t('Invite rewards are turned off right now.')
   }
-  const stackNote = t(
-    'Your friend still earns the regular top-up bonus, so the first top-up pays both rewards.'
-  )
   if (step > 0 && base > 0) {
-    return [
-      t(
-        "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you, with at least {{base}} each. The credited amount counts, so a discounted top-up qualifies.",
-        { step, base }
-      ),
-      stackNote,
-    ].join(' ')
+    return t(
+      'Every ¥{{step}} your friend tops up pays you 1 ticket and your friend 2, plus {{base}} ticket(s) each.',
+      { step, base }
+    )
   }
   if (step > 0) {
-    return [
-      t(
-        "Every ¥{{step}} of your friend's first top-up pays one ticket to both of you. The credited amount counts, so a discounted top-up qualifies.",
-        { step }
-      ),
-      stackNote,
-    ].join(' ')
+    return t(
+      'Every ¥{{step}} your friend tops up pays you 1 ticket and your friend 2.',
+      { step }
+    )
   }
   if (base > 0) {
     return t(
@@ -214,6 +217,114 @@ function buildRuleText(
     )
   }
   return t('Invite rewards are turned off right now.')
+}
+
+/**
+ * Reward ladder under the invite link.
+ *
+ * The rule itself is one sentence, but "you get 1, your friend gets 2" reads
+ * like a typo until it is shown next to real numbers. Three sample first
+ * top-ups make the doubling obvious and double as a nudge to top up more.
+ */
+function InviteRewardLadder({ referral }: InviteFriendsCardProps) {
+  const { t } = useTranslation()
+  const base = referral?.base_tickets ?? 0
+  const step = referral?.step_yuan ?? 0
+
+  if (!referral?.enabled) {
+    return (
+      <p className='text-muted-foreground text-xs'>
+        {t('Invite rewards are turned off right now.')}
+      </p>
+    )
+  }
+
+  const rows: { key: string; label: string; you: number; friend: number }[] = []
+  if (step > 0 && base > 0) {
+    rows.push({
+      key: 'small',
+      label: t('Less than ¥{{step}}', { step }),
+      you: base,
+      friend: base,
+    })
+  }
+  if (step > 0) {
+    for (const steps of [1, 10]) {
+      rows.push({
+        key: `step-${steps}`,
+        label: `¥${step * steps}`,
+        you: base + steps,
+        friend: base + steps * 2,
+      })
+    }
+  }
+  if (rows.length === 0) {
+    rows.push({
+      key: 'flat',
+      label: t('Any first top-up'),
+      you: base,
+      friend: base,
+    })
+  }
+
+  return (
+    <div className='space-y-3'>
+      <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1'>
+        <span className='flex items-center gap-2 text-sm font-medium'>
+          <Gift className='text-primary size-4' />
+          {t('Invite reward ladder')}
+        </span>
+        <span className='text-muted-foreground text-xs'>
+          {t('The more your friend tops up, the more you both earn')}
+        </span>
+      </div>
+
+      <div className='ring-border overflow-hidden rounded-lg ring-1'>
+        <table className='w-full text-xs'>
+          <thead className='bg-muted/60 text-muted-foreground'>
+            <tr>
+              <th className='px-3 py-2 text-left font-medium'>
+                {t("Friend's first top-up")}
+              </th>
+              <th className='px-3 py-2 text-right font-medium'>
+                {t('You get')}
+              </th>
+              <th className='px-3 py-2 text-right font-medium'>
+                {t('Your friend gets')}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className='border-t'>
+                <td className='px-3 py-2 font-medium'>{row.label}</td>
+                <td className='px-3 py-2 text-right font-mono tabular-nums'>
+                  {t('{{tickets}} tickets', { tickets: row.you })}
+                </td>
+                <td className='text-primary px-3 py-2 text-right font-mono font-bold tabular-nums'>
+                  {t('{{tickets}} tickets', { tickets: row.friend })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className='text-muted-foreground/70 text-[11px] leading-relaxed'>
+        {step > 0
+          ? [
+              t(
+                'Your friend keeps their own top-up bonus, so every ¥{{step}} adds 2 tickets on their side.',
+                { step }
+              ),
+              t(
+                'The credited amount counts, so a discounted top-up qualifies.'
+              ),
+            ].join(' ')
+          : t('Tickets are paid once, on the first top-up only.')}
+      </p>
+    </div>
+  )
 }
 
 /** Invitee breakdown, fetched only while the dialog is open. */

@@ -454,9 +454,11 @@ func SplitCheckinTopUpTickets(remainderQuota int64, creditedQuota int) (granted 
 	return int(total / step), total % step
 }
 
-// GetCheckinReferralBaseTickets 好友首次充值不足门槛时双方各得的基础邀请次数
+// GetCheckinReferralBaseTickets 好友首次充值后双方各得的基础邀请次数
 //
-// 配成 0 表示小额首充不再保底，只有达到「充值赠送门槛」的整数倍才有邀请奖励。
+// 基础次数是「保底 + 叠加」的那一份：首充不足充值赠送门槛时它就是双方的全部
+// 奖励，达到门槛后再在它的基础上按档位加次数。配成 0 表示不发基础奖励，只有
+// 达到「充值赠送门槛」整数倍的部分才有邀请奖励。
 func GetCheckinReferralBaseTickets() int {
 	base := checkinSetting.ReferralBaseTickets
 	if base < 0 {
@@ -470,9 +472,18 @@ func GetCheckinReferralBaseTickets() int {
 
 // GetCheckinReferralTickets 好友首次充值结算时，邀请双方各自获得的抽奖次数
 //
-// 规则：每满一次「充值赠送门槛」（默认 10 元）双方各得 1 次；首充不足门槛时
-// 按基础邀请次数保底。到账额度参与计算，所以充值减免（付 9.9 元到账 10 元）
-// 同样按 10 元结算。
+// 规则：基础邀请次数 + 每满一次「充值赠送门槛」（默认 10 元）再加 1 次。
+//
+//	首充 5 元   → 双方各得基础 1 次
+//	首充 10 元  → 双方各得基础 1 次 + 1 次
+//	首充 100 元 → 双方各得基础 1 次 + 10 次
+//
+// 被邀请人除了这份邀请次数，还会照常拿到自己的「充值赠送」次数，所以同一笔
+// 首充里被邀请人到手的额外次数是邀请人的两倍（首充 100 元：邀请人 11 次、
+// 被邀请人 11 + 10 = 21 次）。回归见 model/referral_test.go 的
+// TestSettleReferralLotteryTicketsPaysTheInviteeTwiceTheStepTickets。
+//
+// 到账额度参与计算，所以充值减免（付 9.9 元到账 10 元）同样按 10 元结算。
 func GetCheckinReferralTickets(creditedQuota int) int {
 	base := GetCheckinReferralBaseTickets()
 	if creditedQuota <= 0 {
@@ -482,10 +493,7 @@ func GetCheckinReferralTickets(creditedQuota int) int {
 	if step <= 0 {
 		return base
 	}
-	if fromStep := creditedQuota / step; fromStep > base {
-		return fromStep
-	}
-	return base
+	return base + creditedQuota/step
 }
 
 // GetCheckinPrizeWeights 获取奖池总权重

@@ -44,6 +44,8 @@ type ReferralInvitee struct {
 // 触发条件：被邀请人有一笔充值到账、且这位被邀请人还没有结算记录。
 // 结算金额：双方各得 GetCheckinReferralTickets(到账额度) 次，两份是独立的
 // 权益 —— 被邀请人除了这份邀请次数，仍然照常拿自己的「充值赠送」次数。
+// 因此同一笔首充里被邀请人到手的次数是邀请人的两倍（首充 100 元：邀请人
+// 基础 1 次 + 10 次 = 11 次，被邀请人 11 + 10 = 21 次）。
 // 只结算一次，所以这份多出来的次数仅限于首次充值那一刻。
 // 返回值为双方各得的次数（本次没有结算时返回 0）。
 func SettleReferralLotteryTickets(db *gorm.DB, inviteeId int, creditedQuota int) (int, error) {
