@@ -16,15 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  Check,
-  Clock,
-  Gift,
-  ListChecks,
-  Ticket,
-  UserPlus,
-  Users,
-} from 'lucide-react'
+import { Check, Clock, ListChecks, Ticket, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -143,6 +135,7 @@ export function InviteFriendsCard({ referral }: InviteFriendsCardProps) {
           <p className='text-muted-foreground/70 text-xs'>
             {buildRuleText(t, referral)}
           </p>
+          <InviteTerms referral={referral} />
         </div>
 
         <div className='grid grid-cols-3 gap-2 text-center'>
@@ -160,10 +153,6 @@ export function InviteFriendsCard({ referral }: InviteFriendsCardProps) {
             </div>
           ))}
         </div>
-      </CardContent>
-
-      <CardContent className='border-t p-4 sm:p-5'>
-        <InviteRewardLadder referral={referral} />
       </CardContent>
 
       <Dialog
@@ -220,110 +209,35 @@ function buildRuleText(
 }
 
 /**
- * Reward ladder under the invite link.
+ * Small print under the invite link.
  *
- * The rule itself is one sentence, but "you get 1, your friend gets 2" reads
- * like a typo until it is shown next to real numbers. Three sample first
- * top-ups make the doubling obvious and double as a nudge to top up more.
+ * The ladder table that used to spell the payouts out row by row turned out to
+ * be redundant next to the rule line, so only the terms a reader cannot infer
+ * from the rule are kept: the payout happens once, and the friend keeps the
+ * top-up bonus that makes their side double.
  */
-function InviteRewardLadder({ referral }: InviteFriendsCardProps) {
+function InviteTerms({ referral }: InviteFriendsCardProps) {
   const { t } = useTranslation()
-  const base = referral?.base_tickets ?? 0
   const step = referral?.step_yuan ?? 0
 
-  if (!referral?.enabled) {
-    return (
-      <p className='text-muted-foreground text-xs'>
-        {t('Invite rewards are turned off right now.')}
-      </p>
-    )
-  }
+  if (!referral?.enabled) return null
 
-  const rows: { key: string; label: string; you: number; friend: number }[] = []
-  if (step > 0 && base > 0) {
-    rows.push({
-      key: 'small',
-      label: t('Less than ¥{{step}}', { step }),
-      you: base,
-      friend: base,
-    })
-  }
-  if (step > 0) {
-    for (const steps of [1, 10]) {
-      rows.push({
-        key: `step-${steps}`,
-        label: `¥${step * steps}`,
-        you: base + steps,
-        friend: base + steps * 2,
-      })
-    }
-  }
-  if (rows.length === 0) {
-    rows.push({
-      key: 'flat',
-      label: t('Any first top-up'),
-      you: base,
-      friend: base,
-    })
-  }
+  const notes = [
+    step > 0
+      ? t(
+          'Your friend keeps their own top-up bonus, so every ¥{{step}} adds 2 tickets on their side.',
+          { step }
+        )
+      : null,
+    t('The credited amount counts, so a discounted top-up qualifies.'),
+    t('Tickets are paid once, on the first top-up only.'),
+  ].filter((note): note is string => Boolean(note))
 
   return (
-    <div className='space-y-3'>
-      <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1'>
-        <span className='flex items-center gap-2 text-sm font-medium'>
-          <Gift className='text-primary size-4' />
-          {t('Invite reward ladder')}
-        </span>
-        <span className='text-muted-foreground text-xs'>
-          {t('The more your friend tops up, the more you both earn')}
-        </span>
-      </div>
-
-      <div className='ring-border overflow-hidden rounded-lg ring-1'>
-        <table className='w-full text-xs'>
-          <thead className='bg-muted/60 text-muted-foreground'>
-            <tr>
-              <th className='px-3 py-2 text-left font-medium'>
-                {t("Friend's first top-up")}
-              </th>
-              <th className='px-3 py-2 text-right font-medium'>
-                {t('You get')}
-              </th>
-              <th className='px-3 py-2 text-right font-medium'>
-                {t('Your friend gets')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key} className='border-t'>
-                <td className='px-3 py-2 font-medium'>{row.label}</td>
-                <td className='px-3 py-2 text-right font-mono tabular-nums'>
-                  {t('{{tickets}} tickets', { tickets: row.you })}
-                </td>
-                <td className='text-primary px-3 py-2 text-right font-mono font-bold tabular-nums'>
-                  {t('{{tickets}} tickets', { tickets: row.friend })}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {step > 0 ? (
-        <p className='text-muted-foreground/70 text-[11px] leading-relaxed'>
-          {[
-            t(
-              'Your friend keeps their own top-up bonus, so every ¥{{step}} adds 2 tickets on their side.',
-              { step }
-            ),
-            t('The credited amount counts, so a discounted top-up qualifies.'),
-          ].join(' ')}
-        </p>
-      ) : null}
-      <p className='text-muted-foreground text-[11px] leading-relaxed'>
-        {t('Tickets are paid once, on the first top-up only.')}
-      </p>
+    <div className='text-muted-foreground/60 space-y-0.5 text-[11px] leading-relaxed'>
+      {notes.map((note) => (
+        <p key={note}>{note}</p>
+      ))}
     </div>
   )
 }

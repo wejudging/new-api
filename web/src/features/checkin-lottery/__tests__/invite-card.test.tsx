@@ -37,57 +37,69 @@ function referral(
   }
 }
 
-describe('invite reward ladder', () => {
-  it('spells out the stacked payout the backend pays', () => {
+describe('invite friends card', () => {
+  it('states the stacked payout in one rule line, without the ladder table', () => {
     render(<InviteFriendsCard referral={referral()} />)
 
-    expect(screen.getByText('Invite reward ladder')).toBeVisible()
-
-    // 首充不足 ¥10：双方只拿基础次数
-    expect(screen.getByText('Less than ¥10')).toBeVisible()
-    expect(screen.getAllByText('1 tickets')).toHaveLength(2)
-
-    // 首充 ¥10：基础 1 次 + 1 档 → 你 2 次、好友 3 次
-    expect(screen.getByText('2 tickets')).toBeVisible()
-    expect(screen.getByText('3 tickets')).toBeVisible()
-
-    // 首充 ¥100：基础 1 次 + 10 档 → 你 11 次、好友 21 次
-    expect(screen.getByText('11 tickets')).toBeVisible()
-    expect(screen.getByText('21 tickets')).toBeVisible()
-
-    // 规则行与阶梯数字保持一致：基础次数是叠加，不是顶替
+    // 规则行与后端结算保持一致：基础次数是叠加，不是顶替
     expect(
       screen.getByText(
         'Every ¥10 your friend tops up pays you 1 ticket and your friend 2, plus 1 ticket(s) each.'
       )
     ).toBeVisible()
 
-    // 「仅限首次充值」在开启档位时也必须可见，不能只在关闭档位时才出现
+    // 阶梯表格已下线，避免和规则行重复
+    expect(screen.queryByText('Invite reward ladder')).not.toBeInTheDocument()
+    expect(screen.queryByText('You get')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your friend gets')).not.toBeInTheDocument()
+    expect(screen.queryByText('Less than ¥10')).not.toBeInTheDocument()
+    expect(screen.queryByText('Any first top-up')).not.toBeInTheDocument()
+  })
+
+  it('keeps the terms a reader cannot infer from the rule', () => {
+    render(<InviteFriendsCard referral={referral()} />)
+
+    expect(
+      screen.getByText(
+        'Your friend keeps their own top-up bonus, so every ¥10 adds 2 tickets on their side.'
+      )
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        'The credited amount counts, so a discounted top-up qualifies.'
+      )
+    ).toBeVisible()
     expect(
       screen.getByText('Tickets are paid once, on the first top-up only.')
     ).toBeVisible()
   })
 
-  it('falls back to a single flat row when the step is off', () => {
+  it('drops the doubling note when the step payout is off', () => {
     render(
       <InviteFriendsCard
         referral={referral({ base_tickets: 3, step_yuan: 0 })}
       />
     )
 
-    expect(screen.getByText('Any first top-up')).toBeVisible()
-    expect(screen.getAllByText('3 tickets')).toHaveLength(2)
+    expect(
+      screen.getByText(
+        "Your friend's first top-up pays 3 ticket(s) to both of you."
+      )
+    ).toBeVisible()
+    expect(screen.queryByText(/adds 2 tickets on their side/)).toBeNull()
     expect(
       screen.getByText('Tickets are paid once, on the first top-up only.')
     ).toBeVisible()
   })
 
-  it('hides the ladder while the program is off', () => {
+  it('hides the terms while the program is off', () => {
     render(<InviteFriendsCard referral={referral({ enabled: false })} />)
 
-    expect(screen.queryByText('Invite reward ladder')).not.toBeInTheDocument()
     expect(
       screen.getAllByText('Invite rewards are turned off right now.').length
     ).toBeGreaterThan(0)
+    expect(
+      screen.queryByText('Tickets are paid once, on the first top-up only.')
+    ).toBeNull()
   })
 })

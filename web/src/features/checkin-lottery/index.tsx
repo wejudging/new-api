@@ -94,13 +94,13 @@ export function CheckinLottery() {
                 balanceQuota={user?.quota ?? 0}
               />
 
-              <InviteFriendsCard referral={payload?.referral} />
-
               <LotteryDrawCard
                 prizes={payload?.prizes ?? []}
                 tickets={available.tickets}
                 checkedInToday={payload?.checked_in_today ?? false}
               />
+
+              <InviteFriendsCard referral={payload?.referral} />
 
               <LuckLeaderboard
                 entries={payload?.leaderboard ?? []}

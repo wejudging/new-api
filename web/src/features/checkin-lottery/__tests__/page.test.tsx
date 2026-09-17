@@ -139,3 +139,20 @@ describe('top-up gate on the daily draw page', () => {
     expect(screen.getByText('Prize pool')).toBeVisible()
   })
 })
+
+describe('module order on the daily draw page', () => {
+  it('keeps the invite card right above the luck leaderboard', () => {
+    renderPage()
+
+    const follows = (earlier: HTMLElement, later: HTMLElement) =>
+      earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING
+
+    const draw = screen.getByText('Prize pool')
+    const invite = screen.getByText('Invite friends')
+    const leaderboard = screen.getByText('Luck leaderboard')
+
+    // 抽奖主体在邀请模块之前，邀请模块紧贴手气榜之上
+    expect(follows(draw, invite)).toBeTruthy()
+    expect(follows(invite, leaderboard)).toBeTruthy()
+  })
+})
