@@ -112,7 +112,9 @@ describe('cache hit rate in the tokens column', () => {
 
     const label = screen.getByText('62.50%')
     expect(label).toBeInTheDocument()
-    expect(label).toHaveAttribute('title', 'Hit Rate 300 / 480')
+    expect(label).toHaveAttribute('title', 'Cache Hit Rate 300 / 480')
+    // The share is spelled out so the bare percentage is not ambiguous.
+    expect(rendered.container.textContent).toContain('｜Cache Hit Rate')
     expect(rendered.container.textContent).toContain('480 / 120')
   })
 
@@ -130,7 +132,7 @@ describe('cache hit rate in the tokens column', () => {
 
     expect(screen.getByText('60.00%')).toHaveAttribute(
       'title',
-      'Hit Rate 300 / 500'
+      'Cache Hit Rate 300 / 500'
     )
   })
 
@@ -144,6 +146,7 @@ describe('cache hit rate in the tokens column', () => {
 
     expect(rendered.container.textContent).not.toContain('%')
     expect(rendered.container.textContent).not.toContain('0.00')
+    expect(rendered.container.textContent).not.toContain('Cache Hit Rate')
     // The cache write marker itself still shows up.
     expect(rendered.container.textContent).toContain('↑ 200')
   })

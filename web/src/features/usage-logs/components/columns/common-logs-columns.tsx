@@ -732,19 +732,24 @@ export function useCommonLogsColumns(
               {completionTokens.toLocaleString()}
             </span>
             {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
-              <div className='flex items-center gap-1 text-[11px]'>
+              <div className='flex items-center gap-1.5 text-[11px]'>
                 {cacheReadTokens > 0 && (
                   <span className='text-muted-foreground/60'>
                     {t('Cache')}↓ {cacheReadTokens.toLocaleString()}
                   </span>
                 )}
                 {cacheHitRate && (
-                  <span
-                    className='font-medium text-emerald-600/80 tabular-nums dark:text-emerald-400/80'
-                    title={`${t('Hit Rate')} ${cacheHitRate.hitTokens.toLocaleString()} / ${cacheHitRate.totalTokens.toLocaleString()}`}
-                  >
-                    {cacheHitRate.label}
-                  </span>
+                  <>
+                    <span className='text-muted-foreground/60'>
+                      ｜{t('Cache Hit Rate')}
+                    </span>
+                    <span
+                      className='font-medium text-emerald-600/80 tabular-nums dark:text-emerald-400/80'
+                      title={`${t('Cache Hit Rate')} ${cacheHitRate.hitTokens.toLocaleString()} / ${cacheHitRate.totalTokens.toLocaleString()}`}
+                    >
+                      {cacheHitRate.label}
+                    </span>
+                  </>
                 )}
                 {cacheWriteTokens > 0 && (
                   <span className='text-muted-foreground/60'>
