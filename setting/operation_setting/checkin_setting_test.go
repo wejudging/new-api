@@ -347,7 +347,8 @@ func TestCheckinReferralTicketsFollowTheInviteLadder(t *testing.T) {
 	require.Equal(t, 1, GetCheckinReferralTickets(CheckinPrizeQuota(5)), "首充 5 元：只有基础次数")
 	require.Equal(t, 2, GetCheckinReferralTickets(CheckinPrizeQuota(10)), "首充 10 元：基础 + 1")
 	require.Equal(t, 11, GetCheckinReferralTickets(CheckinPrizeQuota(100)), "首充 100 元：基础 + 10")
-	require.Equal(t, 12, GetCheckinReferralTickets(CheckinPrizeQuota(105)), "不足一档的余额不进位")
+	require.Equal(t, 11, GetCheckinReferralTickets(CheckinPrizeQuota(105)), "105 元 = 10 个档位 + 5 元余量，余量不进位")
+	require.Equal(t, 12, GetCheckinReferralTickets(CheckinPrizeQuota(115)), "115 元 = 11 个档位：基础 + 11")
 
 	// 没有门槛（关闭充值赠送）时只剩基础次数
 	withCheckinSetting(t, CheckinSetting{
