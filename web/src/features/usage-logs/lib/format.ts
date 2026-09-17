@@ -338,6 +338,60 @@ export function hasAnyCacheTokens(
   )
 }
 
+/** Cache hit share for a single usage-log entry. */
+export interface CacheHitRate {
+  /** Tokens served from the prompt cache. */
+  hitTokens: number
+  /** Total input tokens, i.e. hits plus everything that missed. */
+  totalTokens: number
+  /** Unrounded hit share in percent. */
+  percent: number
+  /** Hit share rendered with two decimals, e.g. `62.99%`. */
+  label: string
+}
+
+/**
+ * Share of input tokens served from the prompt cache.
+ *
+ * Returns null when the request logged no cache hits, so callers can omit the
+ * item entirely instead of showing a meaningless 0%.
+ *
+ * Anthropic-style usage reports `prompt_tokens` as the uncached input only, so
+ * cache reads and writes have to be added back to get the denominator.
+ * OpenAI-style usage already folds cached tokens into `prompt_tokens`.
+ */
+export function getCacheHitRate(
+  other: LogOtherData | null | undefined,
+  promptTokens: number
+): CacheHitRate | null {
+  if (!other) return null
+  const hitTokens = other.cache_tokens || 0
+  if (hitTokens <= 0) return null
+
+  const cacheWrite5m = other.cache_creation_tokens_5m || 0
+  const cacheWrite1h = other.cache_creation_tokens_1h || 0
+  const cacheWriteTokens =
+    cacheWrite5m + cacheWrite1h || other.cache_creation_tokens || 0
+
+  const reportedPrompt = Number.isFinite(promptTokens) ? promptTokens : 0
+  let totalTokens =
+    other.usage_semantic === 'anthropic'
+      ? reportedPrompt + hitTokens + cacheWriteTokens
+      : reportedPrompt
+  // Some upstreams report a prompt count that excludes the cached part even in
+  // OpenAI-style payloads; never let the share exceed 100%.
+  if (totalTokens < hitTokens) totalTokens = hitTokens
+  if (totalTokens <= 0) return null
+
+  const percent = (hitTokens / totalTokens) * 100
+  return {
+    hitTokens,
+    totalTokens,
+    percent,
+    label: `${percent.toFixed(2)}%`,
+  }
+}
+
 export function getTieredBillingSummary(
   other: LogOtherData | null
 ): TieredBillingSummary | null {
