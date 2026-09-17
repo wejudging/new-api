@@ -25,6 +25,7 @@ import {
   History,
   Receipt,
   Sparkles,
+  UserPlus,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -46,6 +47,7 @@ import { useStatus } from '@/hooks/use-status'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
+import { InviteRecordsPanel } from './components/invite-records-panel'
 import { LotteryUnavailableCard } from './components/lottery-unavailable-card'
 import {
   useCheckinLotteryDrawRecords,
@@ -60,6 +62,9 @@ import type {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 
+/** Tabs of the record page: winnings, ticket ledger and the invitees. */
+export type RecordsTab = 'draw' | 'ticket' | 'invite'
+
 /** i18n keys for the page-size picker, kept literal so they can be extracted. */
 const PAGE_SIZE_KEYS: Record<number, string> = {
   10: '10 / page',
@@ -68,27 +73,35 @@ const PAGE_SIZE_KEYS: Record<number, string> = {
   100: '100 / page',
 }
 
+interface CheckinLotteryRecordsProps {
+  /** Tab the page opens on, driven by the `?tab=` search param. */
+  initialTab?: RecordsTab
+}
+
 /**
- * Personal draw history: the prizes that were paid out and the ticket ledger
- * behind them. Reachable from the daily draw page and the header entry.
+ * Personal record page: the prizes that were paid out, the ticket ledger
+ * behind them and the friends the invite link brought in. Reachable from the
+ * daily draw page and the header entry.
  */
-export function CheckinLotteryRecords() {
+export function CheckinLotteryRecords(props: CheckinLotteryRecordsProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
   const enabled = Boolean(status?.checkin_enabled)
 
-  const [tab, setTab] = useState<'draw' | 'ticket'>('draw')
+  const [tab, setTab] = useState<RecordsTab>(props.initialTab ?? 'draw')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(10)
 
   const draws = useCheckinLotteryDrawRecords({ page, pageSize })
   const tickets = useCheckinLotteryTicketRecords({ page, pageSize })
-  const active = tab === 'draw' ? draws : tickets
+  const active = tab === 'ticket' ? tickets : draws
+  // The invitee list is not paginated, so the pager and its picker stay away.
+  const paged = tab !== 'invite'
 
   const totalPages = Math.max(1, Math.ceil(active.total / pageSize))
 
   function handleTabChange(next: string) {
-    setTab(next === 'ticket' ? 'ticket' : 'draw')
+    setTab(next === 'ticket' || next === 'invite' ? next : 'draw')
     setPage(1)
   }
 
@@ -100,9 +113,9 @@ export function CheckinLotteryRecords() {
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>
-        <span className='block truncate'>{t('Draw records')}</span>
+        <span className='block truncate'>{t('My records')}</span>
         <span className='text-muted-foreground block truncate text-xs font-normal'>
-          {t('Every prize you won and every ticket you spent')}
+          {t('Every prize, ticket and invitee you earned')}
         </span>
       </SectionPageLayout.Title>
       <SectionPageLayout.Actions>
@@ -128,44 +141,54 @@ export function CheckinLotteryRecords() {
                       <Coins className='size-4' />
                       {t('Ticket history')}
                     </TabsTrigger>
+                    <TabsTrigger value='invite'>
+                      <UserPlus className='size-4' />
+                      {t('Invite records')}
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
 
-                <Select
-                  items={PAGE_SIZE_OPTIONS.map((size) => ({
-                    value: String(size),
-                    label: t(PAGE_SIZE_KEYS[size]),
-                  }))}
-                  value={String(pageSize)}
-                  onValueChange={(value) =>
-                    value !== null && handlePageSizeChange(Number(value))
-                  }
-                >
-                  <SelectTrigger className='h-8 w-[104px]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    <SelectGroup>
-                      {PAGE_SIZE_OPTIONS.map((size) => (
-                        <SelectItem key={size} value={String(size)}>
-                          {t(PAGE_SIZE_KEYS[size])}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                {paged ? (
+                  <Select
+                    items={PAGE_SIZE_OPTIONS.map((size) => ({
+                      value: String(size),
+                      label: t(PAGE_SIZE_KEYS[size]),
+                    }))}
+                    value={String(pageSize)}
+                    onValueChange={(value) =>
+                      value !== null && handlePageSizeChange(Number(value))
+                    }
+                  >
+                    <SelectTrigger className='h-8 w-[104px]'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      <SelectGroup>
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {t(PAGE_SIZE_KEYS[size])}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                ) : null}
               </div>
 
               <CardContent className='px-0 pb-0'>
-                <RecordsListBody
-                  tab={tab}
-                  loading={active.loading}
-                  hasItems={active.items.length > 0}
-                  drawItems={draws.items}
-                  ticketItems={tickets.items}
-                />
+                {tab === 'invite' ? (
+                  <InviteRecordsPanel enabled={enabled} />
+                ) : (
+                  <RecordsListBody
+                    tab={tab}
+                    loading={active.loading}
+                    hasItems={active.items.length > 0}
+                    drawItems={draws.items}
+                    ticketItems={tickets.items}
+                  />
+                )}
 
-                {!active.loading && active.total > 0 ? (
+                {paged && !active.loading && active.total > 0 ? (
                   <div className='flex flex-col items-center gap-3 border-t px-4 py-3 sm:flex-row sm:justify-between sm:px-5'>
                     <div className='text-muted-foreground text-xs sm:text-sm'>
                       {t('Showing')} {(page - 1) * pageSize + 1}-
@@ -211,7 +234,7 @@ export function CheckinLotteryRecords() {
 }
 
 interface RecordsListBodyProps {
-  tab: 'draw' | 'ticket'
+  tab: RecordsTab
   loading: boolean
   hasItems: boolean
   drawItems: CheckinLotteryDrawRecord[]
@@ -240,7 +263,7 @@ function RecordsListBody(props: RecordsListBodyProps) {
   return <TicketRecordsList items={props.ticketItems} />
 }
 
-function RecordsEmptyState({ tab }: { tab: 'draw' | 'ticket' }) {
+function RecordsEmptyState({ tab }: { tab: RecordsTab }) {
   const { t } = useTranslation()
 
   return (

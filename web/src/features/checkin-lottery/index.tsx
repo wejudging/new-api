@@ -37,6 +37,10 @@ import { resolveAvailableDraws } from './lib/available-draws'
 /**
  * Daily check-in lottery page: claim the daily draws, spend them on the
  * prize pool and watch the luck leaderboard move.
+ *
+ * Order matters to the reader: the invite link sits directly under the
+ * headline numbers, so the friend programme is seen before the draw, and the
+ * leaderboard closes the page.
  */
 export function CheckinLottery() {
   const { t } = useTranslation()
@@ -73,7 +77,7 @@ export function CheckinLottery() {
           render={<Link to='/checkin/records' />}
         >
           <History className='size-4' />
-          {t('Draw records')}
+          {t('My records')}
         </Button>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
@@ -89,18 +93,17 @@ export function CheckinLottery() {
                 tickets={available.tickets}
                 dailyTickets={available.dailyTickets}
                 bonusTickets={available.bonusTickets}
-                dailyDraws={payload?.daily_draws ?? 1}
                 topUpYuanPerDraw={payload?.topup_yuan_per_draw ?? 0}
                 balanceQuota={user?.quota ?? 0}
               />
+
+              <InviteFriendsCard referral={payload?.referral} />
 
               <LotteryDrawCard
                 prizes={payload?.prizes ?? []}
                 tickets={available.tickets}
                 checkedInToday={payload?.checked_in_today ?? false}
               />
-
-              <InviteFriendsCard referral={payload?.referral} />
 
               <LuckLeaderboard
                 entries={payload?.leaderboard ?? []}
@@ -126,11 +129,8 @@ export function CheckinLottery() {
 function DrawPageSkeleton() {
   return (
     <>
-      <div className='grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4'>
-        {['tickets', 'today', 'daily', 'balance'].map((key) => (
-          <Skeleton key={key} className='h-28 w-full rounded-xl' />
-        ))}
-      </div>
+      <Skeleton className='h-16 w-full rounded-xl' />
+      <Skeleton className='h-28 w-full rounded-xl' />
       <Skeleton className='h-72 w-full rounded-xl' />
       <Skeleton className='h-64 w-full rounded-xl' />
     </>

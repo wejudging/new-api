@@ -141,7 +141,7 @@ describe('top-up gate on the daily draw page', () => {
 })
 
 describe('module order on the daily draw page', () => {
-  it('keeps the invite card right above the luck leaderboard', () => {
+  it('keeps the invite card above the prize pool', () => {
     renderPage()
 
     const follows = (earlier: HTMLElement, later: HTMLElement) =>
@@ -151,8 +151,15 @@ describe('module order on the daily draw page', () => {
     const invite = screen.getByText('Invite friends')
     const leaderboard = screen.getByText('Luck leaderboard')
 
-    // 抽奖主体在邀请模块之前，邀请模块紧贴手气榜之上
-    expect(follows(draw, invite)).toBeTruthy()
-    expect(follows(invite, leaderboard)).toBeTruthy()
+    // 邀请模块在抽奖主体之上（用户要求放回顶部），手气榜收尾
+    expect(follows(invite, draw)).toBeTruthy()
+    expect(follows(draw, leaderboard)).toBeTruthy()
+  })
+
+  it('shows the daily tickets as a plain number, not as a 0/1 score', () => {
+    renderPage()
+
+    expect(screen.getByText('Daily tickets')).toBeVisible()
+    expect(screen.queryByText('0/1')).not.toBeInTheDocument()
   })
 })

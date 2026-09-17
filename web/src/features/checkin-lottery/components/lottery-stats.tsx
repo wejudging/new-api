@@ -17,20 +17,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { CalendarCheck, Gift, Ticket, WalletCards } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Card } from '@/components/ui/card'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatQuota } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface LotteryStatsProps {
   tickets: number
-  /** Daily tickets left today, capped by `dailyDraws`. */
+  /** Daily tickets left today, capped by the site's daily draw limit. */
   dailyTickets: number
   /** Permanent tickets earned from top-ups. */
   bonusTickets: number
-  dailyDraws: number
   /** Credited CNY that grants one extra ticket, `0` disables the bonus. */
   topUpYuanPerDraw: number
   balanceQuota: number
@@ -41,21 +42,28 @@ interface LotteryStatsProps {
  * The four headline numbers of the draw page: total tickets, the daily
  * bucket (never accumulates), the permanent top-up bucket and the current
  * balance the prizes are paid into.
+ *
+ * They used to be four cards with an icon, a value and two lines of copy,
+ * which ate a third of the fold before the draw even showed up. They are now
+ * one strip of cells: the explanation moved into the tooltip, the counters
+ * show a plain number (the daily bucket is a count, not a `0/1` score).
  */
 export function LotteryStats(props: LotteryStatsProps) {
   const { t } = useTranslation()
 
   if (props.loading) {
     return (
-      <div className='grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4'>
+      <StatsStrip>
         {['tickets', 'daily', 'bonus', 'balance'].map((key) => (
-          <Card key={key} className='gap-2 px-4 py-3.5'>
-            <Skeleton className='h-8 w-8 rounded-lg' />
-            <Skeleton className='h-6 w-16' />
-            <Skeleton className='h-3.5 w-24' />
-          </Card>
+          <StatsCell key={key}>
+            <Skeleton className='size-7 shrink-0 rounded-md' />
+            <div className='min-w-0 flex-1 space-y-1.5'>
+              <Skeleton className='h-3 w-12' />
+              <Skeleton className='h-4 w-10' />
+            </div>
+          </StatsCell>
         ))}
-      </div>
+      </StatsStrip>
     )
   }
 
@@ -75,7 +83,7 @@ export function LotteryStats(props: LotteryStatsProps) {
     },
     {
       label: t('Daily tickets'),
-      value: `${props.dailyTickets}/${props.dailyDraws}`,
+      value: String(props.dailyTickets),
       hint: t('Does not accumulate, back to full tomorrow'),
       icon: CalendarCheck,
       tone: props.dailyTickets > 0 ? 'success' : 'warning',
@@ -102,23 +110,54 @@ export function LotteryStats(props: LotteryStatsProps) {
   ]
 
   return (
-    <div className='grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4'>
+    <StatsStrip>
       {items.map((item) => (
-        <Card key={item.label} className='gap-2 px-4 py-3.5'>
-          <IconBadge tone={item.tone} size='lg'>
+        <StatsCell key={item.label} title={item.hint}>
+          <IconBadge tone={item.tone} size='sm'>
             <item.icon />
           </IconBadge>
-          <div className='text-foreground truncate font-mono text-xl font-bold tracking-tight tabular-nums sm:text-2xl'>
-            {item.value}
-          </div>
-          <div className='min-w-0'>
-            <div className='truncate text-xs font-medium'>{item.label}</div>
-            <div className='text-muted-foreground/70 mt-0.5 line-clamp-2 text-xs'>
-              {item.hint}
+          <div className='min-w-0 flex-1'>
+            <div className='text-muted-foreground/70 truncate text-[11px] font-medium'>
+              {item.label}
+            </div>
+            <div
+              className={cn(
+                'text-foreground truncate font-mono font-bold tracking-tight tabular-nums',
+                // A six-figure balance would be clipped at the regular size,
+                // so long values fall back one step instead of truncating.
+                item.value.length > 9 ? 'text-sm sm:text-base' : 'text-lg'
+              )}
+            >
+              {item.value}
             </div>
           </div>
-        </Card>
+        </StatsCell>
       ))}
+    </StatsStrip>
+  )
+}
+
+/** Hairline-separated strip that holds the four headline counters. */
+function StatsStrip({ children }: { children: ReactNode }) {
+  return (
+    <Card className='bg-border/60 grid grid-cols-2 gap-px py-0 sm:grid-cols-4'>
+      {children}
+    </Card>
+  )
+}
+
+interface StatsCellProps {
+  children: ReactNode
+  title?: string
+}
+
+function StatsCell({ children, title }: StatsCellProps) {
+  return (
+    <div
+      title={title}
+      className='bg-card flex min-w-0 items-center gap-2.5 px-3 py-2.5 sm:px-3.5 sm:py-3'
+    >
+      {children}
     </div>
   )
 }

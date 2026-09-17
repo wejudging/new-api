@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils'
 import { useCheckinDraw } from '../hooks/use-checkin-draw'
 import { formatYuan } from '../lib/format'
 import type { CheckinLotteryDrawResult, CheckinLotteryPrize } from '../types'
+import { ConfettiBurst } from './confetti-burst'
 import { PrizeBoard } from './prize-board'
 
 interface LotteryDrawCardProps {
@@ -82,16 +83,27 @@ export function LotteryDrawCard(props: LotteryDrawCardProps) {
       </CardHeader>
 
       <CardContent className='space-y-4 px-4 py-4 sm:px-5 sm:py-5'>
-        <PrizeBoard
-          prizes={props.prizes}
-          rollingIndex={drawState.rollingIndex}
-          wonIndex={drawState.wonIndex}
-          disabled={drawState.drawing}
-        />
+        <div className='relative'>
+          <div
+            aria-hidden='true'
+            className='checkin-board-sheen pointer-events-none absolute -inset-x-2 -inset-y-1 overflow-hidden rounded-2xl'
+          />
+          <PrizeBoard
+            prizes={props.prizes}
+            rollingIndex={drawState.rollingIndex}
+            wonIndex={drawState.wonIndex}
+            disabled={drawState.drawing}
+          />
+          {drawState.wonIndex != null ? (
+            <ConfettiBurst
+              seed={Math.round((drawState.result?.amount ?? 0) * 1000)}
+            />
+          ) : null}
+        </div>
 
         {drawState.result ? (
-          <div className='border-success/40 bg-success/10 text-success flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border px-4 py-3 text-sm font-medium'>
-            <PartyPopper className='size-4' />
+          <div className='checkin-result-shine border-success/40 from-success/15 via-success/10 to-success/5 text-success animate-in fade-in slide-in-from-bottom-2 relative flex flex-wrap items-center justify-center gap-x-2 gap-y-1 overflow-hidden rounded-xl border bg-gradient-to-r px-4 py-3 text-sm font-medium duration-300'>
+            <PartyPopper className='checkin-result-pop size-4' />
             <span>{t('Draw result')}</span>
             <span className='text-muted-foreground/60'>·</span>
             <span>

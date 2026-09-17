@@ -777,3 +777,254 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
   }
 }
+
+/* ── Check-in lottery: prize board life + win celebration ── */
+
+/* Idle breathing of the top tier, so the pool is not a still image. */
+@keyframes checkin-tile-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--warning) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 14px 0 color-mix(in oklab, var(--warning) 32%, transparent);
+  }
+}
+
+.checkin-tile-top {
+  animation: checkin-tile-breathe 3.6s ease-in-out infinite;
+}
+
+/* Light sweep running across the tier the roll is currently on. */
+@keyframes checkin-tile-shine {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(110%);
+  }
+}
+
+.checkin-tile-rolling::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 34%,
+    color-mix(in oklab, var(--primary) 40%, transparent) 50%,
+    transparent 66%
+  );
+  animation: checkin-tile-shine 640ms linear infinite;
+}
+
+/* Landing: a zoom-in that overshoots once, then settles. */
+@keyframes checkin-tile-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+.checkin-tile-won {
+  animation: checkin-tile-pop 640ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Ring that expands off the winning tier right after it pops. */
+@keyframes checkin-tile-ring {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+.checkin-tile-won::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid color-mix(in oklab, var(--success) 55%, transparent);
+  pointer-events: none;
+  animation: checkin-tile-ring 760ms ease-out 120ms both;
+}
+
+/* Confetti pieces fired from the bottom of the prize board. */
+@keyframes checkin-confetti-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.5);
+  }
+  8% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 1;
+    transform: translate3d(
+        var(--confetti-apex-x, 0),
+        var(--confetti-apex-y, 0),
+        0
+      )
+      rotate(calc(var(--confetti-spin, 360deg) * 0.45)) scale(1);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--confetti-x, 0), var(--confetti-y, 0), 0)
+      rotate(var(--confetti-spin, 360deg)) scale(0.9);
+  }
+}
+
+.checkin-confetti {
+  position: absolute;
+  width: var(--confetti-size, 8px);
+  height: var(--confetti-height, var(--confetti-size, 8px));
+  margin-top: calc(var(--confetti-size, 8px) / -2);
+  margin-left: calc(var(--confetti-size, 8px) / -2);
+  border-radius: 2px;
+  background: var(--confetti-color, var(--primary));
+  opacity: 0;
+  will-change: transform, opacity;
+  box-shadow: 0 0 6px -1px
+    color-mix(in oklab, var(--confetti-color) 70%, transparent);
+  animation: checkin-confetti-flight var(--confetti-duration, 1800ms)
+    cubic-bezier(0.2, 0.75, 0.35, 1) var(--confetti-delay, 0ms) both;
+}
+
+/* Ribbons flutter rather than spin flat, so the burst has depth. */
+.checkin-confetti-streamer {
+  border-radius: 999px;
+}
+
+.checkin-confetti-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: var(--confetti-size, 16px);
+  line-height: 1;
+}
+
+/* Light travelling across the pool, so the board is never a still image. */
+@keyframes checkin-board-sheen {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-150%) skewX(-18deg);
+  }
+  64% {
+    opacity: 1;
+  }
+  84% {
+    opacity: 1;
+    transform: translateX(400%) skewX(-18deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(400%) skewX(-18deg);
+  }
+}
+
+.checkin-board-sheen::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--primary) 22%, transparent),
+    transparent
+  );
+  filter: blur(8px);
+  animation: checkin-board-sheen 7.5s ease-in-out infinite;
+}
+
+/* One-off sweep across the win banner the moment a prize lands. */
+@keyframes checkin-result-shine {
+  from {
+    opacity: 0.9;
+    transform: translateX(-120%) skewX(-16deg);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(260%) skewX(-16deg);
+  }
+}
+
+.checkin-result-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--success) 35%, transparent),
+    transparent
+  );
+  animation: checkin-result-shine 900ms ease-out 380ms both;
+}
+
+@keyframes checkin-result-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-3px) rotate(-12deg);
+  }
+  60% {
+    transform: translateY(0) rotate(10deg);
+  }
+}
+
+.checkin-result-pop {
+  animation: checkin-result-bounce 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkin-tile-top,
+  .checkin-tile-rolling::after,
+  .checkin-tile-won,
+  .checkin-tile-won::after,
+  .checkin-confetti,
+  .checkin-result-pop,
+  .checkin-board-sheen::after,
+  .checkin-result-shine::after {
+    animation: none !important;
+  }
+
+  .checkin-board-sheen,
+  .checkin-result-shine {
+    display: none;
+  }
+
+  .checkin-confetti {
+    display: none;
+  }
+}

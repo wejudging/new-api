@@ -49,9 +49,32 @@ const RANK_MEDALS: Record<number, string> = {
   3: '🥉',
 }
 
+/** Warm ramp for the podium, so the top three read at a glance. */
+const PODIUM_BARS: Record<number, string> = {
+  1: 'bg-gradient-to-r from-amber-400 to-amber-500',
+  2: 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-500 dark:to-slate-600',
+  3: 'bg-gradient-to-r from-amber-600 to-amber-700',
+}
+
+const DEFAULT_BAR = 'bg-gradient-to-r from-primary/60 to-primary'
+
+/** Avatar tint, cycled by user id so the same player keeps their colour. */
+const AVATAR_TONES = [
+  'bg-chart-1/15 text-chart-1',
+  'bg-chart-2/15 text-chart-2',
+  'bg-chart-3/15 text-chart-3',
+  'bg-chart-4/15 text-chart-4',
+  'bg-chart-5/15 text-chart-5',
+]
+
 /**
  * Luck leaderboard: the top twenty players by total winnings, followed by a
  * highlighted summary bar for the signed-in user's own position.
+ *
+ * Rows borrow the shape of a contribution graph — rank, avatar, name, a bar
+ * scaled against the current leader and the payout on the right. The bar is
+ * what fills the stretch of empty space the plain two-column list used to
+ * leave in the middle of every row.
  */
 export function LuckLeaderboard(props: LuckLeaderboardProps) {
   const { t } = useTranslation()
@@ -119,16 +142,26 @@ function LeaderboardBody(props: LeaderboardBodyProps) {
     )
   }
 
+  const maxTotal = props.entries.reduce(
+    (max, entry) => (entry.total_amount > max ? entry.total_amount : max),
+    0
+  )
+
   return (
     <ul className='divide-border/60 divide-y'>
       {props.entries.map((entry) => {
         const isMe = props.myUserId != null && entry.user_id === props.myUserId
         const medal = RANK_MEDALS[entry.rank]
+        // Every bar keeps a sliver so a small win still shows up next to a
+        // much larger one instead of collapsing to nothing.
+        const share =
+          maxTotal > 0 ? Math.max(6, (entry.total_amount / maxTotal) * 100) : 0
+
         return (
           <li
             key={`${entry.rank}-${entry.user_id}`}
             className={cn(
-              'flex items-center gap-3 px-4 py-2.5 sm:px-5',
+              'flex items-center gap-3 px-4 py-2.5 transition-colors sm:px-5',
               isMe && 'bg-primary/5'
             )}
           >
@@ -145,27 +178,48 @@ function LeaderboardBody(props: LeaderboardBodyProps) {
               </span>
             )}
 
+            <span
+              aria-hidden='true'
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase',
+                AVATAR_TONES[entry.user_id % AVATAR_TONES.length]
+              )}
+            >
+              {entry.username.slice(0, 1) || '?'}
+            </span>
+
             <div className='min-w-0 flex-1'>
-              <div className='flex min-w-0 items-baseline gap-1.5'>
+              <div className='flex items-baseline gap-1.5'>
                 <span className='truncate text-sm font-medium'>
                   {entry.username}
                 </span>
                 {entry.account ? (
-                  <span className='text-muted-foreground/60 truncate text-xs'>
+                  <span className='text-muted-foreground/50 truncate text-xs'>
                     {entry.account}
                   </span>
                 ) : null}
               </div>
-              <div className='text-muted-foreground/70 text-xs'>
-                {t('{{count}} draws', { count: entry.draws })}
+              <div className='mt-1 flex items-center gap-2'>
+                <span className='text-muted-foreground/60 shrink-0 text-[11px] tabular-nums'>
+                  {t('{{count}} draws', { count: entry.draws })}
+                </span>
+                <span className='bg-muted/70 h-1.5 min-w-6 flex-1 overflow-hidden rounded-full'>
+                  <span
+                    className={cn(
+                      'block h-full rounded-full',
+                      PODIUM_BARS[entry.rank] ?? DEFAULT_BAR
+                    )}
+                    style={{ width: `${share}%` }}
+                  />
+                </span>
               </div>
             </div>
 
-            <div className='shrink-0 text-right'>
+            <div className='w-[72px] shrink-0 text-right'>
               <div className='text-success font-mono text-sm font-bold tabular-nums sm:text-base'>
                 {formatYuan(entry.best_amount)}
               </div>
-              <div className='text-muted-foreground/70 text-xs'>
+              <div className='text-muted-foreground/60 text-[11px] tabular-nums'>
                 {t('Total {{amount}}', {
                   amount: formatYuan(entry.total_amount),
                 })}

@@ -63,10 +63,16 @@ export function PrizeBoard(props: PrizeBoardProps) {
             className={cn(
               'relative flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 transition-all duration-200 sm:py-4',
               'border-border/70 bg-card',
+              // The top tier breathes so the pool has some life in it even
+              // while nobody is drawing.
+              isTop &&
+                !isRolling &&
+                !isWon &&
+                'checkin-tile-top border-warning/40',
               isRolling &&
-                'border-primary bg-primary/10 scale-[1.06] shadow-sm',
+                'checkin-tile-rolling border-primary bg-primary/10 shadow-primary/25 scale-[1.07] shadow-lg',
               isWon &&
-                'border-success bg-success/10 animate-in zoom-in-50 fade-in shadow-sm duration-500',
+                'checkin-tile-won border-success bg-success/10 shadow-success/25 shadow-lg',
               !isRolling && !isWon && 'hover:border-primary/40'
             )}
           >

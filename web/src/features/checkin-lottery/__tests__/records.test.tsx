@@ -29,12 +29,21 @@ import type {
   CheckinLotteryTicketRecord,
 } from '../types'
 
-const { navigate, status, records } = vi.hoisted(() => ({
+const { navigate, status, records, referral } = vi.hoisted(() => ({
   navigate: vi.fn(),
   status: { value: { checkin_enabled: true } as Record<string, unknown> },
   records: {
     draw: { items: [] as unknown[], total: 0, loading: false },
     ticket: { items: [] as unknown[], total: 0, loading: false },
+  },
+  referral: {
+    value: {
+      data: undefined as
+        | { invite_count: number; rewarded_count: number; tickets: number }
+        | undefined,
+      invitees: [] as unknown[],
+      loading: false,
+    },
   },
 }))
 
@@ -55,6 +64,10 @@ vi.mock('../hooks/use-checkin-lottery-records', () => ({
   useCheckinLotteryTicketRecords: () => records.ticket,
 }))
 
+vi.mock('../hooks/use-checkin-lottery-referral', () => ({
+  useCheckinLotteryReferral: () => referral.value,
+}))
+
 const drawItems: CheckinLotteryDrawRecord[] = [
   { id: 1, user_id: 7, amount: 0.5, quota: 250000, created_at: 1750000000 },
   { id: 2, user_id: 7, amount: 0.05, quota: 25000, created_at: 1749900000 },
@@ -73,6 +86,7 @@ beforeEach(() => {
   status.value = { checkin_enabled: true }
   records.draw = { items: [], total: 0, loading: false }
   records.ticket = { items: [], total: 0, loading: false }
+  referral.value = { data: undefined, invitees: [], loading: false }
 })
 
 afterEach(async () => {
@@ -171,5 +185,61 @@ describe('draw records page', () => {
 
     expect(screen.getByText('2')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeEnabled()
+  })
+
+  it('merges the invitees into the third tab of the same page', async () => {
+    const user = userEvent.setup()
+    referral.value = {
+      data: { invite_count: 3, rewarded_count: 2, tickets: 5 },
+      invitees: [
+        {
+          user_id: 11,
+          username: 'al***ce',
+          registered_at: 1750000000,
+          settled: true,
+          tickets: 3,
+          credited_quota: 1000000,
+          settled_at: 1750000000,
+        },
+        {
+          user_id: 12,
+          username: 'bo***b',
+          registered_at: 1749900000,
+          settled: false,
+          tickets: 0,
+          credited_quota: 0,
+          settled_at: 0,
+        },
+      ],
+      loading: false,
+    }
+
+    render(<CheckinLotteryRecords />)
+
+    // 入口改名：抽奖记录 / 次数流水 / 邀请记录 合成一页
+    expect(screen.getByText('My records')).toBeVisible()
+
+    await user.click(screen.getByRole('tab', { name: 'Invite records' }))
+
+    expect(screen.getByText('al***ce')).toBeVisible()
+    expect(screen.getByText('bo***b')).toBeVisible()
+    expect(screen.getByText('First top-up settled')).toBeVisible()
+    expect(screen.getByText('Waiting for the first top-up')).toBeVisible()
+    // 邀请名单不分页，分页器与每页条数选择器一起隐藏
+    expect(
+      screen.queryByRole('button', { name: 'Next page' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the invite tab readable before the first invitee', async () => {
+    const user = userEvent.setup()
+
+    render(<CheckinLotteryRecords />)
+
+    await user.click(screen.getByRole('tab', { name: 'Invite records' }))
+
+    expect(
+      screen.getByText('No invitees yet, share your link to get started')
+    ).toBeVisible()
   })
 })
