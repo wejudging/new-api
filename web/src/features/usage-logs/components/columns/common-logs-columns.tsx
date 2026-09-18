@@ -670,6 +670,7 @@ export function useCommonLogsColumns(
             <ModelBadge
               modelName={modelInfo.name}
               actualModel={modelInfo.actualModel}
+              reasoningEffort={modelInfo.reasoningEffort}
             />
           </div>
         )

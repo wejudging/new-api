@@ -309,6 +309,18 @@ it('shows the OpenAI icon in the mobile inspection button', () => {
   ).toContainElement(screen.getByLabelText('OpenAI'))
 })
 
+it('shows a requested reasoning effort after the model only when provided', () => {
+  const { rerender } = render(
+    <ModelBadge modelName='deepseek-chat' reasoningEffort=' high ' />
+  )
+
+  expect(screen.getByText('deepseek-chat')).toBeVisible()
+  expect(screen.getByText('high')).toBeVisible()
+
+  rerender(<ModelBadge modelName='deepseek-chat' reasoningEffort='   ' />)
+  expect(screen.queryByText('high')).not.toBeInTheDocument()
+})
+
 it('makes the Wan icon available to model icon selectors', () => {
   expect(getLobeIconNames()).toContain('Wan')
 })

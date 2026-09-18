@@ -213,6 +213,24 @@ it('retains the user avatar and model badge in the mobile summary', () => {
   expect(modelButton.querySelector('[data-slot="status-badge"]')).not.toBeNull()
 })
 
+it('shows the requested reasoning effort after the model in the mobile summary', () => {
+  renderLogs({
+    logs: [
+      {
+        ...log,
+        other: JSON.stringify({ reasoning_effort: 'high' }),
+      },
+    ],
+  })
+
+  expect(screen.getByText('high')).toBeVisible()
+})
+
+it('does not show a reasoning effort when the request did not specify one', () => {
+  renderLogs()
+  expect(screen.queryByText('high')).not.toBeInTheDocument()
+})
+
 it('omits unused token and throughput placeholders for async jobs', () => {
   renderLogs({
     logs: [

@@ -30,57 +30,80 @@ import { getLobeIcon } from '@/lib/lobe-icon'
 import { resolveModelProvider } from '@/lib/model-provider'
 import { cn } from '@/lib/utils'
 
+import { getReasoningEffortVariant } from '../lib/format'
+
 interface ModelBadgeProps {
   modelName: string
   actualModel?: string
+  reasoningEffort?: string
   className?: string
   wrapText?: boolean
   onInspect?: () => void
 }
 
 function ModelBadgeContent(props: ModelBadgeProps) {
+  const { t } = useTranslation()
   const provider = resolveModelProvider(props.modelName)
+  const reasoningEffort = props.reasoningEffort?.trim()
 
   return (
-    <StatusBadge
-      copyText={props.modelName}
-      copyable={!props.onInspect}
-      size='sm'
-      showDot={!provider?.icon}
-      autoColor={provider?.icon ? undefined : props.modelName}
+    <span
       className={cn(
-        'border-border/60 bg-muted/30 h-6 max-w-none gap-1.5 rounded-md border px-2 [font-family:var(--font-body)]',
-        provider?.icon && 'text-foreground',
-        props.wrapText && 'h-auto min-h-6 max-w-full py-0.5 whitespace-normal',
-        props.className
+        'inline-flex items-center gap-1.5',
+        props.wrapText ? 'max-w-full min-w-0' : 'max-w-none'
       )}
     >
-      <span
+      <StatusBadge
+        copyText={props.modelName}
+        copyable={!props.onInspect}
+        size='sm'
+        showDot={!provider?.icon}
+        autoColor={provider?.icon ? undefined : props.modelName}
         className={cn(
-          'flex items-center gap-1.5',
-          props.wrapText ? 'max-w-full min-w-0' : 'max-w-none'
+          'border-border/60 bg-muted/30 h-6 max-w-none gap-1.5 rounded-md border px-2 [font-family:var(--font-body)]',
+          provider?.icon && 'text-foreground',
+          props.wrapText &&
+            'h-auto min-h-6 max-w-full py-0.5 whitespace-normal',
+          props.className
         )}
       >
-        {provider?.icon && (
-          <span
-            className='flex h-[18px] w-[18px] shrink-0 items-center justify-center'
-            title={provider.label ?? provider.name}
-            aria-label={provider.label ?? provider.name}
-          >
-            {getLobeIcon(provider.icon, 18)}
-          </span>
-        )}
         <span
-          className={
-            props.wrapText
-              ? 'line-clamp-2 [overflow-wrap:anywhere]'
-              : 'whitespace-nowrap'
-          }
+          className={cn(
+            'flex items-center gap-1.5',
+            props.wrapText ? 'max-w-full min-w-0' : 'max-w-none'
+          )}
         >
-          {props.modelName}
+          {provider?.icon && (
+            <span
+              className='flex h-[18px] w-[18px] shrink-0 items-center justify-center'
+              title={provider.label ?? provider.name}
+              aria-label={provider.label ?? provider.name}
+            >
+              {getLobeIcon(provider.icon, 18)}
+            </span>
+          )}
+          <span
+            className={
+              props.wrapText
+                ? 'line-clamp-2 [overflow-wrap:anywhere]'
+                : 'whitespace-nowrap'
+            }
+          >
+            {props.modelName}
+          </span>
         </span>
-      </span>
-    </StatusBadge>
+      </StatusBadge>
+      {reasoningEffort && (
+        <StatusBadge
+          label={reasoningEffort}
+          variant={getReasoningEffortVariant(reasoningEffort)}
+          size='sm'
+          copyable={false}
+          aria-label={`${t('Reasoning Effort')}: ${reasoningEffort}`}
+          className='shrink-0 px-1.5 text-xs'
+        />
+      )}
+    </span>
   )
 }
 

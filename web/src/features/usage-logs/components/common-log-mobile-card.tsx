@@ -33,7 +33,11 @@ import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 import { isSingleGroupScope } from '@/lib/group-visibility'
 
 import type { UsageLog } from '../data/schema'
-import { formatModelName, parseLogOther } from '../lib/format'
+import {
+  formatModelName,
+  getReasoningEffortVariant,
+  parseLogOther,
+} from '../lib/format'
 import {
   getLogTypeConfig,
   isDisplayableLogType,
@@ -154,6 +158,7 @@ export function CommonLogMobileCard<TData>(props: {
             <ModelBadge
               modelName={model.name}
               actualModel={model.actualModel}
+              reasoningEffort={model.reasoningEffort}
               wrapText
               onInspect={() => setSelectedField('model')}
             />
@@ -361,6 +366,16 @@ export function CommonLogMobileCard<TData>(props: {
                   {model.actualModel}
                 </p>
                 <CopyButton value={model.actualModel} />
+              </div>
+            )}
+            {selectedField === 'model' && model.reasoningEffort && (
+              <div className='space-y-2'>
+                <p className='text-muted-foreground'>{t('Reasoning Effort')}</p>
+                <StatusBadge
+                  label={model.reasoningEffort}
+                  variant={getReasoningEffortVariant(model.reasoningEffort)}
+                  copyable={false}
+                />
               </div>
             )}
             {selectedField === 'channel' && channelCell && (
