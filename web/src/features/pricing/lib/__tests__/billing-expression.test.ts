@@ -153,6 +153,24 @@ describe('local billing expression evaluation', () => {
       )
     ).toBe('9月1日至9月20日 09:00至12:00（Asia/Shanghai）')
   })
+  test.each([
+    ['zhCN', 'weekday("UTC") == 1', '周一 (UTC)'],
+    ['zhTW', 'weekday("UTC") == 1', '週一 (UTC)'],
+    ['zhCN', 'len > 32000', 'Full input length > 32,000'],
+    ['zhTW', 'len > 32000', 'Full input length > 32,000'],
+  ])(
+    'formats %s condition %s without falling back to source',
+    async (language, source, expected) => {
+      const translations = createInstance()
+      await translations.init({
+        lng: 'en',
+        resources: { en: { translation: {} } },
+      })
+      expect(formatBillingCondition(source, translations.t, language)).toBe(
+        expected
+      )
+    }
+  )
   test('keeps log prices tied to the recorded tier regardless of the current time', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-09-07T10:00:00+08:00'))
