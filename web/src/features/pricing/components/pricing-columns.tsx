@@ -32,6 +32,8 @@ import type { PricingModel } from '../types'
 import { CachedPriceCell } from './cached-price-cell'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
+import type { ModelPerfBadgeData } from './model-perf-badge'
+import { ModelStatusCell } from './model-status-cell'
 
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
@@ -40,6 +42,8 @@ import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
 export type PricingColumnsOptions = ModelPriceCellOptions & {
   /** Set to false to hide the group column on single-group deployments. */
   showGroups?: boolean
+  /** Recent success-rate window per model, keyed by model name. */
+  perfByModel?: Map<string, ModelPerfBadgeData>
 }
 
 export function usePricingColumns(
@@ -70,6 +74,20 @@ export function usePricingColumns(
         )
       },
       minSize: 200,
+    },
+
+    // Status column: 24-hour success-rate strip
+    {
+      id: 'status',
+      meta: { label: t('Status') },
+      header: t('Status'),
+      cell: ({ row }) => (
+        <ModelStatusCell
+          perf={options.perfByModel?.get(row.original.model_name)}
+        />
+      ),
+      size: 200,
+      enableSorting: false,
     },
 
     // Type column

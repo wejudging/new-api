@@ -20,6 +20,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { ModelStatusCell } from '../components/model-status-cell'
 import {
   PricingToolbar,
   type PricingToolbarProps,
@@ -30,29 +31,15 @@ function toolbarProps(): PricingToolbarProps {
     filteredCount: 2,
     totalCount: 2,
     sortBy: 'name',
-    viewMode: 'card',
     onSortChange: vi.fn(),
-    onViewModeChange: vi.fn(),
   }
 }
 
-describe('pricing controls', () => {
-  it('switches to table view with the keyboard and exposes the selected view', async () => {
-    const props = toolbarProps()
-    const user = userEvent.setup()
-    const { rerender } = render(<PricingToolbar {...props} />)
-    const tableButton = screen.getByRole('button', { name: 'Table view' })
-    tableButton.focus()
-    await user.keyboard('{Enter}')
-    expect(props.onViewModeChange).toHaveBeenCalledWith('table')
-    rerender(<PricingToolbar {...props} viewMode='table' />)
-    expect(tableButton).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Card view' })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    )
-  })
+function statusSlots(): HTMLElement[] {
+  return Array.from(document.querySelectorAll('[data-status-slot]'))
+}
 
+describe('pricing controls', () => {
   it('selects price sorting from the shared dropdown', async () => {
     const props = toolbarProps()
     const user = userEvent.setup()
@@ -62,5 +49,51 @@ describe('pricing controls', () => {
       screen.getByRole('menuitem', { name: 'Price: Low to High' })
     )
     expect(props.onSortChange).toHaveBeenCalledWith('price-low')
+  })
+
+  it('does not expose a card/table view switch anymore', () => {
+    render(<PricingToolbar {...toolbarProps()} />)
+    expect(screen.queryByRole('button', { name: 'Card view' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Table view' })).toBeNull()
+  })
+})
+
+describe('model status cell', () => {
+  const windowStart = 1_700_000_000
+
+  it('draws one tile per hour and grades each hour separately', () => {
+    const series = Array.from({ length: 24 }, (_, hour) => ({
+      ts: windowStart + hour * 3600,
+      success_rate: hour === 0 ? 50 : 100,
+    }))
+
+    render(
+      <ModelStatusCell
+        perf={{
+          success_rate: 99.5,
+          avg_latency_ms: 1200,
+          avg_tps: 40,
+          recent_success_series: series,
+          window_start: windowStart,
+        }}
+      />
+    )
+
+    const slots = statusSlots()
+    expect(slots).toHaveLength(24)
+    expect(slots[0].className).toContain('bg-red-500')
+    expect(slots[1].className).toContain('bg-emerald-500')
+    expect(screen.getByText('99.50%')).toBeVisible()
+  })
+
+  it('keeps missing hours gray and shows a dash without a window', () => {
+    render(<ModelStatusCell perf={undefined} />)
+
+    const slots = statusSlots()
+    expect(slots).toHaveLength(24)
+    expect(
+      slots.every((slot) => slot.className.includes('bg-muted-foreground/15'))
+    ).toBe(true)
+    expect(screen.getByText('—')).toBeVisible()
   })
 })

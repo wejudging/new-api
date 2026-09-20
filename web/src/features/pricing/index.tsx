@@ -27,12 +27,13 @@ import {
   EmptyState,
   PricingTable,
   PricingToolbar,
-  ModelCardGrid,
+  PricingSidebar,
   ModelDetailsDrawer,
   VendorFilterBar,
 } from './components'
-import { VIEW_MODES } from './constants'
+import { EXCLUDED_GROUPS, VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
+import { useModelPerf } from './hooks/use-model-perf'
 import { usePricingData } from './hooks/use-pricing-data'
 
 export function Pricing() {
@@ -57,16 +58,32 @@ export function Pricing() {
     sortBy,
     vendorFilter,
     groupFilter,
+    quotaTypeFilter,
+    endpointTypeFilter,
+    tagFilter,
     tokenUnit,
-    viewMode,
     showRechargePrice,
     setSortBy,
     setVendorFilter,
-    setViewMode,
+    setGroupFilter,
+    setQuotaTypeFilter,
+    setEndpointTypeFilter,
+    setTagFilter,
     filteredModels,
     hasActiveFilters,
+    availableTags,
     clearFilters,
   } = useFilters(models || [])
+
+  const perfByModel = useModelPerf()
+
+  const availableGroups = useMemo(
+    () =>
+      Object.keys(usableGroup || {}).filter(
+        (group) => !EXCLUDED_GROUPS.includes(group)
+      ),
+    [usableGroup]
+  )
 
   const handleModelClick = useCallback((modelName: string) => {
     setSelectedModelName(modelName)
@@ -92,20 +109,6 @@ export function Pricing() {
       )
     }
 
-    if (viewMode === VIEW_MODES.CARD) {
-      return (
-        <ModelCardGrid
-          models={filteredModels}
-          onModelClick={handleModelClick}
-          priceRate={priceRate}
-          usdExchangeRate={usdExchangeRate}
-          tokenUnit={tokenUnit}
-          showRechargePrice={showRechargePrice}
-          selectedGroup={groupFilter}
-        />
-      )
-    }
-
     return (
       <PricingTable
         models={filteredModels}
@@ -115,6 +118,7 @@ export function Pricing() {
         showRechargePrice={showRechargePrice}
         selectedGroup={groupFilter}
         onModelClick={handleModelClick}
+        perfByModel={perfByModel}
       />
     )
   }
@@ -123,7 +127,7 @@ export function Pricing() {
     return (
       <PublicLayout showMainContainer={false}>
         <div className='mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
-          <LoadingSkeleton viewMode={viewMode} />
+          <LoadingSkeleton viewMode={VIEW_MODES.TABLE} />
         </div>
       </PublicLayout>
     )
@@ -134,7 +138,7 @@ export function Pricing() {
       <div className='relative'>
         <div
           aria-hidden
-          className='pointer-events-none absolute inset-x-0 top-0 h-[600px] opacity-20 dark:opacity-[0.10]'
+          className='pointer-events-none absolute inset-x-0 top-0 h-[360px] opacity-15 dark:opacity-[0.08]'
           style={{
             background: [
               'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
@@ -148,41 +152,50 @@ export function Pricing() {
           }}
         />
         <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
-          <header className='mx-auto mb-5 max-w-3xl pt-5 text-center sm:mb-10 sm:pt-10'>
-            <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
-              {t('Model Square')}
-            </h1>
-            <p className='text-muted-foreground/80 mt-3 text-sm sm:mt-4 sm:text-base'>
-              {t('This site currently has {{count}} models enabled', {
-                count: models?.length || 0,
-              })}
-            </p>
-            <p className='text-muted-foreground/60 mx-auto mt-2 max-w-2xl text-xs leading-relaxed sm:text-sm'>
-              {t(
-                'Discover curated AI models, compare pricing and capabilities, and choose the right model for every scenario.'
-              )}
-            </p>
-          </header>
+          <h1 className='sr-only'>{t('Model Square')}</h1>
 
-          <main className='min-w-0 space-y-4'>
-            <VendorFilterBar
+          <div className='grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]'>
+            <PricingSidebar
+              quotaTypeFilter={quotaTypeFilter}
+              endpointTypeFilter={endpointTypeFilter}
+              vendorFilter={vendorFilter}
+              groupFilter={groupFilter}
+              tagFilter={tagFilter}
+              onQuotaTypeChange={setQuotaTypeFilter}
+              onEndpointTypeChange={setEndpointTypeFilter}
+              onVendorChange={setVendorFilter}
+              onGroupChange={setGroupFilter}
+              onTagChange={setTagFilter}
               vendors={vendors || []}
+              groups={availableGroups}
+              groupRatios={groupRatio}
+              tags={availableTags}
               models={models || []}
-              value={vendorFilter}
-              onChange={setVendorFilter}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+              className='hover-scrollbar sticky top-20 hidden max-h-[calc(100dvh-6rem)] self-start overflow-y-auto xl:block'
             />
 
-            <PricingToolbar
-              filteredCount={filteredModels.length}
-              totalCount={models?.length}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
+            <main className='min-w-0 space-y-4'>
+              <div className='xl:hidden'>
+                <VendorFilterBar
+                  vendors={vendors || []}
+                  models={models || []}
+                  value={vendorFilter}
+                  onChange={setVendorFilter}
+                />
+              </div>
 
-            {renderPricingContent()}
-          </main>
+              <PricingToolbar
+                filteredCount={filteredModels.length}
+                totalCount={models?.length}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+              />
+
+              {renderPricingContent()}
+            </main>
+          </div>
 
           {selectedModel && (
             <ModelDetailsDrawer

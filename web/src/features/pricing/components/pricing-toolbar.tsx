@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { ArrowUpDown, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTableViewModeToggle } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,15 +29,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
-import { getSortLabels, type SortOption, type ViewMode } from '../constants'
+import { getSortLabels, type SortOption } from '../constants'
 
 export interface PricingToolbarProps {
   filteredCount: number
   totalCount?: number
   sortBy: string
   onSortChange: (value: string) => void
-  viewMode: ViewMode
-  onViewModeChange: (value: ViewMode) => void
 }
 
 export function PricingToolbar(props: PricingToolbarProps) {
@@ -98,11 +95,6 @@ export function PricingToolbar(props: PricingToolbarProps) {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <DataTableViewModeToggle
-            value={props.viewMode}
-            onChange={props.onViewModeChange}
-          />
         </div>
       </div>
     </div>

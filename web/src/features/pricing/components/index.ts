@@ -28,3 +28,5 @@ export {
   ModelDetailsDrawer,
 } from './model-details'
 export { PricingTable } from './pricing-table'
+export { PricingSidebar } from './pricing-sidebar'
+export { ModelStatusCell } from './model-status-cell'
