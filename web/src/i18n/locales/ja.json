@@ -3,6 +3,8 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "No access": "アクセス権なし",
+    "Cache price": "キャッシュ価格",
     "{{days}}d {{clock}}": "{{days}}日 {{clock}}",
     "{{percent}}% off": "{{percent}}% オフ",
     "_copy": "_copy",

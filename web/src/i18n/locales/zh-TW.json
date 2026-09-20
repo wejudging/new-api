@@ -3,6 +3,8 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "No access": "無權限",
+    "Cache price": "快取價格",
     "{{days}}d {{clock}}": "{{days}}天 {{clock}}",
     "{{percent}}% off": "立減 {{percent}}%",
     "_copy": "_複製",

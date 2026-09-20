@@ -3,6 +3,8 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "No access": "无权限",
+    "Cache price": "缓存价格",
     "{{days}}d {{clock}}": "{{days}}天 {{clock}}",
     "{{percent}}% off": "立减 {{percent}}%",
     "_copy": "_复制",

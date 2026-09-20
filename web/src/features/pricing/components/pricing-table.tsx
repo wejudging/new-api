@@ -26,7 +26,6 @@ import {
   DataTableView,
   useDataTable,
 } from '@/components/data-table'
-import { isSingleGroupScope } from '@/lib/group-visibility'
 
 import { DEFAULT_PRICING_PAGE_SIZE, DEFAULT_TOKEN_UNIT } from '../constants'
 import type { PricingModel, TokenUnit } from '../types'
@@ -71,9 +70,6 @@ export function PricingTable(props: PricingTableProps) {
     showRechargePrice,
     selectedGroup,
     perfByModel,
-    showGroups: models.some(
-      (model) => !isSingleGroupScope(model.enable_groups)
-    ),
   })
 
   const { table } = useDataTable({

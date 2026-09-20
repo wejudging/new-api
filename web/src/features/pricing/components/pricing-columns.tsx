@@ -17,31 +17,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
+import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  BadgeCell,
-  BadgeListCell,
-  DataTableColumnHeader,
-} from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
-import { StatusBadge } from '@/components/status-badge'
+import { DataTableColumnHeader } from '@/components/data-table'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
 import type { PricingModel } from '../types'
 import { CachedPriceCell } from './cached-price-cell'
-import { ModelBillingModeBadge } from './model-billing-mode-badge'
-import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
+import { CatalogPriceCell } from './catalog-price-cell'
 import type { ModelPerfBadgeData } from './model-perf-badge'
+import type { ModelPriceCellOptions } from './model-price-cell'
 import { ModelStatusCell } from './model-status-cell'
 
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
+//
+// Six columns, mirroring the reference catalog:
+// 模型 · 提供商 · 输入价格 · 输出价格 · 缓存价格 · 健康
 // ----------------------------------------------------------------------------
 
 export type PricingColumnsOptions = ModelPriceCellOptions & {
-  /** Set to false to hide the group column on single-group deployments. */
-  showGroups?: boolean
   /** Recent success-rate window per model, keyed by model name. */
   perfByModel?: Map<string, ModelPerfBadgeData>
 }
@@ -52,7 +48,7 @@ export function usePricingColumns(
   const { t } = useTranslation()
 
   return [
-    // Model column
+    // 模型
     {
       accessorKey: 'model_name',
       meta: { label: t('Model') },
@@ -61,144 +57,102 @@ export function usePricingColumns(
       ),
       cell: ({ row }) => {
         const model = row.original
-        const modelIconKey = model.icon || model.vendor_icon
-        const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 14) : null
 
         return (
-          <div className='flex max-w-full min-w-0 items-center gap-2'>
-            {modelIcon}
-            <span className='truncate font-mono text-sm font-medium'>
-              {model.model_name}
+          <span className='block truncate font-mono text-sm font-semibold tracking-[-0.01em]'>
+            {model.model_name}
+          </span>
+        )
+      },
+      minSize: 220,
+    },
+
+    // 提供商
+    {
+      accessorKey: 'vendor_name',
+      header: t('Provider'),
+      cell: ({ row }) => {
+        const model = row.original
+        const vendorIconKey = model.vendor_icon || model.icon
+        const vendorIcon = vendorIconKey ? getLobeIcon(vendorIconKey, 16) : null
+
+        return (
+          <div className='flex min-w-0 items-center gap-2'>
+            <span className='border-border/60 bg-muted/40 flex size-7 shrink-0 items-center justify-center rounded-lg border'>
+              {vendorIcon ?? (
+                <span className='text-muted-foreground text-xs'>—</span>
+              )}
+            </span>
+            <span className='truncate text-sm'>
+              {model.vendor_name || (
+                <span className='text-muted-foreground/50'>—</span>
+              )}
             </span>
           </div>
         )
       },
-      minSize: 200,
+      size: 160,
+      enableSorting: false,
     },
 
-    // Status column: 24-hour success-rate strip
+    // 输入价格
     {
-      id: 'status',
-      meta: { label: t('Status') },
-      header: t('Status'),
+      id: 'input_price',
+      header: t('Input price'),
       cell: ({ row }) => (
-        <ModelStatusCell
-          perf={options.perfByModel?.get(row.original.model_name)}
+        <CatalogPriceCell
+          model={row.original}
+          kind='input'
+          options={options}
         />
       ),
-      size: 200,
+      size: 150,
       enableSorting: false,
     },
 
-    // Type column
+    // 输出价格
     {
-      accessorKey: 'quota_type',
-      header: t('Type'),
+      id: 'output_price',
+      header: t('Output price'),
       cell: ({ row }) => (
-        <ModelBillingModeBadge model={row.original} className='-ml-1.5' />
+        <CatalogPriceCell
+          model={row.original}
+          kind='output'
+          options={options}
+        />
       ),
-      size: 110,
+      size: 150,
       enableSorting: false,
     },
 
-    // Price column
-    {
-      accessorKey: 'price',
-      meta: { label: t('Price') },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Price')} />
-      ),
-      cell: ({ row }) => (
-        <ModelPriceCell model={row.original} options={options} />
-      ),
-      size: 180,
-      enableSorting: false,
-    },
-
-    // Cached price column (Vercel AI Gateway style)
+    // 缓存价格
     {
       id: 'cached_price',
-      header: t('Cached'),
+      header: t('Cache price'),
       cell: ({ row }) => (
         <CachedPriceCell model={row.original} options={options} />
       ),
-      size: 110,
+      size: 150,
       enableSorting: false,
     },
 
-    // Vendor column
+    // 健康
     {
-      accessorKey: 'vendor_name',
-      header: t('Vendor'),
-      cell: ({ row }) => {
-        const model = row.original
-        if (!model.vendor_name) {
-          return <span className='text-muted-foreground/50 text-xs'>—</span>
-        }
-        const vendorIcon = model.vendor_icon
-          ? getLobeIcon(model.vendor_icon, 12)
-          : null
-        return (
-          <BadgeCell className='gap-1.5'>
-            {vendorIcon}
-            <StatusBadge
-              label={model.vendor_name}
-              autoColor={model.vendor_name}
-              size='sm'
-              copyable={false}
-            />
-          </BadgeCell>
-        )
-      },
-      size: 130,
-      enableSorting: false,
-    },
-
-    // Endpoints column
-    {
-      accessorKey: 'supported_endpoint_types',
-      header: t('Endpoints'),
-      cell: ({ row }) => {
-        const endpoints = row.original.supported_endpoint_types || []
-        return (
-          <BadgeListCell
-            items={endpoints.map((ep) => (
-              <StatusBadge
-                key={ep}
-                label={ep}
-                autoColor={ep}
-                size='sm'
-                copyable={false}
-              />
-            ))}
+      id: 'health',
+      header: t('Health'),
+      cell: ({ row }) => (
+        <div className='flex min-w-0 items-center justify-between gap-3'>
+          <ModelStatusCell
+            perf={options.perfByModel?.get(row.original.model_name)}
           />
-        )
-      },
-      size: 130,
+          <ChevronRight
+            aria-hidden
+            className='text-muted-foreground size-4 shrink-0'
+          />
+        </div>
+      ),
+      size: 220,
       enableSorting: false,
     },
-
-    // Enable Groups column (hidden when only the default group exists)
-    ...(options.showGroups === false
-      ? []
-      : [
-          {
-            accessorKey: 'enable_groups',
-            header: t('Groups'),
-            cell: ({ row }) => {
-              const groups = row.original.enable_groups || []
-              return (
-                <BadgeListCell
-                  items={groups.map((group) => (
-                    <GroupBadge key={group} group={group} size='sm' />
-                  ))}
-                  tooltipClassName='max-w-[280px] p-2'
-                />
-              )
-            },
-            size: 130,
-            enableSorting: false,
-          } satisfies ColumnDef<PricingModel>,
-        ]),
   ]
 }

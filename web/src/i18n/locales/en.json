@@ -3,6 +3,8 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "No access": "No access",
+    "Cache price": "Cache price",
     "{{days}}d {{clock}}": "{{days}}d {{clock}}",
     "{{percent}}% off": "{{percent}}% off",
     "_copy": "_copy",

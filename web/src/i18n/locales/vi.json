@@ -3,6 +3,8 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "No access": "Không có quyền",
+    "Cache price": "Giá bộ nhớ đệm",
     "{{days}}d {{clock}}": "{{days}} ngày {{clock}}",
     "{{percent}}% off": "giảm {{percent}}%",
     "_copy": "_bản sao",

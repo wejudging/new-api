@@ -101,13 +101,21 @@ function CatalogPrice(props: { model: PricingModel }) {
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
-  const cell = table
+  // The catalog splits its price across the input and output columns.
+  const cells = table
     .getRowModel()
     .rows[0].getAllCells()
-    .find((item) => item.column.id === 'price')
+    .filter(
+      (item) =>
+        item.column.id === 'input_price' || item.column.id === 'output_price'
+    )
   return (
     <div role='group' aria-label='Catalog price'>
-      {cell && flexRender(cell.column.columnDef.cell, cell.getContext())}
+      {cells.map((cell) => (
+        <span key={cell.column.id}>
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </span>
+      ))}
     </div>
   )
 }
@@ -624,9 +632,14 @@ it.each([
         }}
       />
     )
-    expect(button.textContent).toBe(
+    const numbers = (value: string | null) =>
+      new Set((value ?? '').match(/\d+(?:\.\d+)?/g) ?? [])
+    const catalogNumbers = numbers(
       screen.getByRole('group', { name: 'Catalog price' }).textContent
     )
+    for (const price of numbers(button.textContent)) {
+      expect(catalogNumbers).toContain(price)
+    }
   }
 )
 
