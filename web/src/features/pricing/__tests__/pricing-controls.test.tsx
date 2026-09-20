@@ -20,7 +20,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ModelStatusCell } from '../components/model-status-cell'
+import {
+  ModelSuccessCell,
+  ModelTpsCell,
+  ModelTtftCell,
+} from '../components/model-status-cell'
 import {
   PricingToolbar,
   type PricingToolbarProps,
@@ -68,7 +72,7 @@ describe('model status cell', () => {
     }))
 
     render(
-      <ModelStatusCell
+      <ModelSuccessCell
         perf={{
           success_rate: 99.5,
           avg_latency_ms: 1200,
@@ -87,14 +91,39 @@ describe('model status cell', () => {
   })
 
   it('keeps missing hours gray and shows a dash without a window', () => {
-    render(<ModelStatusCell perf={undefined} />)
+    render(<ModelSuccessCell perf={undefined} />)
 
     const slots = statusSlots()
     expect(slots).toHaveLength(24)
     expect(
       slots.every((slot) => slot.className.includes('bg-muted-foreground/15'))
     ).toBe(true)
-    // TPS, first-token latency and the success rate each fall back to a dash.
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.getByText('—')).toBeVisible()
+  })
+
+  it('renders TPS and first-token latency as their own columns', () => {
+    render(
+      <>
+        <ModelTpsCell
+          perf={{
+            success_rate: 99.5,
+            avg_latency_ms: 1200,
+            avg_ttft_ms: 2038,
+            avg_tps: 220.53,
+          }}
+        />
+        <ModelTtftCell
+          perf={{
+            success_rate: 99.5,
+            avg_latency_ms: 1200,
+            avg_ttft_ms: 2038,
+            avg_tps: 220.53,
+          }}
+        />
+      </>
+    )
+
+    expect(screen.getByText('220.5t/s')).toBeVisible()
+    expect(screen.getByText('2.04s')).toBeVisible()
   })
 })

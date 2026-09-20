@@ -28,7 +28,11 @@ import { CachedPriceCell } from './cached-price-cell'
 import { CatalogPriceCell } from './catalog-price-cell'
 import type { ModelPerfBadgeData } from './model-perf-badge'
 import type { ModelPriceCellOptions } from './model-price-cell'
-import { ModelStatusCell } from './model-status-cell'
+import {
+  ModelSuccessCell,
+  ModelTpsCell,
+  ModelTtftCell,
+} from './model-status-cell'
 
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
@@ -136,14 +140,42 @@ export function usePricingColumns(
       enableSorting: false,
     },
 
-    // 健康
+    // TPS
     {
-      id: 'health',
-      meta: { label: t('Health') },
-      header: t('Health'),
+      id: 'tps',
+      meta: { label: 'TPS' },
+      header: 'TPS',
+      cell: ({ row }) => (
+        <ModelTpsCell
+          perf={options.perfByModel?.get(row.original.model_name)}
+        />
+      ),
+      size: 100,
+      enableSorting: false,
+    },
+
+    // 首字
+    {
+      id: 'ttft',
+      meta: { label: t('First token') },
+      header: t('First token'),
+      cell: ({ row }) => (
+        <ModelTtftCell
+          perf={options.perfByModel?.get(row.original.model_name)}
+        />
+      ),
+      size: 100,
+      enableSorting: false,
+    },
+
+    // 成功率
+    {
+      id: 'success_rate',
+      meta: { label: t('Success rate') },
+      header: t('Success rate'),
       cell: ({ row }) => (
         <div className='flex min-w-0 items-center justify-between gap-2'>
-          <ModelStatusCell
+          <ModelSuccessCell
             perf={options.perfByModel?.get(row.original.model_name)}
           />
           <button
@@ -162,7 +194,7 @@ export function usePricingColumns(
           </button>
         </div>
       ),
-      size: 280,
+      size: 200,
       enableSorting: false,
     },
   ]

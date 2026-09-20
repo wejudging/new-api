@@ -35,46 +35,9 @@ function isValidRate(rate: number | null | undefined): rate is number {
   return rate != null && Number.isFinite(rate) && rate >= 0 && rate <= 100
 }
 
-function Metric(props: { label: string; value: string; valueClassName?: string }) {
-  return (
-    <div className='flex min-w-0 flex-col gap-0.5'>
-      <span className='text-muted-foreground text-[10px] leading-none'>
-        {props.label}
-      </span>
-      <span
-        className={cn(
-          'font-mono text-xs leading-none tabular-nums',
-          props.valueClassName
-        )}
-      >
-        {props.value}
-      </span>
-    </div>
-  )
-}
-
-export interface ModelStatusCellProps {
-  perf: ModelPerfBadgeData | undefined
-}
-
-/**
- * Health cell: the same three metrics the performance tab leads with —
- * throughput (TPS), first-token latency and the 24-hour success rate with its
- * hourly strip — plus the window average.
- */
-export function ModelStatusCell(props: ModelStatusCellProps) {
-  const { t } = useTranslation()
-  const perf = props.perf
-  const successRate = perf?.success_rate
-  const hasSuccessRate = isValidRate(successRate)
-  const tps = perf?.avg_tps
-  const hasTps = tps != null && Number.isFinite(tps) && tps > 0
-  const ttft = perf?.avg_ttft_ms
-  const hasTtft = ttft != null && Number.isFinite(ttft) && ttft > 0
-
-  // Hourly points use the server window, including the current partial hour.
-  // Hours without traffic stay gray. Slot 23 is the current, partial hour.
-  const statusRates = useMemo(() => {
+/** Hourly success rates aligned with the server window (gray = no traffic). */
+function useStatusRates(perf: ModelPerfBadgeData | undefined) {
+  return useMemo(() => {
     const windowStart = perf?.window_start
     if (windowStart == null) return STATUS_SLOTS.map(() => undefined)
     const ratesByHour = new Map<number, number>()
@@ -85,56 +48,77 @@ export function ModelStatusCell(props: ModelStatusCellProps) {
       ratesByHour.get(windowStart + slot * 3600)
     )
   }, [perf?.recent_success_series, perf?.window_start])
+}
 
+export interface ModelMetricCellProps {
+  perf: ModelPerfBadgeData | undefined
+}
+
+/** Throughput column: average output tokens per second. */
+export function ModelTpsCell(props: ModelMetricCellProps) {
+  const tps = props.perf?.avg_tps
+  const hasTps = tps != null && Number.isFinite(tps) && tps > 0
+  return (
+    <span className='font-mono text-xs tabular-nums'>
+      {hasTps ? `${tps.toFixed(1)}t/s` : '—'}
+    </span>
+  )
+}
+
+/** First-token column: average TTFT of the same window. */
+export function ModelTtftCell(props: ModelMetricCellProps) {
+  const ttft = props.perf?.avg_ttft_ms
+  const hasTtft = ttft != null && Number.isFinite(ttft) && ttft > 0
+  return (
+    <span className='font-mono text-xs tabular-nums'>
+      {hasTtft ? formatLatency(ttft) : '—'}
+    </span>
+  )
+}
+
+/** Success-rate column: 24-hour strip plus the window average. */
+export function ModelSuccessCell(props: ModelMetricCellProps) {
+  const { t } = useTranslation()
+  const successRate = props.perf?.success_rate
+  const hasSuccessRate = isValidRate(successRate)
+  const statusRates = useStatusRates(props.perf)
   const rateLabel = hasSuccessRate ? formatUptimePct(successRate) : t('No data')
 
   return (
-    <div className='flex min-w-0 items-center gap-3 sm:gap-4'>
-      <Metric label='TPS' value={hasTps ? `${tps.toFixed(1)}t/s` : '—'} />
-      <Metric
-        label={t('First token')}
-        value={hasTtft ? formatLatency(ttft) : '—'}
-      />
-      <div className='flex min-w-0 flex-col gap-0.5'>
-        <span className='text-muted-foreground text-[10px] leading-none'>
-          {t('Success rate')}
-        </span>
-        <span className='flex min-w-0 items-center gap-1.5'>
-          <span
-            role='img'
-            aria-label={`${t('Success rate')}: ${rateLabel}`}
-            title={`${t('Success rate')}: ${rateLabel}`}
-            className='flex h-3 shrink-0 items-stretch gap-[2px]'
-          >
-            {STATUS_SLOTS.map((slot) => {
-              const rate = statusRates[slot]
-              return (
-                <span
-                  key={slot}
-                  aria-hidden
-                  data-status-slot={slot}
-                  className={cn(
-                    'w-[2px] rounded-[1px] transition-colors duration-300 motion-reduce:transition-none',
-                    isValidRate(rate)
-                      ? getSuccessRateDotClass(rate)
-                      : 'bg-muted-foreground/15'
-                  )}
-                />
-              )
-            })}
-          </span>
-          <span
-            className={cn(
-              'font-mono text-xs leading-none tabular-nums',
-              hasSuccessRate
-                ? getSuccessRateTextClass(successRate)
-                : 'text-muted-foreground'
-            )}
-          >
-            {hasSuccessRate ? formatUptimePct(successRate) : '—'}
-          </span>
-        </span>
-      </div>
-    </div>
+    <span className='flex min-w-0 items-center gap-1.5'>
+      <span
+        role='img'
+        aria-label={`${t('Success rate')}: ${rateLabel}`}
+        title={`${t('Success rate')}: ${rateLabel}`}
+        className='flex h-3 shrink-0 items-stretch gap-[2px]'
+      >
+        {STATUS_SLOTS.map((slot) => {
+          const rate = statusRates[slot]
+          return (
+            <span
+              key={slot}
+              aria-hidden
+              data-status-slot={slot}
+              className={cn(
+                'w-[2px] rounded-[1px] transition-colors duration-300 motion-reduce:transition-none',
+                isValidRate(rate)
+                  ? getSuccessRateDotClass(rate)
+                  : 'bg-muted-foreground/15'
+              )}
+            />
+          )
+        })}
+      </span>
+      <span
+        className={cn(
+          'font-mono text-xs leading-none tabular-nums',
+          hasSuccessRate
+            ? getSuccessRateTextClass(successRate)
+            : 'text-muted-foreground'
+        )}
+      >
+        {hasSuccessRate ? formatUptimePct(successRate) : '—'}
+      </span>
+    </span>
   )
 }

@@ -28,4 +28,8 @@ export {
   ModelDetailsDrawer,
 } from './model-details'
 export { PricingTable } from './pricing-table'
-export { ModelStatusCell } from './model-status-cell'
+export {
+  ModelSuccessCell,
+  ModelTpsCell,
+  ModelTtftCell,
+} from './model-status-cell'
