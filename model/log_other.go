@@ -12,6 +12,10 @@ const (
 	logOtherAdminInfoKey = "admin_info"
 	logOtherRootInfoKey  = "root_info"
 	logOtherAuditInfoKey = "audit_info"
+	// logOtherResponseModelKey holds the upstream model-name diagnostic. It is
+	// an operator signal (aliases and dated versions can differ legitimately),
+	// so it stays out of the projections log owners receive.
+	logOtherResponseModelKey = "response_model"
 )
 
 // legacySensitiveLogOtherKeys are historical top-level fields that must never
@@ -227,7 +231,7 @@ func formatLogOtherJSON(value string, visibility logOtherVisibility) string {
 
 	changed := false
 	if visibility == logOtherVisibilityUser {
-		for _, key := range []string{logOtherAdminInfoKey, logOtherRootInfoKey, logOtherAuditInfoKey} {
+		for _, key := range []string{logOtherAdminInfoKey, logOtherRootInfoKey, logOtherAuditInfoKey, logOtherResponseModelKey} {
 			if _, exists := values[key]; exists {
 				delete(values, key)
 				changed = true

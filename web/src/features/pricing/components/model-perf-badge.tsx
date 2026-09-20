@@ -31,6 +31,7 @@ export type ModelPerfBadgeData = {
   window_start?: number
   window_end?: number
   avg_latency_ms: number
+  avg_ttft_ms?: number
   success_rate: number
   avg_tps: number
   recent_success_series?: SuccessRatePoint[]

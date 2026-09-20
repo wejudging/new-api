@@ -162,7 +162,7 @@ export function usePricingColumns(
           </button>
         </div>
       ),
-      size: 180,
+      size: 280,
       enableSorting: false,
     },
   ]

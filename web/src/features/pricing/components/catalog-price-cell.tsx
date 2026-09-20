@@ -47,8 +47,11 @@ export function CatalogPriceCell(props: {
   const { getDiscount } = usePromoPricing()
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
+  // Expression-priced models ignore model_ratio, so a ratio-based number would
+  // contradict the billed price. They keep the rich dynamic cell instead.
+  const usesExpression = Boolean((props.model.billing_expr ?? '').trim())
 
-  if (!isTokenBasedModel(props.model)) {
+  if (!isTokenBasedModel(props.model) || usesExpression) {
     if (props.kind === 'output') {
       return <span className='text-muted-foreground/50 text-xs'>—</span>
     }

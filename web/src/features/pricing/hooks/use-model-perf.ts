@@ -44,6 +44,7 @@ export function useModelPerf(): Map<string, ModelPerfBadgeData> {
       byModel.set(model.model_name, {
         success_rate: model.success_rate,
         avg_latency_ms: model.avg_latency_ms,
+        avg_ttft_ms: model.avg_ttft_ms,
         avg_tps: model.avg_tps,
         recent_success_series: model.recent_success_series,
         window_start: windowStart,

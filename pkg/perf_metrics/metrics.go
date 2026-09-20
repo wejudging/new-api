@@ -202,6 +202,8 @@ func QuerySummaryAll(hours int, groups []string) (SummaryAllResult, error) {
 			requestCount:   row.RequestCount,
 			successCount:   row.SuccessCount,
 			totalLatencyMs: row.TotalLatencyMs,
+			ttftSumMs:      row.TtftSumMs,
+			ttftCount:      row.TtftCount,
 			outputTokens:   row.OutputTokens,
 			generationMs:   row.GenerationMs,
 		}
@@ -240,6 +242,10 @@ func QuerySummaryAll(hours int, groups []string) (SummaryAllResult, error) {
 		all.outputTokens += total.outputTokens
 		all.generationMs += total.generationMs
 		avgLatency := total.totalLatencyMs / total.requestCount
+		avgTtft := int64(0)
+		if total.ttftCount > 0 {
+			avgTtft = total.ttftSumMs / total.ttftCount
+		}
 		successRate := float64(total.successCount) / float64(total.requestCount) * 100
 		avgTps := 0.0
 		if total.generationMs > 0 {
@@ -248,6 +254,7 @@ func QuerySummaryAll(hours int, groups []string) (SummaryAllResult, error) {
 		models = append(models, ModelSummary{
 			ModelName:           name,
 			AvgLatencyMs:        avgLatency,
+			AvgTtftMs:           avgTtft,
 			SuccessRate:         math.Round(successRate*100) / 100,
 			AvgTps:              math.Round(avgTps*100) / 100,
 			RecentSuccessSeries: recentSuccessSeries(modelBuckets[name]),

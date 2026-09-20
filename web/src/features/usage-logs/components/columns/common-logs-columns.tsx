@@ -683,7 +683,9 @@ export function useCommonLogsColumns(
                 modelName={modelInfo.name}
                 actualModel={modelInfo.actualModel}
                 reasoningEffort={modelInfo.reasoningEffort}
-                responseModel={modelInfo.responseModel}
+                // Operator diagnostic only: aliases and dated versions make a
+                // mismatch inconclusive, so log owners never see the warning.
+                responseModel={isAdmin ? modelInfo.responseModel : undefined}
               />
             </div>
           )
