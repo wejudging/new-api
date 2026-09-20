@@ -27,7 +27,6 @@ import {
   LoadingSkeleton,
   EmptyState,
   PricingTable,
-  PricingToolbar,
   ModelDetailsDrawer,
   VendorFilterBar,
 } from './components'
@@ -58,12 +57,10 @@ export function Pricing() {
   } = usePricingData()
 
   const {
-    sortBy,
     vendorFilter,
     groupFilter,
     tokenUnit,
     showRechargePrice,
-    setSortBy,
     setVendorFilter,
     filteredModels,
     hasActiveFilters,
@@ -118,13 +115,6 @@ export function Pricing() {
           models={models || []}
           value={vendorFilter}
           onChange={setVendorFilter}
-        />
-
-        <PricingToolbar
-          filteredCount={filteredModels.length}
-          totalCount={models?.length}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
         />
 
         {renderPricingContent()}

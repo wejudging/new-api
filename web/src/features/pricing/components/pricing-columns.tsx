@@ -20,8 +20,8 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTableColumnHeader } from '@/components/data-table'
 import { getLobeIcon } from '@/lib/lobe-icon'
+import { cn } from '@/lib/utils'
 
 import type { PricingModel } from '../types'
 import { CachedPriceCell } from './cached-price-cell'
@@ -33,13 +33,14 @@ import { ModelStatusCell } from './model-status-cell'
 // ----------------------------------------------------------------------------
 // Pricing Table Columns
 //
-// Six columns, mirroring the reference catalog:
-// 模型 · 提供商 · 输入价格 · 输出价格 · 缓存价格 · 健康
+// 提供商 · 模型 · 输入 · 输出 · 缓存 · 健康
 // ----------------------------------------------------------------------------
 
 export type PricingColumnsOptions = ModelPriceCellOptions & {
   /** Recent success-rate window per model, keyed by model name. */
   perfByModel?: Map<string, ModelPerfBadgeData>
+  /** Opens the model details drawer (used by the mobile card list). */
+  onModelClick?: (modelName: string) => void
 }
 
 export function usePricingColumns(
@@ -48,28 +49,10 @@ export function usePricingColumns(
   const { t } = useTranslation()
 
   return [
-    // 模型
-    {
-      accessorKey: 'model_name',
-      meta: { label: t('Model') },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Model')} />
-      ),
-      cell: ({ row }) => {
-        const model = row.original
-
-        return (
-          <span className='block truncate font-mono text-sm font-semibold tracking-[-0.01em]'>
-            {model.model_name}
-          </span>
-        )
-      },
-      minSize: 220,
-    },
-
     // 提供商
     {
       accessorKey: 'vendor_name',
+      meta: { label: t('Provider') },
       header: t('Provider'),
       cell: ({ row }) => {
         const model = row.original
@@ -78,12 +61,12 @@ export function usePricingColumns(
 
         return (
           <div className='flex min-w-0 items-center gap-2'>
-            <span className='border-border/60 bg-muted/40 flex size-7 shrink-0 items-center justify-center rounded-lg border'>
+            <span className='border-border/60 bg-muted/40 flex size-6 shrink-0 items-center justify-center rounded-md border sm:size-7 sm:rounded-lg'>
               {vendorIcon ?? (
                 <span className='text-muted-foreground text-xs'>—</span>
               )}
             </span>
-            <span className='truncate text-sm'>
+            <span className='truncate text-xs sm:text-sm'>
               {model.vendor_name || (
                 <span className='text-muted-foreground/50'>—</span>
               )}
@@ -91,14 +74,29 @@ export function usePricingColumns(
           </div>
         )
       },
-      size: 160,
+      size: 150,
       enableSorting: false,
     },
 
-    // 输入价格
+    // 模型
+    {
+      accessorKey: 'model_name',
+      meta: { label: t('Model'), mobileTitle: true },
+      header: t('Model'),
+      cell: ({ row }) => (
+        <span className='block truncate font-mono text-xs font-semibold tracking-[-0.01em] sm:text-sm'>
+          {row.original.model_name}
+        </span>
+      ),
+      minSize: 150,
+      enableSorting: false,
+    },
+
+    // 输入
     {
       id: 'input_price',
-      header: t('Input price'),
+      meta: { label: t('Input') },
+      header: t('Input'),
       cell: ({ row }) => (
         <CatalogPriceCell
           model={row.original}
@@ -106,14 +104,15 @@ export function usePricingColumns(
           options={options}
         />
       ),
-      size: 150,
+      size: 120,
       enableSorting: false,
     },
 
-    // 输出价格
+    // 输出
     {
       id: 'output_price',
-      header: t('Output price'),
+      meta: { label: t('Output') },
+      header: t('Output'),
       cell: ({ row }) => (
         <CatalogPriceCell
           model={row.original}
@@ -121,37 +120,49 @@ export function usePricingColumns(
           options={options}
         />
       ),
-      size: 150,
+      size: 120,
       enableSorting: false,
     },
 
-    // 缓存价格
+    // 缓存
     {
       id: 'cached_price',
-      header: t('Cache price'),
+      meta: { label: t('Cached') },
+      header: t('Cached'),
       cell: ({ row }) => (
         <CachedPriceCell model={row.original} options={options} />
       ),
-      size: 150,
+      size: 120,
       enableSorting: false,
     },
 
     // 健康
     {
       id: 'health',
+      meta: { label: t('Health') },
       header: t('Health'),
       cell: ({ row }) => (
-        <div className='flex min-w-0 items-center justify-between gap-3'>
+        <div className='flex min-w-0 items-center justify-between gap-2'>
           <ModelStatusCell
             perf={options.perfByModel?.get(row.original.model_name)}
           />
-          <ChevronRight
-            aria-hidden
-            className='text-muted-foreground size-4 shrink-0'
-          />
+          <button
+            type='button'
+            aria-label={`${t('View details')}: ${row.original.model_name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              options.onModelClick?.(row.original.model_name)
+            }}
+            className={cn(
+              'hover:bg-muted text-muted-foreground shrink-0 rounded-md p-0.5 transition-colors',
+              'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none'
+            )}
+          >
+            <ChevronRight aria-hidden className='size-4' />
+          </button>
         </div>
       ),
-      size: 220,
+      size: 180,
       enableSorting: false,
     },
   ]

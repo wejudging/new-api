@@ -65,7 +65,9 @@ export function PublicLayout(props: PublicLayoutProps) {
           {props.children}
         </main>
       ) : (
-        props.children
+        // Full-bleed pages carry their own header offset; the banner rows sit
+        // above the fixed header, so they have to shift the page down too.
+        <div style={{ paddingTop: banner.height }}>{props.children}</div>
       )}
     </div>
   )

@@ -16,8 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useTranslation } from 'react-i18next'
-
 import { usePromoPricing } from '@/hooks/use-promo-pricing'
 
 import { DEFAULT_TOKEN_UNIT } from '../constants'
@@ -42,11 +40,10 @@ export function CatalogPriceCell(props: {
   kind: CatalogPriceKind
   options?: ModelPriceCellOptions
 }) {
-  const { t } = useTranslation()
   const options = props.options ?? {}
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
-  const tokenUnitLabel =
-    tokenUnit === 'K' ? t('Per 1K tokens') : t('Per 1M tokens')
+  // One compact unit marker per price, matching the cached-price column.
+  const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const { getDiscount } = usePromoPricing()
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
@@ -82,15 +79,16 @@ export function CatalogPriceCell(props: {
     : undefined
 
   return (
-    <div className='flex min-w-0 flex-col gap-0.5'>
-      <span className='font-mono text-sm font-semibold tabular-nums'>
-        <PromoPrice
-          className='inline-flex flex-wrap items-baseline gap-x-1'
-          original={value}
-          promo={promoValue}
-        />
+    <span className='font-mono text-xs font-semibold whitespace-nowrap tabular-nums sm:text-sm'>
+      <PromoPrice
+        className='inline-flex flex-wrap items-baseline gap-x-1'
+        original={value}
+        promo={promoValue}
+      />
+      <span className='text-muted-foreground text-[10px] font-normal sm:text-xs'>
+        {' '}
+        / {tokenUnitLabel}
       </span>
-      <span className='text-muted-foreground text-xs'>{tokenUnitLabel}</span>
-    </div>
+    </span>
   )
 }

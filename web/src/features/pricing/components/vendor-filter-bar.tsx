@@ -72,7 +72,7 @@ export function VendorFilterBar(props: VendorFilterBarProps) {
       <div
         role='group'
         aria-label={t('All Vendors')}
-        className='hover-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5'
+        className='-mx-1 flex flex-wrap gap-1.5 px-1 py-0.5'
       >
         {options.map((option) => {
           const active = props.value === option.value
@@ -84,7 +84,7 @@ export function VendorFilterBar(props: VendorFilterBarProps) {
               size='sm'
               onClick={() => props.onChange(option.value)}
               aria-pressed={active}
-              className='h-auto max-w-[220px] shrink-0 gap-1.5 px-2.5 py-1.5 text-xs'
+              className='h-auto max-w-full shrink-0 gap-1.5 px-2.5 py-1.5 text-xs sm:max-w-[220px]'
             >
               {option.icon && <span className='shrink-0'>{option.icon}</span>}
               <span className='truncate'>{option.label}</span>

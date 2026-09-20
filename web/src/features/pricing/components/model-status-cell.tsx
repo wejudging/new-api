@@ -71,7 +71,7 @@ export function ModelStatusCell(props: ModelStatusCellProps) {
         role='img'
         aria-label={`${t('Status')}: ${rateLabel}`}
         title={`${t('Status')}: ${rateLabel}`}
-        className='flex h-4 shrink-0 items-stretch gap-[2px]'
+        className='flex h-3.5 shrink-0 items-stretch gap-[2px] sm:h-4'
       >
         {STATUS_SLOTS.map((slot) => {
           const rate = statusRates[slot]
@@ -81,7 +81,7 @@ export function ModelStatusCell(props: ModelStatusCellProps) {
               aria-hidden
               data-status-slot={slot}
               className={cn(
-                'w-[3px] rounded-[1px] transition-colors duration-300 motion-reduce:transition-none',
+                'w-[2px] rounded-[1px] transition-colors duration-300 motion-reduce:transition-none sm:w-[3px]',
                 isValidRate(rate)
                   ? getSuccessRateDotClass(rate)
                   : 'bg-muted-foreground/15'
@@ -92,7 +92,7 @@ export function ModelStatusCell(props: ModelStatusCellProps) {
       </span>
       <span
         className={cn(
-          'font-mono text-xs tabular-nums',
+          'font-mono text-[10px] tabular-nums sm:text-xs',
           hasSuccessRate
             ? getSuccessRateTextClass(successRate)
             : 'text-muted-foreground'
