@@ -32,8 +32,6 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { DEFAULT_PRICING_PAGE_SIZE, DEFAULT_TOKEN_UNIT } from '../constants'
 import type { PricingModel, TokenUnit } from '../types'
 import { usePricingColumns } from './pricing-columns'
-import type { ModelPerfBadgeData } from './model-perf-badge'
-
 export interface PricingTableProps {
   models: PricingModel[]
   isLoading?: boolean
@@ -43,7 +41,6 @@ export interface PricingTableProps {
   showRechargePrice?: boolean
   selectedGroup?: string
   onModelClick?: (modelName: string) => void
-  perfByModel?: Map<string, ModelPerfBadgeData>
 }
 
 export function PricingTable(props: PricingTableProps) {
@@ -58,7 +55,6 @@ export function PricingTable(props: PricingTableProps) {
     showRechargePrice = false,
     selectedGroup,
     onModelClick,
-    perfByModel,
   } = props
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -72,7 +68,6 @@ export function PricingTable(props: PricingTableProps) {
     usdExchangeRate,
     showRechargePrice,
     selectedGroup,
-    perfByModel,
     onModelClick,
   })
 

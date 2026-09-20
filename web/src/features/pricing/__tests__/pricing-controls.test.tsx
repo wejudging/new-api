@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -37,6 +38,17 @@ function toolbarProps(): PricingToolbarProps {
     sortBy: 'name',
     onSortChange: vi.fn(),
   }
+}
+
+/**
+ * The status cells read the shared performance query, so they need a client
+ * even when the test passes the window explicitly.
+ */
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
 }
 
 function statusSlots(): HTMLElement[] {
@@ -71,7 +83,7 @@ describe('model status cell', () => {
       success_rate: hour === 0 ? 50 : 100,
     }))
 
-    render(
+    renderWithClient(
       <ModelSuccessCell
         perf={{
           success_rate: 99.5,
@@ -91,7 +103,7 @@ describe('model status cell', () => {
   })
 
   it('keeps missing hours gray and shows a dash without a window', () => {
-    render(<ModelSuccessCell perf={undefined} />)
+    renderWithClient(<ModelSuccessCell perf={undefined} />)
 
     const slots = statusSlots()
     expect(slots).toHaveLength(24)
@@ -102,7 +114,7 @@ describe('model status cell', () => {
   })
 
   it('renders TPS and first-token latency as their own columns', () => {
-    render(
+    renderWithClient(
       <>
         <ModelTpsCell
           perf={{

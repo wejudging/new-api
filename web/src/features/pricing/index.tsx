@@ -32,7 +32,6 @@ import {
 } from './components'
 import { VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
-import { useModelPerf } from './hooks/use-model-perf'
 import { usePricingData } from './hooks/use-pricing-data'
 
 export function Pricing() {
@@ -67,8 +66,6 @@ export function Pricing() {
     clearFilters,
   } = useFilters(models || [])
 
-  const perfByModel = useModelPerf()
-
   const handleModelClick = useCallback((modelName: string) => {
     setSelectedModelName(modelName)
   }, [])
@@ -102,7 +99,6 @@ export function Pricing() {
         showRechargePrice={showRechargePrice}
         selectedGroup={groupFilter}
         onModelClick={handleModelClick}
-        perfByModel={perfByModel}
       />
     )
   }

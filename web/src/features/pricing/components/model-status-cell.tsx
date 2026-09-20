@@ -27,6 +27,7 @@ import {
 } from '@/features/performance-metrics/lib/format'
 import { cn } from '@/lib/utils'
 
+import { useModelPerfEntry } from '../hooks/use-model-perf'
 import type { ModelPerfBadgeData } from './model-perf-badge'
 
 const STATUS_SLOTS = Array.from({ length: 24 }, (_, slot) => slot)
@@ -51,12 +52,25 @@ function useStatusRates(perf: ModelPerfBadgeData | undefined) {
 }
 
 export interface ModelMetricCellProps {
-  perf: ModelPerfBadgeData | undefined
+  /** Model whose performance window is shown. */
+  modelName?: string
+  /** Explicit window (previews and tests); wins over the shared query. */
+  perf?: ModelPerfBadgeData
+}
+
+/**
+ * The table memoizes its rows, so a window handed down as a prop would stay
+ * stale until the rows change. Each cell subscribes to the shared summary
+ * query instead, and re-renders on its own once the numbers arrive.
+ */
+function usePerf(props: ModelMetricCellProps): ModelPerfBadgeData | undefined {
+  const queried = useModelPerfEntry(props.modelName ?? '')
+  return props.perf ?? queried
 }
 
 /** Throughput column: average output tokens per second. */
 export function ModelTpsCell(props: ModelMetricCellProps) {
-  const tps = props.perf?.avg_tps
+  const tps = usePerf(props)?.avg_tps
   const hasTps = tps != null && Number.isFinite(tps) && tps > 0
   return (
     <span className='font-mono text-xs tabular-nums'>
@@ -67,7 +81,7 @@ export function ModelTpsCell(props: ModelMetricCellProps) {
 
 /** First-token column: average TTFT of the same window. */
 export function ModelTtftCell(props: ModelMetricCellProps) {
-  const ttft = props.perf?.avg_ttft_ms
+  const ttft = usePerf(props)?.avg_ttft_ms
   const hasTtft = ttft != null && Number.isFinite(ttft) && ttft > 0
   return (
     <span className='font-mono text-xs tabular-nums'>
@@ -79,9 +93,10 @@ export function ModelTtftCell(props: ModelMetricCellProps) {
 /** Success-rate column: 24-hour strip plus the window average. */
 export function ModelSuccessCell(props: ModelMetricCellProps) {
   const { t } = useTranslation()
-  const successRate = props.perf?.success_rate
+  const perf = usePerf(props)
+  const successRate = perf?.success_rate
   const hasSuccessRate = isValidRate(successRate)
-  const statusRates = useStatusRates(props.perf)
+  const statusRates = useStatusRates(perf)
   const rateLabel = hasSuccessRate ? formatUptimePct(successRate) : t('No data')
 
   return (

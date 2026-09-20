@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils'
 import type { PricingModel } from '../types'
 import { CachedPriceCell } from './cached-price-cell'
 import { CatalogPriceCell } from './catalog-price-cell'
-import type { ModelPerfBadgeData } from './model-perf-badge'
 import type { ModelPriceCellOptions } from './model-price-cell'
 import {
   ModelSuccessCell,
@@ -41,8 +40,6 @@ import {
 // ----------------------------------------------------------------------------
 
 export type PricingColumnsOptions = ModelPriceCellOptions & {
-  /** Recent success-rate window per model, keyed by model name. */
-  perfByModel?: Map<string, ModelPerfBadgeData>
   /** Opens the model details drawer (used by the mobile card list). */
   onModelClick?: (modelName: string) => void
 }
@@ -146,9 +143,7 @@ export function usePricingColumns(
       meta: { label: 'TPS' },
       header: 'TPS',
       cell: ({ row }) => (
-        <ModelTpsCell
-          perf={options.perfByModel?.get(row.original.model_name)}
-        />
+        <ModelTpsCell modelName={row.original.model_name} />
       ),
       size: 100,
       enableSorting: false,
@@ -160,9 +155,7 @@ export function usePricingColumns(
       meta: { label: t('First token') },
       header: t('First token'),
       cell: ({ row }) => (
-        <ModelTtftCell
-          perf={options.perfByModel?.get(row.original.model_name)}
-        />
+        <ModelTtftCell modelName={row.original.model_name} />
       ),
       size: 100,
       enableSorting: false,
@@ -175,9 +168,7 @@ export function usePricingColumns(
       header: t('Success rate'),
       cell: ({ row }) => (
         <div className='flex min-w-0 items-center justify-between gap-2'>
-          <ModelSuccessCell
-            perf={options.perfByModel?.get(row.original.model_name)}
-          />
+          <ModelSuccessCell modelName={row.original.model_name} />
           <button
             type='button'
             aria-label={`${t('View details')}: ${row.original.model_name}`}
