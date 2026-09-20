@@ -50,7 +50,7 @@ import { PromoPrice } from './promo-price'
 
 export interface ModelCardProps {
   model: PricingModel
-  onClick: () => void
+  onClick: (modelName: string) => void
   priceRate?: number
   usdExchangeRate?: number
   tokenUnit?: TokenUnit
@@ -471,7 +471,11 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           perf={props.perf}
           className='border-border/60 border-t pt-2'
         >
-          <Button variant='ghost' size='sm' onClick={props.onClick}>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => props.onClick(props.model.model_name || '')}
+          >
             {t('Details')}
             <ChevronRight aria-hidden className='size-3.5' />
           </Button>
