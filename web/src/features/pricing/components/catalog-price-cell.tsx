@@ -42,8 +42,8 @@ export function CatalogPriceCell(props: {
 }) {
   const options = props.options ?? {}
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
-  // One compact unit marker per price, matching the cached-price column.
-  const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
+  // 1M is the default and stays implicit; only a non-default unit is labelled.
+  const showUnitLabel = tokenUnit === 'K'
   const { getDiscount } = usePromoPricing()
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
@@ -85,10 +85,12 @@ export function CatalogPriceCell(props: {
         original={value}
         promo={promoValue}
       />
-      <span className='text-muted-foreground text-[10px] font-normal sm:text-xs'>
-        {' '}
-        / {tokenUnitLabel}
-      </span>
+      {showUnitLabel ? (
+        <span className='text-muted-foreground text-[10px] font-normal sm:text-xs'>
+          {' '}
+          / 1K
+        </span>
+      ) : null}
     </span>
   )
 }

@@ -49,6 +49,8 @@ export function CachedPriceCell(props: {
   } = props.options
 
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
+  // 1M is the default and stays implicit; only a non-default unit is labelled.
+  const showUnitLabel = tokenUnit === 'K'
 
   const model = props.model
   const currency = useSystemConfigStore((state) => state.config.currency)
@@ -163,9 +165,11 @@ export function CachedPriceCell(props: {
             </div>
           )
         })}
-        <div className='text-muted-foreground/50 text-[10px]'>
-          / {tokenUnitLabel}
-        </div>
+        {showUnitLabel ? (
+          <div className='text-muted-foreground/50 text-[10px]'>
+            / {tokenUnitLabel}
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -212,9 +216,11 @@ export function CachedPriceCell(props: {
       <span className='font-mono text-sm tabular-nums'>
         <PromoPrice original={cachedPrice} promo={cachedPromoPrice} />
       </span>
-      <div className='text-muted-foreground/50 text-[10px]'>
-        / {tokenUnitLabel}
-      </div>
+      {showUnitLabel ? (
+        <div className='text-muted-foreground/50 text-[10px]'>
+          / {tokenUnitLabel}
+        </div>
+      ) : null}
     </div>
   )
 }
