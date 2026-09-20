@@ -47,7 +47,11 @@ const defaults = {
   QuotaForInvitee: 0,
   TopUpLink: '',
   general_setting: { docs_link: '' },
-  quota_setting: { enable_free_model_pre_consume: false },
+  quota_setting: {
+    enable_free_model_pre_consume: false,
+    trust_quota_usd: 0,
+    pre_consume_multiplier: 1,
+  },
 }
 
 function setCurrency(overrides: Partial<CurrencyConfig>) {
