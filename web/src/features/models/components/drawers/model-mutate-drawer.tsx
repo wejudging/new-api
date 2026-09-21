@@ -40,6 +40,7 @@ import { TagInput } from '@/components/tag-input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import { ComboboxInput } from '@/components/ui/combobox-input'
 import {
   Form,
   FormControl,
@@ -70,7 +71,13 @@ import {
   getServerErrorMessage,
 } from '@/lib/server-error-message'
 
-import { createModel, updateModel, getModel, getVendors } from '../../api'
+import {
+  createModel,
+  createVendor,
+  updateModel,
+  getModel,
+  getVendors,
+} from '../../api'
 import { getNameRuleOptions, ENDPOINT_TEMPLATES } from '../../constants'
 import { modelsQueryKeys, vendorsQueryKeys } from '../../lib'
 import {
@@ -112,6 +119,9 @@ export function ModelMutateDrawer(props: {
     null
   )
   const [closeConfirm, setCloseConfirm] = useState(false)
+  // Vendor typed in the combobox: either an existing vendor's name or a custom
+  // one that is created when the model is saved.
+  const [vendorName, setVendorName] = useState('')
   const loadedKey = useRef('')
   const form = useForm({
     resolver: zodResolver(modelFormSchema),
@@ -132,6 +142,23 @@ export function ModelMutateDrawer(props: {
   const selectedVendor = vendors.find(
     (vendor) => vendor.id === form.watch('vendor_id')
   )
+  const vendorFieldValue = form.watch('vendor_id')
+
+  useEffect(() => {
+    if (!props.open || !vendorFieldValue) return
+    const vendor = vendors.find((item) => item.id === vendorFieldValue)
+    if (vendor) {
+      setVendorName((current) => (current === vendor.name ? current : vendor.name))
+    }
+  }, [props.open, vendorFieldValue, vendors])
+
+  const handleVendorNameChange = (name: string) => {
+    setVendorName(name)
+    const match = vendors.find(
+      (vendor) => vendor.name.toLowerCase() === name.trim().toLowerCase()
+    )
+    form.setValue('vendor_id', match?.id, { shouldDirty: true })
+  }
   const modelQuery = useQuery({
     queryKey: modelsQueryKeys.detail(currentRow?.id ?? 0),
     queryFn: async () => {
@@ -196,6 +223,29 @@ export function ModelMutateDrawer(props: {
         )
       }
       const payload = transformFormDataToModelPayload(values)
+      // A custom vendor name becomes a real vendor row on save; picking an
+      // existing one just keeps its id.
+      const typedVendor = vendorName.trim()
+      if (typedVendor) {
+        const existing = vendors.find(
+          (vendor) =>
+            vendor.name.toLowerCase() === typedVendor.toLowerCase()
+        )
+        if (existing) {
+          payload.vendor_id = existing.id
+        } else {
+          const created = await createVendor({ name: typedVendor })
+          if (!created.success || !created.data?.id) {
+            throw createServerError(created, t('Failed to create vendor'))
+          }
+          payload.vendor_id = created.data.id
+          await queryClient.invalidateQueries({
+            queryKey: vendorsQueryKeys.all,
+          })
+        }
+      } else {
+        payload.vendor_id = undefined
+      }
       const response = currentRow?.id
         ? await updateModel({ ...payload, id: currentRow.id })
         : await createModel(payload)
@@ -390,23 +440,20 @@ export function ModelMutateDrawer(props: {
                       <FormField
                         control={form.control}
                         name='vendor_id'
-                        render={({ field }) => (
+                        render={() => (
                           <FormItem>
                             <FormLabel>{t('Vendor')}</FormLabel>
                             <FormControl>
-                              <Combobox
+                              <ComboboxInput
                                 options={vendors.map((vendor) => ({
-                                  value: String(vendor.id),
+                                  value: vendor.name,
                                   label: vendor.name,
                                 }))}
-                                onValueChange={(value) =>
-                                  field.onChange(
-                                    value ? Number.parseInt(value) : undefined
-                                  )
-                                }
-                                value={field.value ? String(field.value) : null}
+                                value={vendorName}
+                                onValueChange={handleVendorNameChange}
+                                allowCustomValue
                                 className='w-full'
-                                placeholder={t('Select vendor')}
+                                placeholder={t('Select or type a vendor')}
                               />
                             </FormControl>
                             <FormMessage />

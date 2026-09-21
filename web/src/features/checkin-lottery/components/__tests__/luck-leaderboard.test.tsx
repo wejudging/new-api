@@ -23,13 +23,13 @@ import type { CheckinLotteryLeaderboardEntry } from '../../types'
 import { LuckLeaderboard } from '../luck-leaderboard'
 
 const entries: CheckinLotteryLeaderboardEntry[] = Array.from(
-  { length: 20 },
+  { length: 10 },
   (_, index) => ({
     rank: index + 1,
     user_id: 100 + index,
     username: `user${index}`,
     account: `u***${index}@g***.com`,
-    draws: 22 - index,
+    draws: 12 - index,
     best_amount: 0.5,
     total_amount: 2.4 - index * 0.1,
   })
@@ -54,11 +54,11 @@ describe('luck leaderboard', () => {
   it('lists exactly the rows the server returned', () => {
     renderBoard({})
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(20)
+    expect(screen.getAllByRole('listitem')).toHaveLength(10)
     expect(screen.getByText('user0')).toBeVisible()
-    expect(screen.getByText('user19')).toBeVisible()
+    expect(screen.getByText('user9')).toBeVisible()
     expect(
-      screen.getByText('Top 20 players ranked by total winnings')
+      screen.getByText('Top 10 players ranked by total winnings')
     ).toBeVisible()
   })
 

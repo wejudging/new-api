@@ -68,7 +68,7 @@ const AVATAR_TONES = [
 ]
 
 /**
- * Luck leaderboard: the top twenty players by total winnings, followed by a
+ * Luck leaderboard: the top ten players by total winnings, followed by a
  * highlighted summary bar for the signed-in user's own position.
  *
  * Rows borrow the shape of a contribution graph — rank, avatar, name, a bar
@@ -95,7 +95,7 @@ export function LuckLeaderboard(props: LuckLeaderboardProps) {
           {t('Luck leaderboard')}
         </CardTitle>
         <CardDescription className='text-xs'>
-          {t('Top 20 players ranked by total winnings')}
+          {t('Top 10 players ranked by total winnings')}
         </CardDescription>
       </CardHeader>
 

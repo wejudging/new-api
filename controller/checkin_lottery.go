@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const lotteryLeaderboardSize = 20
+const lotteryLeaderboardSize = 10
 
 // referralInviteeLimit 邀请记录里最多展示的被邀请人数量
 const referralInviteeLimit = 50

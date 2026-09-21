@@ -16,24 +16,36 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useMemo } from 'react'
+
 import { usePromoPricing } from '@/hooks/use-promo-pricing'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { DEFAULT_TOKEN_UNIT } from '../constants'
+import { useBillingTime } from '../hooks/use-billing-time'
+import {
+  getDynamicDisplayGroupRatio,
+  getDynamicPricingSummary,
+} from '../lib/dynamic-price'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice } from '../lib/price'
 import type { PricingModel } from '../types'
-import { ModelPriceCell, type ModelPriceCellOptions } from './model-price-cell'
+import type { ModelPriceCellOptions } from './model-price-cell'
 import { PromoPrice } from './promo-price'
 
 export type CatalogPriceKind = 'input' | 'output'
 
+const EXPRESSION_FIELD: Record<CatalogPriceKind, string> = {
+  input: 'inputPrice',
+  output: 'outputPrice',
+}
+
 /**
- * Single-price cell for the catalog table (输入价格 / 输出价格).
+ * One price column of the catalog table.
  *
- * Token-based models render one price with its per-token-unit caption so the
- * two columns line up like the reference catalog. Request-, task- and
- * expression-priced models have no input/output split: their price keeps the
- * existing rich cell in the input column and the output column stays empty.
+ * The table shows plain amounts — ratio pricing for token models and the
+ * current tier of an expression for tiered models — so the three price columns
+ * line up without the descriptive captions the detail drawer uses.
  */
 export function CatalogPriceCell(props: {
   model: PricingModel
@@ -42,20 +54,68 @@ export function CatalogPriceCell(props: {
 }) {
   const options = props.options ?? {}
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
-  // 1M is the default and stays implicit; only a non-default unit is labelled.
-  const showUnitLabel = tokenUnit === 'K'
+  const currency = useSystemConfigStore((state) => state.config.currency)
+  const billingTime = useBillingTime(props.model.billing_expr)
   const { getDiscount } = usePromoPricing()
   const discount = getDiscount(props.model.model_name) ?? 1
-  const hasPromo = discount !== 1
-  // Expression-priced models ignore model_ratio, so a ratio-based number would
-  // contradict the billed price. They keep the rich dynamic cell instead.
   const usesExpression = Boolean((props.model.billing_expr ?? '').trim())
 
-  if (!isTokenBasedModel(props.model) || usesExpression) {
-    if (props.kind === 'output') {
+  const dynamic = useMemo(
+    () =>
+      usesExpression || !isTokenBasedModel(props.model)
+        ? getDynamicPricingSummary(props.model, {
+            now: billingTime === undefined ? undefined : new Date(billingTime),
+            tokenUnit,
+            showRechargePrice: options.showRechargePrice,
+            priceRate: options.priceRate,
+            usdExchangeRate: options.usdExchangeRate,
+            discount,
+            groupRatioMultiplier: getDynamicDisplayGroupRatio(
+              props.model,
+              options.selectedGroup
+            ),
+          })
+        : null,
+    // Currency is read indirectly by the price formatter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      props.model,
+      usesExpression,
+      tokenUnit,
+      options.showRechargePrice,
+      options.priceRate,
+      options.usdExchangeRate,
+      options.selectedGroup,
+      billingTime,
+      discount,
+      currency,
+    ]
+  )
+
+  if (dynamic) {
+    const field = EXPRESSION_FIELD[props.kind]
+    const findEntry = (target: string) =>
+      dynamic.primaryEntries.find((item) => item.field === target) ??
+      dynamic.entries.find((item) => item.field === target)
+    // Request- and task-priced models bill per call: the amount lives in the
+    // input column and there is no separate output amount.
+    const entry =
+      findEntry(field) ??
+      (props.kind === 'input'
+        ? (dynamic.primaryEntries.find((item) => item.unit === 'request') ??
+          dynamic.entries.find((item) => item.unit === 'request'))
+        : undefined) ??
+      (props.kind === 'input' ? findEntry('modelPrice') : undefined)
+
+    if (!entry) {
       return <span className='text-muted-foreground/50 text-xs'>—</span>
     }
-    return <ModelPriceCell model={props.model} options={options} />
+
+    return (
+      <span className='font-mono text-xs font-semibold tabular-nums sm:text-sm'>
+        <PromoPrice original={entry.formatted} promo={entry.promoValue} />
+      </span>
+    )
   }
 
   const value = formatPrice(
@@ -67,33 +127,24 @@ export function CatalogPriceCell(props: {
     options.usdExchangeRate,
     options.selectedGroup
   )
-  const promoValue = hasPromo
-    ? formatPrice(
-        props.model,
-        props.kind,
-        tokenUnit,
-        options.showRechargePrice,
-        options.priceRate,
-        options.usdExchangeRate,
-        options.selectedGroup,
-        true,
-        discount
-      )
-    : undefined
+  const promoValue =
+    discount !== 1
+      ? formatPrice(
+          props.model,
+          props.kind,
+          tokenUnit,
+          options.showRechargePrice,
+          options.priceRate,
+          options.usdExchangeRate,
+          options.selectedGroup,
+          true,
+          discount
+        )
+      : undefined
 
   return (
-    <span className='font-mono text-xs font-semibold whitespace-nowrap tabular-nums sm:text-sm'>
-      <PromoPrice
-        className='inline-flex flex-wrap items-baseline gap-x-1'
-        original={value}
-        promo={promoValue}
-      />
-      {showUnitLabel ? (
-        <span className='text-muted-foreground text-[10px] font-normal sm:text-xs'>
-          {' '}
-          / 1K
-        </span>
-      ) : null}
+    <span className='font-mono text-xs font-semibold tabular-nums sm:text-sm'>
+      <PromoPrice original={value} promo={promoValue} />
     </span>
   )
 }
