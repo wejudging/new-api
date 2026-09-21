@@ -107,6 +107,7 @@ export function CatalogPriceCell(props: {
         options.selectedGroup
       ),
     })
+    if (!promoSummary) return new Map<string, string>()
     return new Map(
       [...promoSummary.entries, ...promoSummary.primaryEntries].map((entry) => [
         entry.key,
