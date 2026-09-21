@@ -92,6 +92,40 @@ export function CatalogPriceCell(props: {
     ]
   )
 
+  // Campaign prices come from the same summary evaluated with the discount,
+  // matched by entry key (mirrors the rich price cell).
+  const promoEntries = useMemo(() => {
+    if (discount === 1 || !dynamic) return new Map<string, string>()
+    const promoSummary = getDynamicPricingSummary(props.model, {
+      now: billingTime === undefined ? undefined : new Date(billingTime),
+      tokenUnit,
+      showRechargePrice: options.showRechargePrice,
+      priceRate: options.priceRate,
+      usdExchangeRate: options.usdExchangeRate,
+      groupRatioMultiplier: getDynamicDisplayGroupRatio(
+        props.model,
+        options.selectedGroup
+      ),
+    })
+    return new Map(
+      [...promoSummary.entries, ...promoSummary.primaryEntries].map((entry) => [
+        entry.key,
+        entry.formatted,
+      ])
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.model,
+    dynamic,
+    discount,
+    tokenUnit,
+    options.showRechargePrice,
+    options.priceRate,
+    options.usdExchangeRate,
+    options.selectedGroup,
+    billingTime,
+  ])
+
   if (dynamic) {
     const field = EXPRESSION_FIELD[props.kind]
     const findEntry = (target: string) =>
@@ -113,7 +147,10 @@ export function CatalogPriceCell(props: {
 
     return (
       <span className='font-mono text-xs font-semibold tabular-nums sm:text-sm'>
-        <PromoPrice original={entry.formatted} promo={entry.promoValue} />
+        <PromoPrice
+          original={entry.formatted}
+          promo={promoEntries.get(entry.key)}
+        />
       </span>
     )
   }
