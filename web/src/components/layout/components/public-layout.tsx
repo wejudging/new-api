@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { AnnouncementBanner } from '@/components/announcement-banner'
 import { useAnnouncementBanner } from '@/hooks/use-announcement-banner'
+import { useEffect } from 'react'
 
 import type { TopNavLink } from '../types'
 import { PublicHeader, type PublicHeaderProps } from './public-header'
@@ -38,8 +39,25 @@ type PublicLayoutProps = {
 export function PublicLayout(props: PublicLayoutProps) {
   const banner = useAnnouncementBanner()
 
+  // Portals (sheets, drawers, dialogs) mount on <body>, so the offset has to
+  // live on the document root for them to clear the promo/announcement rows.
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--announcement-banner-height', banner.height)
+    return () => {
+      root.style.removeProperty('--announcement-banner-height')
+    }
+  }, [banner.height])
+
   return (
-    <div className='bg-background text-foreground relative min-h-svh overflow-x-clip'>
+    <div
+      className='bg-background text-foreground relative min-h-svh overflow-x-clip'
+      // Fixed overlays (sheets, drawers, the mobile menu) read this so the
+      // promo/announcement rows never cover their top edge.
+      style={
+        { '--announcement-banner-height': banner.height } as React.CSSProperties
+      }
+    >
       <AnnouncementBanner
         promo={banner.promo}
         announcements={banner.announcements}
