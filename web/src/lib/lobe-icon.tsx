@@ -54,6 +54,79 @@ const CUSTOM_ICONS: Record<string, ComponentType<{ size?: number }>> = {
 }
 
 const ICON_METADATA = new Map(toc.map((icon) => [icon.id, icon]))
+
+/**
+ * Vendors created on the fly (or synced from a channel) often carry no icon.
+ * Fall back to the catalogue entry that matches the vendor name, including a
+ * few common Chinese aliases, so the UI still shows a real logo.
+ */
+const VENDOR_ICON_ALIASES: Record<string, string> = {
+  小米: 'XiaomiMiMo',
+  xiaomi: 'XiaomiMiMo',
+  xiaomimimo: 'XiaomiMiMo',
+  mimo: 'XiaomiMiMo',
+  腾讯: 'Tencent',
+  tencent: 'Tencent',
+  混元: 'Hunyuan',
+  hunyuan: 'Hunyuan',
+  阶跃: 'Stepfun',
+  stepfun: 'Stepfun',
+  step: 'Stepfun',
+  智谱: 'Zhipu',
+  zhipu: 'Zhipu',
+  阿里: 'Qwen',
+  阿里巴巴: 'Qwen',
+  alibaba: 'Qwen',
+  通义: 'Qwen',
+  qwen: 'Qwen',
+  月之暗面: 'Moonshot',
+  kimi: 'Moonshot',
+  豆包: 'Doubao',
+  字节: 'Doubao',
+  百度: 'Wenxin',
+  文心: 'Wenxin',
+  讯飞: 'Spark',
+  星火: 'Spark',
+  商汤: 'SenseNova',
+  零一万物: 'ZeroOne',
+  百川: 'Baichuan',
+  天工: 'Tiangong',
+  昆仑万维: 'Tiangong',
+  深度求索: 'DeepSeek',
+  openai: 'OpenAI',
+  微软: 'Microsoft',
+  microsoft: 'Microsoft',
+  谷歌: 'Google',
+  anthropic: 'Anthropic',
+  claude: 'Anthropic',
+  meta: 'Meta',
+  llama: 'Meta',
+}
+
+function normalizeIconKey(value: string): string {
+  return value.trim().toLowerCase().replaceAll(/[\s._-]/g, '')
+}
+
+/** Catalogue id for a vendor name, or null when nothing matches. */
+export function resolveVendorIconId(
+  name: string | undefined | null
+): string | null {
+  const raw = (name ?? '').trim()
+  if (!raw) return null
+  if (ICON_METADATA.has(raw)) return raw
+
+  const normalized = normalizeIconKey(raw)
+  if (!normalized) return null
+  for (const id of ICON_METADATA.keys()) {
+    if (normalizeIconKey(id) === normalized) return id
+  }
+
+  const alias =
+    VENDOR_ICON_ALIASES[normalized] ??
+    VENDOR_ICON_ALIASES[raw] ??
+    VENDOR_ICON_ALIASES[raw.toLowerCase()]
+  return alias && ICON_METADATA.has(alias) ? alias : null
+}
 const ICON_VARIANTS = {
   Avatar: 'hasAvatar',
   Brand: 'hasBrand',

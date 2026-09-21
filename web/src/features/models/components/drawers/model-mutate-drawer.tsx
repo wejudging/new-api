@@ -36,6 +36,7 @@ import { ErrorState } from '@/components/error-state'
 import { JsonEditor } from '@/components/json-editor'
 import { LoadingState } from '@/components/loading-state'
 import { LobeIconField } from '@/components/lobe-icon-field'
+import { getLobeIcon, resolveVendorIconId } from '@/lib/lobe-icon'
 import { TagInput } from '@/components/tag-input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -448,6 +449,12 @@ export function ModelMutateDrawer(props: {
                                 options={vendors.map((vendor) => ({
                                   value: vendor.name,
                                   label: vendor.name,
+                                  icon: getLobeIcon(
+                                    vendor.icon ||
+                                      resolveVendorIconId(vendor.name) ||
+                                      '',
+                                    16
+                                  ),
                                 }))}
                                 value={vendorName}
                                 onValueChange={handleVendorNameChange}

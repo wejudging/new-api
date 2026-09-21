@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { formatTimestampToDate } from '@/lib/format'
-import { getLobeIcon } from '@/lib/lobe-icon'
+import { getLobeIcon, resolveVendorIconId } from '@/lib/lobe-icon'
 import { createServerError } from '@/lib/server-error-message'
 
 import { searchVendors } from '../api'
@@ -123,7 +123,12 @@ export function VendorsTable() {
       cell: ({ row }) => (
         <div className='flex min-w-0 items-center gap-2'>
           <span className='flex size-7 shrink-0 items-center justify-center'>
-            {getLobeIcon(row.original.icon, 24)}
+            {getLobeIcon(
+              row.original.icon ||
+                resolveVendorIconId(row.original.name) ||
+                '',
+              24
+            )}
           </span>
           <Button
             variant='link'

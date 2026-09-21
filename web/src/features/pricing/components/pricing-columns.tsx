@@ -20,7 +20,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronRight, Store } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { getLobeIcon } from '@/lib/lobe-icon'
+import { getLobeIcon, resolveVendorIconId } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
 import type { PricingModel } from '../types'
@@ -57,7 +57,10 @@ export function usePricingColumns(
       header: t('Provider'),
       cell: ({ row }) => {
         const model = row.original
-        const vendorIconKey = model.vendor_icon || model.icon
+        const vendorIconKey =
+          model.vendor_icon ||
+          model.icon ||
+          resolveVendorIconId(model.vendor_name)
         const vendorIcon = vendorIconKey ? getLobeIcon(vendorIconKey, 16) : null
 
         return (

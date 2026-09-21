@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import { getLobeIcon } from '@/lib/lobe-icon'
+import { getLobeIcon, resolveVendorIconId } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
 import { FILTER_ALL } from '../constants'
@@ -62,7 +62,10 @@ export function VendorFilterBar(props: VendorFilterBarProps) {
           (count, model) => count + (model.vendor_name === vendor.name ? 1 : 0),
           0
         ),
-        icon: vendor.icon ? getLobeIcon(vendor.icon, 14) : undefined,
+        icon: (() => {
+          const iconKey = vendor.icon || resolveVendorIconId(vendor.name)
+          return iconKey ? getLobeIcon(iconKey, 14) : undefined
+        })(),
       }))
       .filter((vendor) => vendor.count > 0),
   ]
