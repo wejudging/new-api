@@ -62,6 +62,7 @@ export function CatalogPriceCell(props: {
   const discount = getDiscount(props.model.model_name) ?? 1
   const usesExpression = Boolean((props.model.billing_expr ?? '').trim())
 
+  // Regular (undiscounted) price for the current tier.
   const dynamic = useMemo(
     () =>
       usesExpression || !isTokenBasedModel(props.model)
@@ -71,7 +72,6 @@ export function CatalogPriceCell(props: {
             showRechargePrice: options.showRechargePrice,
             priceRate: options.priceRate,
             usdExchangeRate: options.usdExchangeRate,
-            discount,
             groupRatioMultiplier: getDynamicDisplayGroupRatio(
               props.model,
               options.selectedGroup
@@ -89,13 +89,13 @@ export function CatalogPriceCell(props: {
       options.usdExchangeRate,
       options.selectedGroup,
       billingTime,
-      discount,
       currency,
     ]
   )
 
-  // Campaign prices come from the same summary evaluated with the discount,
-  // matched by entry key (mirrors the rich price cell).
+  // Campaign prices come from the same summary evaluated *with* the discount,
+  // matched by entry key, so the regular amount stays as the struck-through
+  // original and the cheaper amount is the highlighted campaign price.
   const promoEntries = useMemo(() => {
     if (discount === 1 || !dynamic) return new Map<string, string>()
     const promoSummary = getDynamicPricingSummary(props.model, {
@@ -104,6 +104,7 @@ export function CatalogPriceCell(props: {
       showRechargePrice: options.showRechargePrice,
       priceRate: options.priceRate,
       usdExchangeRate: options.usdExchangeRate,
+      discount,
       groupRatioMultiplier: getDynamicDisplayGroupRatio(
         props.model,
         options.selectedGroup
