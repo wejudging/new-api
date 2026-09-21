@@ -56,6 +56,11 @@ export interface ModelMetricCellProps {
   modelName?: string
   /** Explicit window (previews and tests); wins over the shared query. */
   perf?: ModelPerfBadgeData
+  /**
+   * Per-call models (image generation, fixed-price requests) carry no token
+   * throughput, so the token metrics read "no data" instead of a fake 0%.
+   */
+  perCall?: boolean
 }
 
 /**
@@ -70,7 +75,11 @@ function usePerf(props: ModelMetricCellProps): ModelPerfBadgeData | undefined {
 
 /** Throughput column: average output tokens per second. */
 export function ModelTpsCell(props: ModelMetricCellProps) {
-  const tps = usePerf(props)?.avg_tps
+  const perf = usePerf(props)
+  if (props.perCall) {
+    return <span className='text-muted-foreground/50 text-xs'>—</span>
+  }
+  const tps = perf?.avg_tps
   const hasTps = tps != null && Number.isFinite(tps) && tps > 0
   return (
     <span className='font-mono text-xs tabular-nums'>
@@ -81,7 +90,11 @@ export function ModelTpsCell(props: ModelMetricCellProps) {
 
 /** First-token column: average TTFT of the same window. */
 export function ModelTtftCell(props: ModelMetricCellProps) {
-  const ttft = usePerf(props)?.avg_ttft_ms
+  const perf = usePerf(props)
+  if (props.perCall) {
+    return <span className='text-muted-foreground/50 text-xs'>—</span>
+  }
+  const ttft = perf?.avg_ttft_ms
   const hasTtft = ttft != null && Number.isFinite(ttft) && ttft > 0
   return (
     <span className='font-mono text-xs tabular-nums'>
@@ -94,9 +107,12 @@ export function ModelTtftCell(props: ModelMetricCellProps) {
 export function ModelSuccessCell(props: ModelMetricCellProps) {
   const { t } = useTranslation()
   const perf = usePerf(props)
+  const statusRates = useStatusRates(perf)
+  if (props.perCall) {
+    return <span className='text-muted-foreground/50 text-xs'>—</span>
+  }
   const successRate = perf?.success_rate
   const hasSuccessRate = isValidRate(successRate)
-  const statusRates = useStatusRates(perf)
   const rateLabel = hasSuccessRate ? formatUptimePct(successRate) : t('No data')
 
   return (

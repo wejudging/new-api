@@ -29,7 +29,7 @@ import {
   getDynamicPricingSummary,
 } from '../lib/dynamic-price'
 import { isTokenBasedModel } from '../lib/model-helpers'
-import { formatPrice } from '../lib/price'
+import { formatPrice, formatRequestPrice } from '../lib/price'
 import type { PricingModel } from '../types'
 import type { ModelPriceCellOptions } from './model-price-cell'
 import { PromoPrice } from './promo-price'
@@ -160,6 +160,41 @@ export function CatalogPriceCell(props: {
             {t('/call')}
           </span>
         ) : null}
+      </span>
+    )
+  }
+
+  // Plain per-call models carry no expression: their amount belongs to the
+  // output column (with a "/call" marker), matching the tiered case above.
+  if (props.model.quota_type === 1) {
+    if (props.kind === 'input') {
+      return <span className='text-muted-foreground/50 text-xs'>—</span>
+    }
+    const requestValue = formatRequestPrice(
+      props.model,
+      options.showRechargePrice,
+      options.priceRate,
+      options.usdExchangeRate,
+      options.selectedGroup
+    )
+    const promoRequestValue =
+      discount !== 1
+        ? formatRequestPrice(
+            props.model,
+            options.showRechargePrice,
+            options.priceRate,
+            options.usdExchangeRate,
+            options.selectedGroup,
+            true,
+            discount
+          )
+        : undefined
+    return (
+      <span className='font-mono text-xs font-semibold tabular-nums sm:text-sm'>
+        <PromoPrice original={requestValue} promo={promoRequestValue} />
+        <span className='text-muted-foreground text-[10px] font-normal'>
+          {t('/call')}
+        </span>
       </span>
     )
   }

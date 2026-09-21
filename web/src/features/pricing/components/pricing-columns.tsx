@@ -151,7 +151,10 @@ export function usePricingColumns(
       meta: { label: 'TPS' },
       header: 'TPS',
       cell: ({ row }) => (
-        <ModelTpsCell modelName={row.original.model_name} />
+        <ModelTpsCell
+          modelName={row.original.model_name}
+          perCall={row.original.quota_type === 1}
+        />
       ),
       size: 100,
       enableSorting: false,
@@ -163,7 +166,10 @@ export function usePricingColumns(
       meta: { label: t('First token') },
       header: t('First token'),
       cell: ({ row }) => (
-        <ModelTtftCell modelName={row.original.model_name} />
+        <ModelTtftCell
+          modelName={row.original.model_name}
+          perCall={row.original.quota_type === 1}
+        />
       ),
       size: 100,
       enableSorting: false,
@@ -176,7 +182,10 @@ export function usePricingColumns(
       header: t('Success rate'),
       cell: ({ row }) => (
         <div className='flex min-w-0 items-center justify-between gap-2'>
-          <ModelSuccessCell modelName={row.original.model_name} />
+          <ModelSuccessCell
+            modelName={row.original.model_name}
+            perCall={row.original.quota_type === 1}
+          />
           <button
             type='button'
             aria-label={`${t('View details')}: ${row.original.model_name}`}
