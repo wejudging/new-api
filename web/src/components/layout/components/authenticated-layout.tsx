@@ -25,7 +25,6 @@ import { SearchProvider } from '@/context/search-provider'
 import { useAnnouncementBanner } from '@/hooks/use-announcement-banner'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
-import { useEffect } from 'react'
 
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
@@ -37,15 +36,6 @@ type AuthenticatedLayoutProps = {
 export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
   const defaultOpen = getCookie('sidebar_state') !== 'false'
   const banner = useAnnouncementBanner()
-
-  // Portalled overlays (sheets, drawers, dialogs) read this from the root.
-  useEffect(() => {
-    const root = document.documentElement
-    root.style.setProperty('--announcement-banner-height', banner.height)
-    return () => {
-      root.style.removeProperty('--announcement-banner-height')
-    }
-  }, [banner.height])
 
   return (
     <LayoutProvider>
