@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { usePromoPricing } from '@/hooks/use-promo-pricing'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -52,6 +53,7 @@ export function CatalogPriceCell(props: {
   kind: CatalogPriceKind
   options?: ModelPriceCellOptions
 }) {
+  const { t } = useTranslation()
   const options = props.options ?? {}
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
   const currency = useSystemConfigStore((state) => state.config.currency)
@@ -132,15 +134,15 @@ export function CatalogPriceCell(props: {
     const findEntry = (target: string) =>
       dynamic.primaryEntries.find((item) => item.field === target) ??
       dynamic.entries.find((item) => item.field === target)
-    // Request- and task-priced models bill per call: the amount lives in the
-    // input column and there is no separate output amount.
-    const entry =
-      findEntry(field) ??
-      (props.kind === 'input'
-        ? (dynamic.primaryEntries.find((item) => item.unit === 'request') ??
-          dynamic.entries.find((item) => item.unit === 'request'))
-        : undefined) ??
-      (props.kind === 'input' ? findEntry('modelPrice') : undefined)
+    const splitEntry = findEntry(field)
+    // Request- and task-priced models bill per call: that amount belongs to
+    // the output column (with a "/call" marker) and the input column stays
+    // empty, since there is no separate input price.
+    const perCall =
+      dynamic.primaryEntries.find((item) => item.unit === 'request') ??
+      dynamic.entries.find((item) => item.unit === 'request') ??
+      findEntry('modelPrice')
+    const entry = splitEntry ?? (props.kind === 'output' ? perCall : undefined)
 
     if (!entry) {
       return <span className='text-muted-foreground/50 text-xs'>—</span>
@@ -152,6 +154,11 @@ export function CatalogPriceCell(props: {
           original={entry.formatted}
           promo={promoEntries.get(entry.key)}
         />
+        {!splitEntry && perCall ? (
+          <span className='text-muted-foreground text-[10px] font-normal'>
+            {t('/call')}
+          </span>
+        ) : null}
       </span>
     )
   }

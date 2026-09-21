@@ -36,10 +36,12 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
     return (
       <div className='grid grid-cols-3 divide-x rounded-lg border'>
         {['balance', 'usage', 'requests'].map((key) => (
-          <div key={key} className='min-w-0 px-2.5 py-2.5 sm:px-5 sm:py-4'>
-            <Skeleton className='h-3.5 w-full' />
-            <Skeleton className='mt-2 h-6 w-full sm:h-7' />
-            <Skeleton className='mt-1.5 hidden h-3.5 w-24 md:block' />
+          <div key={key} className='min-w-0 px-3 py-2.5 sm:px-4'>
+            <div className='flex items-center justify-between gap-2'>
+              <Skeleton className='h-3.5 w-20' />
+              <Skeleton className='h-5 w-16 sm:h-6 sm:w-24' />
+            </div>
+            <Skeleton className='mt-1 hidden h-3 w-24 md:block' />
           </div>
         ))}
       </div>
@@ -79,20 +81,21 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
   return (
     <div className='grid grid-cols-3 divide-x rounded-lg border'>
       {stats.map((item) => (
-        <div key={item.label} className='min-w-0 px-2.5 py-2.5 sm:px-5 sm:py-4'>
-          <div className='flex items-center gap-1.5 sm:gap-2.5'>
-            <IconBadge tone={item.tone} size='stat'>
+        <div key={item.label} className='min-w-0 px-3 py-2.5 sm:px-4'>
+          {/* Label and amount share the first row; the caption only shows on
+              wide screens, so a stat is at most two compact lines. */}
+          <div className='flex min-w-0 items-center gap-2'>
+            <IconBadge tone={item.tone} size='xs'>
               <item.icon />
             </IconBadge>
-            <div className='text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase sm:text-xs'>
+            <span className='text-muted-foreground min-w-0 truncate text-[11px] font-medium tracking-wider uppercase sm:text-xs'>
               {item.label}
-            </div>
+            </span>
+            <span className='text-foreground ml-auto min-w-0 truncate font-mono text-sm font-bold tracking-tight tabular-nums sm:text-lg'>
+              {item.value}
+            </span>
           </div>
-
-          <div className='text-foreground mt-1.5 font-mono text-sm font-bold tracking-tight break-all tabular-nums sm:mt-2.5 sm:text-2xl'>
-            {item.value}
-          </div>
-          <div className='text-muted-foreground/60 mt-1 hidden text-xs md:block'>
+          <div className='text-muted-foreground/60 mt-0.5 hidden truncate text-[11px] md:block'>
             {item.description}
           </div>
         </div>

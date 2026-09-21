@@ -60,7 +60,7 @@ function EmptyState({
   description?: string
 }) {
   return (
-    <Empty className='min-h-48 border-0 p-4'>
+    <Empty className='border-0 p-6'>
       <EmptyHeader>
         <EmptyMedia variant='icon'>
           <Bell />
@@ -100,7 +100,7 @@ function NoticeContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
+    <ScrollArea className='max-h-[min(52vh,28rem)] pr-3'>
       <RichContent breaks content={notice} />
     </ScrollArea>
   )

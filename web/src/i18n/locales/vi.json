@@ -4355,6 +4355,7 @@
     "Per Second": "Theo giây",
     "Per token": "Theo token",
     "Per Unit": "Theo đơn vị",
+    "/call": "/lần",
     "Per-call": "Mỗi lần gọi",
     "Per-feature metered windows split by model or capability.": "Cửa sổ tính phí theo từng tính năng, tách theo mô hình hoặc năng lực.",
     "Per-group performance": "Hiệu năng theo nhóm",

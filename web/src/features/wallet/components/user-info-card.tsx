@@ -39,12 +39,12 @@ export function UserInfoCard(props: UserInfoCardProps) {
   if (props.loading) {
     return (
       <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
-        <CardContent className='p-3 sm:p-5'>
-          <div className='flex items-center gap-3 sm:gap-4'>
-            <Skeleton className='h-12 w-12 rounded-md sm:h-16 sm:w-16 sm:rounded-lg' />
-            <div className='space-y-2.5'>
-              <Skeleton className='h-6 w-40 sm:h-7' />
-              <Skeleton className='h-4 w-56' />
+        <CardContent className='px-3 py-2.5 sm:px-4 sm:py-3'>
+          <div className='flex items-center gap-2.5 sm:gap-3'>
+            <Skeleton className='size-9 rounded-md sm:size-10' />
+            <div className='flex min-w-0 flex-1 items-baseline gap-2'>
+              <Skeleton className='h-5 w-28 sm:w-32' />
+              <Skeleton className='h-3.5 w-40 sm:w-48' />
             </div>
           </div>
         </CardContent>
@@ -59,22 +59,23 @@ export function UserInfoCard(props: UserInfoCardProps) {
 
   return (
     <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
-      <CardContent className='p-3 sm:p-5'>
-        <div className='flex items-center gap-3 text-left sm:gap-4'>
-          <Avatar className='ring-background h-12 w-12 rounded-md text-sm ring-2 after:rounded-md sm:h-16 sm:w-16 sm:rounded-lg sm:text-lg sm:ring-4 sm:after:rounded-lg'>
-            <AvatarFallback className='overflow-hidden rounded-md sm:rounded-lg'>
+      <CardContent className='px-3 py-2.5 sm:px-4 sm:py-3'>
+        <div className='flex min-w-0 items-center gap-2.5 text-left sm:gap-3'>
+          <Avatar className='ring-background size-9 rounded-md text-xs ring-2 after:rounded-md sm:size-10'>
+            <AvatarFallback className='overflow-hidden rounded-md'>
               <GitHubIdenticon name={avatarName} />
             </AvatarFallback>
           </Avatar>
 
-          <div className='min-w-0 flex-1 space-y-1 sm:space-y-1.5'>
-            <h1 className='truncate text-xl font-semibold tracking-tight sm:text-2xl'>
+          {/* Name and email share one row to keep the header compact. */}
+          <div className='flex min-w-0 flex-1 items-baseline gap-2'>
+            <h1 className='truncate text-base font-semibold tracking-tight sm:text-lg'>
               {user.username}
             </h1>
             {user.email && (
-              <div className='text-muted-foreground truncate text-xs sm:text-sm'>
+              <span className='text-muted-foreground min-w-0 truncate text-xs sm:text-sm'>
                 {user.email}
-              </div>
+              </span>
             )}
           </div>
         </div>

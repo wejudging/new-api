@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Store } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { getLobeIcon } from '@/lib/lobe-icon'
@@ -64,7 +64,12 @@ export function usePricingColumns(
           <div className='flex min-w-0 items-center gap-2'>
             <span className='border-border/60 bg-muted/40 flex size-6 shrink-0 items-center justify-center rounded-md border sm:size-7 sm:rounded-lg'>
               {vendorIcon ?? (
-                <span className='text-muted-foreground text-xs'>—</span>
+                // Custom vendors start without an icon; keep the tile aligned
+                // with a neutral mark instead of an empty box.
+                <Store
+                  aria-hidden
+                  className='text-muted-foreground size-3.5'
+                />
               )}
             </span>
             <span className='truncate text-xs sm:text-sm'>

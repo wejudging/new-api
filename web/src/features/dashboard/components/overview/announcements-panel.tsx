@@ -74,7 +74,7 @@ export function AnnouncementsPanel() {
       height='h-72'
       contentClassName='p-0'
     >
-      <ScrollArea className='h-72'>
+      <ScrollArea className='max-h-72'>
         <div>
           {list.map((item: AnnouncementItem, idx: number) => {
             const key = item.id ?? `announcement-${idx}`

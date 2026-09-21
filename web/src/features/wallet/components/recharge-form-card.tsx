@@ -150,8 +150,8 @@ export function RechargeFormCard({
           <Skeleton className='h-6 w-32' />
           <Skeleton className='mt-2 h-4 w-48' />
         </CardHeader>
-        <CardContent className='space-y-4 p-3 sm:space-y-6 sm:p-5'>
-          <div className='space-y-4 sm:space-y-6'>
+        <CardContent className='space-y-4 p-3 sm:p-4'>
+          <div className='space-y-4'>
             {/* Preset Amounts Skeleton */}
             <div className='space-y-3'>
               <Skeleton className='h-3 w-16' />
@@ -214,19 +214,22 @@ export function RechargeFormCard({
           </Button>
         ) : null
       }
-      contentClassName='space-y-4 sm:space-y-6'
+      contentClassName='space-y-4'
     >
       {/* Online Topup Section */}
       {hasAnyTopup ? (
-        <div className='space-y-4 sm:space-y-6'>
+        <div className='space-y-4'>
           {hasConfigurableTopup && (
             <>
+              {/* Amount and payment method share one row on wide screens. */}
+              <div className='grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start'>
+                <div className='min-w-0 space-y-3'>
               {presetAmounts.length > 0 && (
                 <div className='space-y-2.5 sm:space-y-3'>
                   <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
                     {t('Amount')}
                   </Label>
-                  <div className='grid grid-cols-2 gap-1.5 sm:gap-3 md:grid-cols-4'>
+                  <div className='grid grid-cols-2 gap-2'>
                     {presetAmounts.map((preset) => {
                       const discount =
                         preset.discount ||
@@ -312,13 +315,14 @@ export function RechargeFormCard({
                   </div>
                 </div>
               </div>
+                </div>
 
-              <div className='space-y-2.5 sm:space-y-3'>
+              <div className='min-w-0 space-y-3'>
                 <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
                   {t('Payment Method')}
                 </Label>
                 {hasStandardPaymentMethods ? (
-                  <div className='grid grid-cols-2 gap-1.5 sm:gap-3 lg:grid-cols-3'>
+                  <div className='grid grid-cols-2 gap-2'>
                     {topupInfo?.pay_methods?.map((method) => {
                       const minTopup = Math.max(
                         method.min_topup || 0,
@@ -393,6 +397,7 @@ export function RechargeFormCard({
                     </AlertDescription>
                   </Alert>
                 )}
+              </div>
               </div>
 
               {enableWaffoTopup &&
