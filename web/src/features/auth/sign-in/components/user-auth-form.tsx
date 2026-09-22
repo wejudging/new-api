@@ -45,6 +45,7 @@ import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
+import { captureAffiliateCodeFromUrl } from '@/features/auth/lib/storage'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import {
   requestPasskeyAssertion,
@@ -130,6 +131,12 @@ export function UserAuthForm({
       setAgreedToLegal(true)
     }
   }, [requiresLegalConsent])
+
+  // Invite links may land on either auth page; remember the code so password
+  // and third-party sign-ups both keep the referrer.
+  useEffect(() => {
+    captureAffiliateCodeFromUrl()
+  }, [])
 
   useEffect(() => {
     detectPasskeySupport()

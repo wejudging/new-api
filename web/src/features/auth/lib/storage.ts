@@ -59,3 +59,19 @@ export function saveAffiliateCode(code: string): void {
     console.error('Failed to save affiliate code:', error)
   }
 }
+
+/**
+ * Remember an invite code carried by the current URL (`?aff=CODE`).
+ *
+ * Both auth pages call this so an invite link keeps working no matter which
+ * entry page it lands on, and so third-party sign-up flows can forward it.
+ */
+export function captureAffiliateCodeFromUrl(search?: string): string {
+  if (typeof window === 'undefined') return ''
+  const query = search ?? window.location.search
+  const aff = new URLSearchParams(query).get('aff')?.trim() ?? ''
+  if (aff) {
+    saveAffiliateCode(aff)
+  }
+  return aff
+}

@@ -93,12 +93,21 @@ func WeChatAuth(c *gin.Context) {
 		}
 	} else {
 		if common.RegisterEnabled {
+			// WeChat creates the account server-side, so the invite code has to
+			// arrive with the callback to keep the referrer.
+			inviterId := 0
+			if affCode := strings.TrimSpace(c.Query("aff")); affCode != "" && len(affCode) <= 32 {
+				inviterId, _ = model.GetUserIdByAffCode(affCode)
+			}
 			user.Username = "wechat_" + strconv.Itoa(model.GetMaxUserId()+1)
 			user.DisplayName = "WeChat User"
 			user.Role = common.RoleCommonUser
 			user.Status = common.UserStatusEnabled
+			// Same as the password sign-up path: the relationship lives on the
+			// invitee row, so it has to be set before the insert.
+			user.InviterId = inviterId
 
-			if err := user.Insert(0); err != nil {
+			if err := user.Insert(inviterId); err != nil {
 				c.JSON(http.StatusOK, gin.H{
 					"success": false,
 					"message": err.Error(),

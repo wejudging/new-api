@@ -526,6 +526,10 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	if affiliateCode != "" {
 		inviterId, _ = model.GetUserIdByAffCode(affiliateCode)
 	}
+	// The invite relationship lives on the invitee row. The password sign-up
+	// path sets it on the struct, so OAuth must do the same — otherwise the
+	// invitee's inviter_id stays 0 and the invite looks swallowed.
+	user.InviterId = inviterId
 
 	// Use transaction to ensure user creation and OAuth binding are atomic
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {

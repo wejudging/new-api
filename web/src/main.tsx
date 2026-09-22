@@ -25,6 +25,7 @@ import { installBuildMetadata } from '@/lib/build-metadata'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import '@/lib/dayjs'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
+import { captureAffiliateCodeFromUrl } from '@/features/auth/lib/storage'
 import { createAppQueryClient } from '@/lib/query-client'
 import { readCachedStatus, statusQueryOptions } from '@/lib/status-query'
 
@@ -41,6 +42,9 @@ import './styles/index.css'
 // Ensure VChart theme is initialized before any chart mounts (prevents white default theme flash)
 // VChart theme is driven by our ThemeProvider (html.light/html.dark) via per-chart `theme` prop.
 initializeFrontendCache()
+// Any landing page can carry an invite link; remember it before the auth
+// pages (or the OAuth redirect) get a chance to lose it.
+captureAffiliateCodeFromUrl()
 installBuildMetadata()
 
 const queryClient = createAppQueryClient(() => {

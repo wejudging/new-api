@@ -222,7 +222,12 @@ export async function createOAuthFlow(
 
 // WeChat login by authorization code
 export async function wechatLoginByCode(code: string): Promise<ApiResponse> {
-  const res = await api.get('/api/oauth/wechat', { params: { code } })
+  // Third-party sign-ups create the account on the server, so the invite code
+  // travels with the request instead of only living in localStorage.
+  const aff = getAffiliateCode()
+  const res = await api.get('/api/oauth/wechat', {
+    params: { code, ...(aff ? { aff } : {}) },
+  })
   return res.data
 }
 
