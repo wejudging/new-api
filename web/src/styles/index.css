@@ -1043,3 +1043,17 @@ For commercial licensing, please contact support@quantumnous.com
     display: none;
   }
 }
+
+/*
+ * Overlay stacking scale — keep every layer in this order:
+ *   60  fixed promo/announcement rows        (announcement-banner, sidebar mobile sheet)
+ *   70  side panels: Sheet / vaul Drawer
+ *   75  dialog backdrop
+ *   80  dialog & alert-dialog content
+ *   90  floating popups & menus (combobox, select, popover, dropdown-menu,
+ *       context-menu, hover-card, navigation-menu)
+ *   95  tooltips
+ * Floating layers must stay above panels: a dropdown opened inside a drawer or
+ * dialog is portalled to <body>, so if its z-index is lower than the panel it
+ * renders behind the panel and the field looks like it refuses input.
+ */
