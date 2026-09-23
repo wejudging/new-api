@@ -12,9 +12,12 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-// 主开关是渠道「额外设置」里的 backfill_reasoning_text（见 ChannelOtherSettings）。
-// 下面这个环境变量是批量兜底：填渠道 ID（逗号分隔）即可让这些渠道免勾选生效，
-// 留空表示不额外启用任何渠道。
+// 默认对所有渠道生效（无需逐个渠道勾选）。渠道「额外设置」里的
+// backfill_reasoning_text（见 ChannelOtherSettings）仍可单渠道强制开启。
+// 环境变量 REASONING_TEXT_BACKFILL_CHANNELS 用来收窄范围：
+//   - 留空（默认）        → 所有渠道
+//   - 逗号分隔的渠道 ID   → 只对这些渠道生效
+//   - off / none / -     → 全局关闭（仅单渠道勾选项仍生效）
 const (
 	reasoningTextBackfillEnvKey   = "REASONING_TEXT_BACKFILL_CHANNELS"
 	reasoningTextBackfillDefault  = ""
@@ -22,8 +25,9 @@ const (
 )
 
 var (
-	reasoningTextBackfillOnce sync.Once
-	reasoningTextBackfillIDs  map[int]struct{}
+	reasoningTextBackfillOnce       sync.Once
+	reasoningTextBackfillIDs        map[int]struct{}
+	reasoningTextBackfillScopeValue reasoningTextBackfillScope
 )
 
 // BackfillResponsesReasoningText 在 Responses 请求发往上游之前，把 input[] 里
@@ -65,10 +69,16 @@ func BackfillResponsesReasoningText(info *relaycommon.RelayInfo, body []byte) ([
 		if !item.IsObject() || item.Get("type").String() != "reasoning" {
 			return true
 		}
-		if strings.TrimSpace(reasoningPartsText(item.Get("content"))) != "" {
+		// 只有带 reasoning_text 部件的项才算「已回传思考」。content 里放的是
+		// summary_text 等其它部件时，严格上游依旧会 400，必须继续补。
+		if strings.TrimSpace(reasoningTextPartsText(item.Get("content"))) != "" {
 			return true
 		}
 		text := strings.TrimSpace(reasoningPartsText(item.Get("summary")))
+		if text == "" {
+			// 思考被网关放进了 content 的形式（非 reasoning_text 部件）也照抄一份。
+			text = strings.TrimSpace(reasoningPartsText(item.Get("content")))
+		}
 		if text == "" {
 			return true
 		}
@@ -107,8 +117,42 @@ func reasoningPartsText(parts gjson.Result) string {
 	return builder.String()
 }
 
+// reasoningTextBackfillMode 是全局生效范围，由环境变量 REASONING_TEXT_BACKFILL_CHANNELS 决定：
+//
+//	留空（默认）  → all：所有渠道都做回填，管理员无需逐个渠道勾选；
+//	ID 列表       → whitelist：只有列出的渠道做回填（兼容早期按渠道白名单的用法）；
+//	off/none/-    → off：全局关闭，只有渠道「额外设置」里显式勾选的渠道仍然生效。
+//
+// 之所以默认 all：同一条会话在「只回 summary 的网关」与「严格执行 DeepSeek 规则
+// 的渠道」之间互相兜底时，请求最终落到哪一侧取决于选路/重试，管理员很难预判需要
+// 勾哪个渠道；漏勾的一个渠道就会让整次请求以 400 结束（该错误不可重试）。
+type reasoningTextBackfillScope int
+
+const (
+	reasoningTextBackfillScopeAll reasoningTextBackfillScope = iota
+	reasoningTextBackfillScopeWhitelist
+	reasoningTextBackfillScopeOff
+)
+
+// reasoningTextPartsText 只取 content[] 里 type=reasoning_text 部件的文本；
+// 其它类型（summary_text 等）不计入，避免误判为「已经回传了思考」。
+func reasoningTextPartsText(parts gjson.Result) string {
+	if !parts.IsArray() {
+		return ""
+	}
+	var builder strings.Builder
+	parts.ForEach(func(_, part gjson.Result) bool {
+		if part.Get("type").String() != "reasoning_text" {
+			return true
+		}
+		builder.WriteString(part.Get("text").String())
+		return true
+	})
+	return builder.String()
+}
+
 // reasoningTextBackfillEnabled 判定该渠道是否要做回填：
-// 渠道「额外设置」勾选项优先；环境变量白名单作为批量兜底（默认空）。
+// 渠道「额外设置」勾选项始终优先（即使全局关闭也可单渠道开启）；否则按全局范围决定。
 func reasoningTextBackfillEnabled(info *relaycommon.RelayInfo) bool {
 	if info == nil || info.ChannelMeta == nil {
 		return false
@@ -116,16 +160,43 @@ func reasoningTextBackfillEnabled(info *relaycommon.RelayInfo) bool {
 	if info.ChannelOtherSettings.BackfillReasoningText {
 		return true
 	}
-	_, ok := reasoningTextBackfillChannels()[info.GetChannelID()]
-	return ok
+	switch resolveReasoningTextBackfillScope() {
+	case reasoningTextBackfillScopeOff:
+		return false
+	case reasoningTextBackfillScopeWhitelist:
+		_, ok := reasoningTextBackfillChannels()[info.GetChannelID()]
+		return ok
+	default:
+		return true
+	}
+}
+
+func resolveReasoningTextBackfillScope() reasoningTextBackfillScope {
+	reasoningTextBackfillOnce.Do(func() {
+		raw := common.GetEnvOrDefaultString(reasoningTextBackfillEnvKey, reasoningTextBackfillDefault)
+		reasoningTextBackfillIDs = parseReasoningTextBackfillChannels(raw)
+		reasoningTextBackfillScopeValue = parseReasoningTextBackfillScope(raw)
+	})
+	return reasoningTextBackfillScopeValue
 }
 
 func reasoningTextBackfillChannels() map[int]struct{} {
-	reasoningTextBackfillOnce.Do(func() {
-		reasoningTextBackfillIDs = parseReasoningTextBackfillChannels(
-			common.GetEnvOrDefaultString(reasoningTextBackfillEnvKey, reasoningTextBackfillDefault))
-	})
+	resolveReasoningTextBackfillScope()
 	return reasoningTextBackfillIDs
+}
+
+func parseReasoningTextBackfillScope(raw string) reasoningTextBackfillScope {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return reasoningTextBackfillScopeAll
+	}
+	switch strings.ToLower(value) {
+	case reasoningTextBackfillDisabled, "none", "-":
+		return reasoningTextBackfillScopeOff
+	}
+	// 配置了值却解析不出任何渠道 ID：按「有意的白名单」处理，
+	// 保持与早期版本一致（不因为写错一个 ID 就全局生效）。
+	return reasoningTextBackfillScopeWhitelist
 }
 
 func parseReasoningTextBackfillChannels(raw string) map[int]struct{} {

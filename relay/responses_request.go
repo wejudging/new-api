@@ -67,10 +67,12 @@ func PrepareResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, req *d
 	if err != nil {
 		return nil, nil, nil, types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 	}
-	// 只对白名单渠道（默认 228 / B.AI）补齐 reasoning_text：该渠道回传的历史思考只有
-	// summary，而 DeepSeek 思考模式要求带 tools 的请求必须回传 reasoning_text，
-	// 否则切到严格渠道（如 OpenCode 兜底）时会报
+	// 出站前统一补齐 reasoning_text：默认对所有渠道生效（REASONING_TEXT_BACKFILL_CHANNELS
+	// 可收窄到指定渠道或 off 关闭）。旧网关（如 B.AI）回传的历史思考只有 summary，
+	// 而 DeepSeek 思考模式要求带 tools 的请求必须回传 reasoning_text，否则请求落到严格
+	// 渠道（如 OpenCode）时会报
 	// "The `reasoning_text` in the thinking mode must be passed back to the API."
+	// 该错误不可重试，所以不能依赖「只给某个渠道勾选」来兜底。
 	jsonData, err = BackfillResponsesReasoningText(info, jsonData)
 	if err != nil {
 		return nil, nil, nil, types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())

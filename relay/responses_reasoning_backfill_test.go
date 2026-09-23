@@ -20,9 +20,11 @@ func resetReasoningTextBackfillCache(t *testing.T) {
 	t.Helper()
 	reasoningTextBackfillOnce = sync.Once{}
 	reasoningTextBackfillIDs = nil
+	reasoningTextBackfillScopeValue = reasoningTextBackfillScopeAll
 	t.Cleanup(func() {
 		reasoningTextBackfillOnce = sync.Once{}
 		reasoningTextBackfillIDs = nil
+		reasoningTextBackfillScopeValue = reasoningTextBackfillScopeAll
 	})
 }
 
@@ -66,14 +68,38 @@ func TestBackfillResponsesReasoningTextAddsContentWhenChannelOptedIn(t *testing.
 	}
 }
 
-func TestBackfillResponsesReasoningTextSkipsWithoutOptIn(t *testing.T) {
+// 默认（未设置环境变量）必须对所有渠道生效：跨渠道兜底时请求落到哪个渠道不可预判，
+// 漏勾的渠道会让整次请求以不可重试的 400 结束。
+func TestBackfillResponsesReasoningTextRunsByDefault(t *testing.T) {
 	resetReasoningTextBackfillCache(t)
 	out, err := BackfillResponsesReasoningText(backfillTestRelayInfo(187, false), []byte(backfillTestBody))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if string(out) == backfillTestBody {
+		t.Fatalf("body should be backfilled by default: %s", out)
+	}
+	if got := gjson.GetBytes(out, `input.#(type=="reasoning").content.0.text`).String(); got != "thinking here" {
+		t.Fatalf("unexpected backfilled text %q", got)
+	}
+}
+
+func TestBackfillResponsesReasoningTextGlobalDisable(t *testing.T) {
+	resetReasoningTextBackfillCache(t)
+	t.Setenv(reasoningTextBackfillEnvKey, reasoningTextBackfillDisabled)
+	if reasoningTextBackfillEnabled(backfillTestRelayInfo(187, false)) {
+		t.Fatalf("global off must disable channels without an explicit opt-in")
+	}
+	// 单渠道勾选项优先于全局关闭，保留逃生舱。
+	if !reasoningTextBackfillEnabled(backfillTestRelayInfo(187, true)) {
+		t.Fatalf("per-channel opt-in must win over the global switch")
+	}
+	out, err := BackfillResponsesReasoningText(backfillTestRelayInfo(187, false), []byte(backfillTestBody))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if string(out) != backfillTestBody {
-		t.Fatalf("body changed for channel without opt-in: %s", out)
+		t.Fatalf("body changed while globally disabled: %s", out)
 	}
 }
 
@@ -165,5 +191,62 @@ func TestParseReasoningTextBackfillChannels(t *testing.T) {
 				t.Fatalf("parse %q missing %d: %v", tc.raw, id, got)
 			}
 		}
+	}
+}
+
+func TestParseReasoningTextBackfillScope(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want reasoningTextBackfillScope
+	}{
+		{"", reasoningTextBackfillScopeAll},
+		{"   ", reasoningTextBackfillScopeAll},
+		{"228", reasoningTextBackfillScopeWhitelist},
+		{"228,229", reasoningTextBackfillScopeWhitelist},
+		{"off", reasoningTextBackfillScopeOff},
+		{"NONE", reasoningTextBackfillScopeOff},
+		{"-", reasoningTextBackfillScopeOff},
+		{"abc", reasoningTextBackfillScopeWhitelist},
+	}
+	for _, tc := range cases {
+		if got := parseReasoningTextBackfillScope(tc.raw); got != tc.want {
+			t.Fatalf("parse scope %q = %v, want %v", tc.raw, got, tc.want)
+		}
+	}
+}
+
+// content 里只有 summary_text 部件时，严格上游依旧要求 reasoning_text，必须补。
+func TestBackfillResponsesReasoningTextRepairsSummaryTextInContent(t *testing.T) {
+	resetReasoningTextBackfillCache(t)
+	body := `{"tools":[{"type":"function","name":"f"}],"input":[{"type":"reasoning","id":"rs_1",` +
+		`"content":[{"type":"summary_text","text":"loose thinking"}],"summary":[]}]}`
+	out, err := BackfillResponsesReasoningText(backfillTestRelayInfo(7, false), []byte(body))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	item := gjson.GetBytes(out, `input.#(type=="reasoning")`)
+	content := item.Get("content")
+	if !content.IsArray() || len(content.Array()) != 1 {
+		t.Fatalf("content not repaired: %s", item.Raw)
+	}
+	if got := content.Array()[0].Get("type").String(); got != "reasoning_text" {
+		t.Fatalf("unexpected content type %q", got)
+	}
+	if got := content.Array()[0].Get("text").String(); got != "loose thinking" {
+		t.Fatalf("unexpected repaired text %q", got)
+	}
+}
+
+// summary 为空、content 里已有 reasoning_text 的项保持原样。
+func TestBackfillResponsesReasoningTextKeepsTypedContentWithoutSummary(t *testing.T) {
+	resetReasoningTextBackfillCache(t)
+	body := `{"tools":[{"type":"function","name":"f"}],"input":[{"type":"reasoning","id":"rs_1",` +
+		`"content":[{"type":"reasoning_text","text":"native thinking"}]}]}`
+	out, err := BackfillResponsesReasoningText(backfillTestRelayInfo(7, false), []byte(body))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(out) != body {
+		t.Fatalf("body changed despite typed reasoning_text: %s", out)
 	}
 }

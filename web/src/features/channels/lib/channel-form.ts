@@ -474,7 +474,10 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   disable_store: false,
   allow_safety_identifier: false,
   allow_include_obfuscation: false,
-  backfill_reasoning_text: false,
+  // Backend backfills reasoning_text for every channel by default (see
+  // relay/responses_reasoning_backfill.go); this switch only forces it on for a
+  // single channel when the global switch disables it.
+  backfill_reasoning_text: true,
   allow_inference_geo: false,
   allow_speed: false,
   claude_beta_query: false,
@@ -547,7 +550,7 @@ export function transformChannelToFormDefaults(
   let disableStore = false
   let allowSafetyIdentifier = false
   let allowIncludeObfuscation = false
-  let backfillReasoningText = false
+  let backfillReasoningText = true
   let allowInferenceGeo = false
   let allowSpeed = false
   let claudeBetaQuery = false
@@ -569,7 +572,8 @@ export function transformChannelToFormDefaults(
       disableStore = parsed.disable_store === true
       allowSafetyIdentifier = parsed.allow_safety_identifier === true
       allowIncludeObfuscation = parsed.allow_include_obfuscation === true
-      backfillReasoningText = parsed.backfill_reasoning_text === true
+      // 缺失视为默认开启（后端默认回填），只有显式 false 才关掉。
+      backfillReasoningText = parsed.backfill_reasoning_text !== false
       allowInferenceGeo = parsed.allow_inference_geo === true
       allowSpeed = parsed.allow_speed === true
       claudeBetaQuery = parsed.claude_beta_query === true
