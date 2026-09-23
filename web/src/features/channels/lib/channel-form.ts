@@ -282,6 +282,7 @@ export const channelFormSchema = z
     disable_store: z.boolean().optional(), // OpenAI only
     allow_safety_identifier: z.boolean().optional(), // OpenAI only
     allow_include_obfuscation: z.boolean().optional(), // OpenAI: include usage obfuscation
+    backfill_reasoning_text: z.boolean().optional(), // OpenAI/Codex: mirror summary-only thinking into reasoning_text
     allow_inference_geo: z.boolean().optional(), // OpenAI/Anthropic: inference geography
     allow_speed: z.boolean().optional(), // Anthropic: speed mode control
     claude_beta_query: z.boolean().optional(), // Anthropic: beta query passthrough
@@ -473,6 +474,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   disable_store: false,
   allow_safety_identifier: false,
   allow_include_obfuscation: false,
+  backfill_reasoning_text: false,
   allow_inference_geo: false,
   allow_speed: false,
   claude_beta_query: false,
@@ -545,6 +547,7 @@ export function transformChannelToFormDefaults(
   let disableStore = false
   let allowSafetyIdentifier = false
   let allowIncludeObfuscation = false
+  let backfillReasoningText = false
   let allowInferenceGeo = false
   let allowSpeed = false
   let claudeBetaQuery = false
@@ -566,6 +569,7 @@ export function transformChannelToFormDefaults(
       disableStore = parsed.disable_store === true
       allowSafetyIdentifier = parsed.allow_safety_identifier === true
       allowIncludeObfuscation = parsed.allow_include_obfuscation === true
+      backfillReasoningText = parsed.backfill_reasoning_text === true
       allowInferenceGeo = parsed.allow_inference_geo === true
       allowSpeed = parsed.allow_speed === true
       claudeBetaQuery = parsed.claude_beta_query === true
@@ -625,6 +629,7 @@ export function transformChannelToFormDefaults(
     allow_service_tier: allowServiceTier,
     disable_store: disableStore,
     allow_include_obfuscation: allowIncludeObfuscation,
+    backfill_reasoning_text: backfillReasoningText,
     allow_inference_geo: allowInferenceGeo,
     allow_speed: allowSpeed,
     claude_beta_query: claudeBetaQuery,
@@ -741,6 +746,8 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
       formData.allow_safety_identifier === true
     settingsObj.allow_include_obfuscation =
       formData.allow_include_obfuscation === true
+    settingsObj.backfill_reasoning_text =
+      formData.backfill_reasoning_text === true
   } else {
     if ('disable_store' in settingsObj) {
       delete settingsObj.disable_store
@@ -750,6 +757,9 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     }
     if ('allow_include_obfuscation' in settingsObj) {
       delete settingsObj.allow_include_obfuscation
+    }
+    if ('backfill_reasoning_text' in settingsObj) {
+      delete settingsObj.backfill_reasoning_text
     }
   }
 

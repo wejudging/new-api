@@ -67,6 +67,14 @@ func PrepareResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, req *d
 	if err != nil {
 		return nil, nil, nil, types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 	}
+	// 只对白名单渠道（默认 228 / B.AI）补齐 reasoning_text：该渠道回传的历史思考只有
+	// summary，而 DeepSeek 思考模式要求带 tools 的请求必须回传 reasoning_text，
+	// 否则切到严格渠道（如 OpenCode 兜底）时会报
+	// "The `reasoning_text` in the thinking mode must be passed back to the API."
+	jsonData, err = BackfillResponsesReasoningText(info, jsonData)
+	if err != nil {
+		return nil, nil, nil, types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
+	}
 	jsonData, err = relaycommon.RemoveDisabledFields(jsonData, info.ChannelOtherSettings, info.ChannelSetting.PassThroughBodyEnabled)
 	if err != nil {
 		return nil, nil, nil, types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())

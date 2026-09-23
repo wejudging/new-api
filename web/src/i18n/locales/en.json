@@ -1851,6 +1851,8 @@
     "Disable selected channels": "Disable selected channels",
     "Disable selected models": "Disable selected models",
     "Disable store passthrough": "Disable store passthrough",
+    "Backfill reasoning_text (legacy gateways)": "Backfill reasoning_text (legacy gateways)",
+    "Mirror summary-only thinking into reasoning_text so conversations can fail over between channels": "Mirror summary-only thinking into reasoning_text so conversations can fail over between channels",
     "Disable task plugins?": "Disable task plugins?",
     "Disable this key?": "Disable this key?",
     "Disable threshold (seconds)": "Disable threshold (seconds)",

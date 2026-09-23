@@ -127,6 +127,13 @@ type ChannelOtherSettings struct {
 	// rejection. Empty follows the default allow policy. Accepted values:
 	// "", "allow", "safe", "strict".
 	ToolLossPolicy string `json:"tool_loss_policy,omitempty"`
+	// BackfillReasoningText mirrors a reasoning item's summary text into
+	// content[].reasoning_text before the Responses request leaves for upstream.
+	// DeepSeek's thinking mode requires reasoning_text to be replayed whenever
+	// the request carries tools; some gateways (e.g. B.AI) only return the
+	// thinking as summary, so a conversation served by them cannot fail over to
+	// a channel that enforces the rule. Opt-in per channel, default off.
+	BackfillReasoningText bool `json:"backfill_reasoning_text,omitempty"`
 }
 
 func (s *ChannelOtherSettings) IsOpenRouterEnterprise() bool {

@@ -307,6 +307,7 @@ const SENSITIVE_FORM_FIELDS = [
   'disable_store',
   'allow_safety_identifier',
   'allow_include_obfuscation',
+  'backfill_reasoning_text',
   'allow_inference_geo',
   'allow_speed',
   'claude_beta_query',
@@ -2905,6 +2906,32 @@ export function ChannelMutateDrawer({
                       </FormLabel>
                       <FormDescription>
                         {t('When enabled, the store field will be blocked')}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        disabled={sensitiveLocked}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='backfill_reasoning_text'
+                render={({ field }) => (
+                  <FormItem className='flex items-center justify-between gap-3 px-4 py-3'>
+                    <div className='space-y-0.5'>
+                      <FormLabel className='text-sm'>
+                        {t('Backfill reasoning_text (legacy gateways)')}
+                      </FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Mirror summary-only thinking into reasoning_text so conversations can fail over between channels'
+                        )}
                       </FormDescription>
                     </div>
                     <FormControl>
