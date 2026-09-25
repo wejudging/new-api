@@ -35,7 +35,7 @@ const announcement: AnnouncementBannerItem = {
 
 describe('top banner rows', () => {
   it('renders the campaign and the announcement as two separate rows', () => {
-    render(<AnnouncementBanner promo={promo} announcements={[announcement]} />)
+    render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
     const rows = screen.getAllByRole('status')
     expect(rows).toHaveLength(2)
@@ -44,14 +44,14 @@ describe('top banner rows', () => {
   })
 
   it('keeps the campaign row alone while there is no announcement', () => {
-    render(<AnnouncementBanner promo={promo} announcements={[]} />)
+    render(<AnnouncementBanner promos={[promo]} announcements={[]} />)
 
     expect(screen.getAllByRole('status')).toHaveLength(1)
     expect(screen.queryByText(announcement.content)).toBeNull()
   })
 
   it('keeps the announcement row alone while there is no campaign', () => {
-    render(<AnnouncementBanner promo={null} announcements={[announcement]} />)
+    render(<AnnouncementBanner promos={[]} announcements={[announcement]} />)
 
     const rows = screen.getAllByRole('status')
     expect(rows).toHaveLength(1)
@@ -60,14 +60,14 @@ describe('top banner rows', () => {
 
   it('renders no row without a campaign and without announcements', () => {
     const { container } = render(
-      <AnnouncementBanner promo={null} announcements={[]} />
+      <AnnouncementBanner promos={[]} announcements={[]} />
     )
 
     expect(container).toBeEmptyDOMElement()
   })
 
   it('centres the row content with auto margins so short text sits mid-row', () => {
-    render(<AnnouncementBanner promo={promo} announcements={[]} />)
+    render(<AnnouncementBanner promos={[promo]} announcements={[]} />)
 
     const row = screen.getByRole('status')
     const content = row.querySelector('.mx-auto')
@@ -77,7 +77,7 @@ describe('top banner rows', () => {
   })
 
   it('offers no dismiss control on either row', () => {
-    render(<AnnouncementBanner promo={promo} announcements={[announcement]} />)
+    render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
     expect(screen.queryByRole('button')).toBeNull()
   })
@@ -88,7 +88,7 @@ describe('top banner rows', () => {
       content: '新模型上线',
     }
     render(
-      <AnnouncementBanner promo={null} announcements={[announcement, second]} />
+      <AnnouncementBanner promos={[]} announcements={[announcement, second]} />
     )
 
     const rows = screen.getAllByRole('status')
@@ -121,7 +121,7 @@ describe('live campaign countdown', () => {
       },
     }
 
-    render(<AnnouncementBanner promo={campaignPromo} announcements={[]} />)
+    render(<AnnouncementBanner promos={[campaignPromo]} announcements={[]} />)
     const row = screen.getByRole('status')
     expect(row).toHaveTextContent('Ends in 2d 05:12:33')
     expect(row).not.toHaveTextContent('2026-10-01')
@@ -136,7 +136,7 @@ describe('live campaign countdown', () => {
   it('keeps the caption clean when the campaign has no deadline', () => {
     render(
       <AnnouncementBanner
-        promo={{
+        promos={[{
           key: 'promo',
           content: 'DeepSeek 全线限时半价 · 50% off',
           campaign: {
@@ -146,7 +146,7 @@ describe('live campaign countdown', () => {
             discount: 0.5,
             models: ['deepseek*'],
           },
-        }}
+        }]}
         announcements={[]}
       />
     )

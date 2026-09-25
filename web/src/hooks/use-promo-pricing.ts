@@ -19,19 +19,22 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 
 import {
+  getActivePromoPricings,
   getPromoDiscountForModel,
-  isPromoPricingActive,
+  getPromoPricingForModel,
   parsePromoPricing,
   type PromoPricing,
 } from '@/lib/promo-pricing'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 export type PromoPricingState = {
-  /** Active campaign, `null` when disabled, expired or unconfigured. */
-  promo: PromoPricing | null
+  /** All active campaigns, ordered as configured. */
+  promos: PromoPricing[]
   active: boolean
   /** Displayed-price multiplier for a model, `undefined` when not covered. */
   getDiscount: (modelName?: string) => number | undefined
+  /** The most specific active campaign covering a model. */
+  getPromo: (modelName?: string) => PromoPricing | undefined
 }
 
 /**
@@ -44,19 +47,24 @@ export function usePromoPricing(): PromoPricingState {
 
   return useMemo(() => {
     const parsed = parsePromoPricing(raw)
-    if (!isPromoPricingActive(parsed)) {
+    const promos = getActivePromoPricings(parsed)
+    if (promos.length === 0) {
       return {
-        promo: null,
+        promos: [],
         active: false,
         getDiscount: () => undefined,
+        getPromo: () => undefined,
       }
     }
 
     return {
-      promo: parsed,
+      promos,
       active: true,
       getDiscount: (modelName?: string) =>
-        getPromoDiscountForModel(parsed, modelName),
+        getPromoDiscountForModel(promos, modelName),
+      getPromo: (modelName?: string) => {
+        return getPromoPricingForModel(promos, modelName)
+      },
     }
   }, [raw])
 }

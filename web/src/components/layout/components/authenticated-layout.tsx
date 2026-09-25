@@ -51,7 +51,7 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
         >
           <SkipToMain />
           <AnnouncementBanner
-            promo={banner.promo}
+            promos={banner.promos}
             announcements={banner.announcements}
           />
           <AppHeader />

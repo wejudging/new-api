@@ -35,6 +35,8 @@ type QuotaInfo struct {
 	ModelPrice    float64
 	ModelRatio    float64
 	GroupRatio    float64
+	PromoDiscount       float64
+	PromoDiscountActive bool
 }
 
 func hasCustomModelRatio(modelName string, currentRatio float64) bool {
@@ -52,6 +54,9 @@ func calculateAudioQuota(info QuotaInfo) (int, *common.QuotaClamp) {
 		groupRatio := decimal.NewFromFloat(info.GroupRatio)
 
 		quota := modelPrice.Mul(quotaPerUnit).Mul(groupRatio)
+		if info.PromoDiscountActive {
+			quota = quota.Mul(decimal.NewFromFloat(info.PromoDiscount))
+		}
 		return common.QuotaFromDecimalChecked(quota)
 	}
 
@@ -75,16 +80,30 @@ func calculateAudioQuota(info QuotaInfo) (int, *common.QuotaClamp) {
 	quota = quota.Add(outputAudioTokens.Mul(audioRatio).Mul(audioCompletionRatio))
 
 	quota = quota.Mul(ratio)
+	if info.PromoDiscountActive {
+		quota = quota.Mul(decimal.NewFromFloat(info.PromoDiscount))
+	}
 
 	// If ratio is not zero and quota is less than or equal to zero, set quota to 1
-	if !ratio.IsZero() && quota.LessThanOrEqual(decimal.Zero) {
+	if !ratio.IsZero() && !info.PromoDiscountActive && quota.LessThanOrEqual(decimal.Zero) {
 		quota = decimal.NewFromInt(1)
 	}
 
 	return common.QuotaFromDecimalChecked(quota)
 }
 
+func applyPromoDiscount(quota int, priceData types.PriceData) int {
+	if !priceData.PromoDiscountActive {
+		return quota
+	}
+	result, _ := common.QuotaFromFloatChecked(float64(quota) * priceData.EffectivePromoDiscount())
+	return result
+}
+
 func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.RealtimeUsage) error {
+	if relayInfo.PriceData.PromoDiscountActive && relayInfo.PriceData.EffectivePromoDiscount() == 0 {
+		return nil
+	}
 	if relayInfo.UsePrice {
 		return nil
 	}
@@ -132,6 +151,8 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 		UsePrice:   relayInfo.UsePrice,
 		ModelRatio: modelRatio,
 		GroupRatio: actualGroupRatio,
+		PromoDiscount: relayInfo.PriceData.PromoDiscount,
+		PromoDiscountActive: relayInfo.PriceData.PromoDiscountActive,
 	}
 
 	quota, clamp := calculateAudioQuota(quotaInfo)
@@ -196,6 +217,8 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		UsePrice:   usePrice,
 		ModelRatio: modelRatio,
 		GroupRatio: groupRatio,
+		PromoDiscount: relayInfo.PriceData.PromoDiscount,
+		PromoDiscountActive: relayInfo.PriceData.PromoDiscountActive,
 	}
 
 	quota, clamp := calculateAudioQuota(quotaInfo)
@@ -329,6 +352,8 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		UsePrice:   usePrice,
 		ModelRatio: modelRatio,
 		GroupRatio: groupRatio,
+		PromoDiscount: relayInfo.PriceData.PromoDiscount,
+		PromoDiscountActive: relayInfo.PriceData.PromoDiscountActive,
 	}
 
 	quota, clamp := calculateAudioQuota(quotaInfo)

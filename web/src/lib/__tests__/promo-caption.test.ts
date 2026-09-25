@@ -61,6 +61,10 @@ describe('promo captions', () => {
     expect(promoOffLabel(makePromo({ discount: 0.8 }), t)).toBe('20% off')
   })
 
+  test('labels a zero multiplier as limited-time free', () => {
+    expect(promoOffLabel(makePromo({ discount: 0 }), t)).toBe('Limited-time free')
+  })
+
   test('renders the deadline when one is configured', () => {
     expect(promoExpiryLabel(makePromo(), t)).toBe('')
     expect(

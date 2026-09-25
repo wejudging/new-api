@@ -655,7 +655,8 @@ function PriceSection(props: {
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
   const currency = useSystemConfigStore((state) => state.config.currency)
   const billingTime = useBillingTime(props.model.billing_expr)
-  const { promo, getDiscount } = usePromoPricing()
+  const { getPromo, getDiscount } = usePromoPricing()
+  const promo = getPromo(props.model.model_name)
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
   const dynamicPriceOptions = useMemo(

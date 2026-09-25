@@ -27,9 +27,27 @@ type PriceData struct {
 	AudioCompletionRatio float64
 	otherRatios          map[string]float64
 	UsePrice             bool
+	// PromoDiscount is the active campaign multiplier. It is only meaningful
+	// when PromoDiscountActive is true; zero therefore remains a valid free
+	// campaign value without changing legacy zero-value PriceData fixtures.
+	PromoDiscount       float64
+	PromoDiscountActive bool
 	Quota                int // 按次计费的最终额度（MJ / Task）
 	QuotaToPreConsume    int // 按量计费的预消耗额度
 	GroupRatioInfo       GroupRatioInfo
+}
+
+func (p PriceData) EffectivePromoDiscount() float64 {
+	if !p.PromoDiscountActive {
+		return 1
+	}
+	if p.PromoDiscount < 0 {
+		return 0
+	}
+	if p.PromoDiscount > 1 {
+		return 1
+	}
+	return p.PromoDiscount
 }
 
 func (p *PriceData) AddOtherRatio(key string, ratio float64) {

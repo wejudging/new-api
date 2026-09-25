@@ -24,36 +24,42 @@ For commercial licensing, please contact support@quantumnous.com
  * exposed to every visitor through `/api/status` (`promo_pricing`), so the
  * banner and the pricing page can discount prices without any extra request.
  *
- * Shape:
+ * Shape (the current form stores an array; a single object remains accepted
+ * for backwards compatibility):
  * ```json
- * {
+ * [{
+ *   "id": "deepseek-half-price",
  *   "enabled": true,
  *   "title": "DeepSeek 全线限时半价",
  *   "expiresAt": "2026-10-01T23:59:00+08:00",
  *   "discount": 0.5,
  *   "models": ["deepseek*"]
- * }
+ * }]
  * ```
  */
 
 export type PromoPricing = {
+  /** Stable editor key. Older single-campaign values may omit it. */
+  id?: string
   enabled: boolean
   title: string
   /** RFC3339 timestamp; empty string means "no deadline". */
   expiresAt: string
-  /** Displayed price multiplier, `0 < discount <= 1` (0.5 = half price). */
+  /** Displayed price multiplier, `0 <= discount <= 1` (0 = free, 0.5 = half price). */
   discount: number
   /** Model names or `*` patterns matched case-insensitively. */
   models: string[]
 }
 
+export type PromoPricingConfig = PromoPricing[]
+
 export const DEFAULT_PROMO_DISCOUNT = 0.5
 
-/** Parse a discount multiplier, rejecting values outside `(0, 1]`. */
+/** Parse a discount multiplier, rejecting values outside `[0, 1]`. */
 function normalizeDiscount(value: unknown): number | undefined {
   const num = typeof value === 'string' ? Number(value.trim()) : value
   if (typeof num !== 'number' || !Number.isFinite(num)) return undefined
-  if (num <= 0 || num > 1) return undefined
+  if (num < 0 || num > 1) return undefined
   return num
 }
 
@@ -78,33 +84,40 @@ function normalizeText(value: unknown): string {
  * Parse the raw option value. Accepts either a JSON string (option storage) or
  * an already-parsed object. Returns `null` when there is nothing usable.
  */
-export function parsePromoPricing(raw: unknown): PromoPricing | null {
-  if (raw === null || raw === undefined) return null
+export function parsePromoPricing(raw: unknown): PromoPricingConfig {
+  if (raw === null || raw === undefined) return []
 
   let value: unknown = raw
   if (typeof raw === 'string') {
     const trimmed = raw.trim()
-    if (!trimmed) return null
+    if (!trimmed) return []
     try {
       value = JSON.parse(trimmed)
     } catch {
-      return null
+      return []
     }
   }
 
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return null
-  }
+  if (typeof value !== 'object' || value === null) return []
 
-  const record = value as Record<string, unknown>
-
-  return {
-    enabled: record.enabled === true || record.enabled === 'true',
-    title: normalizeText(record.title),
-    expiresAt: normalizeText(record.expiresAt),
-    discount: normalizeDiscount(record.discount) ?? DEFAULT_PROMO_DISCOUNT,
-    models: normalizeModels(record.models),
-  }
+  const records = Array.isArray(value) ? value : [value]
+  return records.flatMap((item, index) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      return []
+    }
+    const record = item as Record<string, unknown>
+    return [
+      {
+        id: normalizeText(record.id) || `campaign-${index + 1}`,
+        enabled: record.enabled === true || record.enabled === 'true',
+        title: normalizeText(record.title),
+        expiresAt: normalizeText(record.expiresAt),
+        discount:
+          normalizeDiscount(record.discount) ?? DEFAULT_PROMO_DISCOUNT,
+        models: normalizeModels(record.models),
+      },
+    ]
+  })
 }
 
 /** Deadline timestamp in milliseconds, or `null` when unset/unparseable. */
@@ -126,6 +139,13 @@ export function isPromoPricingActive(
   if (expiry !== null && expiry <= now) return false
 
   return true
+}
+
+export function getActivePromoPricings(
+  promos: PromoPricing[] | null,
+  now: number = Date.now()
+): PromoPricing[] {
+  return (promos ?? []).filter((promo) => isPromoPricingActive(promo, now))
 }
 
 function escapeRegExp(input: string): string {
@@ -163,13 +183,47 @@ export function matchesPromoModel(
  * covers it.
  */
 export function getPromoDiscountForModel(
-  promo: PromoPricing | null,
+  promos: PromoPricing[] | PromoPricing | null,
   modelName: string | undefined,
   now: number = Date.now()
 ): number | undefined {
-  if (!isPromoPricingActive(promo, now)) return undefined
-  if (!matchesPromoModel(promo, modelName)) return undefined
-  return promo.discount
+  return getPromoPricingForModel(promos, modelName, now)?.discount
+}
+
+export function getPromoPricingForModel(
+  promos: PromoPricing[] | PromoPricing | null,
+  modelName: string | undefined,
+  now: number = Date.now()
+): PromoPricing | undefined {
+  const campaigns = Array.isArray(promos) ? promos : promos ? [promos] : []
+  const matches = campaigns.filter(
+    (promo) =>
+      isPromoPricingActive(promo, now) && matchesPromoModel(promo, modelName)
+  )
+  if (matches.length === 0) return undefined
+
+  // Exact model names win over wildcards; among wildcard matches, the longer
+  // pattern is more specific. This makes overlapping campaigns predictable.
+  const normalizedName = modelName?.trim().toLowerCase() ?? ''
+  const score = (promo: PromoPricing) =>
+    Math.max(
+      ...promo.models.map((pattern) => {
+        const normalized = pattern.trim().toLowerCase()
+        if (normalized === normalizedName) return 1_000_000 + normalized.length
+        return (normalized.replaceAll('*', '').length || 0) * 1000
+      })
+    )
+  return matches.sort((a, b) => score(b) - score(a))[0]
+}
+
+export function getPromoCampaignsForModel(
+  promos: PromoPricing[] | null,
+  modelName: string | undefined,
+  now: number = Date.now()
+): PromoPricing[] {
+  return getActivePromoPricings(promos, now).filter((promo) =>
+    matchesPromoModel(promo, modelName)
+  )
 }
 
 /** Discount expressed as a percentage off, e.g. `0.5` → `50`. */

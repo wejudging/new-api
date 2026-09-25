@@ -47,7 +47,7 @@ export interface SystemConfig {
   displayTokenStatEnabled?: boolean
   currency: CurrencyConfig
   /** Limited-time pricing campaign from `/api/status`, `null` when none. */
-  promoPricing?: PromoPricing | null
+  promoPricing?: PromoPricing[]
 }
 
 export const DEFAULT_CURRENCY_CONFIG: CurrencyConfig = {

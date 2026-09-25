@@ -23,7 +23,8 @@ func PrepareImageBillingForRequest(c *gin.Context, info *relaycommon.RelayInfo, 
 	info.ImageRequestCount = count
 	var quota int
 	var err error
-	if snap := info.TieredBillingSnapshot; snap != nil && snap.BillingMode == "tiered_expr" {
+	tieredBilling := info.TieredBillingSnapshot != nil && info.TieredBillingSnapshot.BillingMode == "tiered_expr"
+	if snap := info.TieredBillingSnapshot; tieredBilling {
 		// Token-only image expressions must not acquire a quantity multiplier.
 		if snap.EstimatedImageCount == nil {
 			return nil
@@ -40,13 +41,18 @@ func PrepareImageBillingForRequest(c *gin.Context, info *relaycommon.RelayInfo, 
 			return types.NewErrorWithStatusCode(runErr, types.ErrorCodeModelPriceError, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
 		beforeGroup := cost / 1_000_000 * snap.QuotaPerUnit
+		unscaledBeforeGroup := beforeGroup
 		if trace.BillingUnit != billingexpr.BillingUnitRequest && snap.PreConsumeMultiplier != 0 {
 			beforeGroup *= snap.PreConsumeMultiplier
 		}
-		quota, err = billingexpr.QuotaRoundStrict(beforeGroup * info.PriceData.GroupRatioInfo.GroupRatio)
+		promoMultiplier := 1.0
+		if snap.PromoDiscountActive {
+			promoMultiplier = snap.PromoDiscount
+		}
+		quota, err = billingexpr.QuotaRoundStrict(beforeGroup * info.PriceData.GroupRatioInfo.GroupRatio * promoMultiplier)
 		if err == nil {
 			snap.EstimatedImageCount = trace.ImageCount
-			snap.EstimatedQuotaBeforeGroup = beforeGroup
+			snap.EstimatedQuotaBeforeGroup = unscaledBeforeGroup
 			snap.EstimatedQuotaAfterGroup = quota
 			snap.EstimatedTier = trace.MatchedTier
 			snap.EstimatedBillingUnit = trace.BillingUnit
@@ -69,6 +75,9 @@ func PrepareImageBillingForRequest(c *gin.Context, info *relaycommon.RelayInfo, 
 	}
 	if err != nil {
 		return types.NewErrorWithStatusCode(err, types.ErrorCodeModelPriceError, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+	}
+	if !tieredBilling {
+		quota = applyPromoDiscount(quota, info.PriceData)
 	}
 	info.PriceData.QuotaToPreConsume = quota
 	if quota == 0 && info.Billing == nil {

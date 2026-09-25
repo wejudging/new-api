@@ -59,7 +59,8 @@ export function ModelPriceCell(props: {
   const tokenUnit = options.tokenUnit ?? DEFAULT_TOKEN_UNIT
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const billingTime = useBillingTime(props.model.billing_expr)
-  const { promo, getDiscount } = usePromoPricing()
+  const { getPromo, getDiscount } = usePromoPricing()
+  const promo = getPromo(props.model.model_name)
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
   const dynamicOptions = useMemo(

@@ -41,7 +41,7 @@ export function PublicLayout(props: PublicLayoutProps) {
   return (
     <div className='bg-background text-foreground relative min-h-svh overflow-x-clip'>
       <AnnouncementBanner
-        promo={banner.promo}
+        promos={banner.promos}
         announcements={banner.announcements}
         className='fixed inset-x-0 top-0 z-60'
       />

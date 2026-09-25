@@ -24,38 +24,42 @@ import { cn } from '@/lib/utils'
 import { PromoCountdown } from './promo-countdown'
 
 type AnnouncementBannerProps = {
-  /** Active limited-time campaign, or `null` when there is none. */
-  promo: AnnouncementBannerItem | null
+  /** Active limited-time campaigns. */
+  promos: AnnouncementBannerItem[]
   /** Newest platform announcements; the row hides itself while empty. */
   announcements: AnnouncementBannerItem[]
   className?: string
 }
 
 const ROW_CLASS =
-  'flex h-9 w-full shrink-0 items-center gap-2 px-3 text-xs whitespace-nowrap'
+  'flex min-h-9 w-full shrink-0 items-start gap-2 px-3 py-2 text-xs'
 
 /**
- * Centred, single-line row body: text sits in the middle of the row and only
- * scrolls horizontally once it is too long to fit.
+ * Centered row body. Text wraps on narrow screens instead of being clipped or
+ * requiring a horizontal swipe; the surrounding layout observes the real
+ * banner height through ResizeObserver.
  */
 function AnnouncementBannerText(props: {
   items: AnnouncementBannerItem[]
   className?: string
 }) {
   return (
-    <div className='min-w-0 flex-1 [scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden'>
+    <div className='min-w-0 flex-1'>
       <div
-        className={cn('mx-auto flex w-max items-center gap-3', props.className)}
+        className={cn(
+          'mx-auto flex w-full flex-wrap items-center gap-x-3 gap-y-1 break-words whitespace-normal',
+          props.className
+        )}
       >
         {props.items.map((item, index) => (
-          <div key={item.key} className='flex shrink-0 items-center gap-3'>
+          <div key={item.key} className='flex min-w-0 max-w-full items-start gap-3'>
             {index > 0 ? (
               <span
                 className='h-3 w-px shrink-0 bg-current opacity-40'
                 aria-hidden
               />
             ) : null}
-            <span title={item.content}>
+            <span className='min-w-0 break-words' title={item.content}>
               {item.content}
               {item.campaign ? <PromoCountdown promo={item.campaign} /> : null}
             </span>
@@ -72,24 +76,26 @@ function AnnouncementBannerText(props: {
  * not rendered at all, and neither row can be dismissed.
  */
 export function AnnouncementBanner(props: AnnouncementBannerProps) {
-  if (!props.promo && props.announcements.length === 0) return null
+  if (props.promos.length === 0 && props.announcements.length === 0) return null
 
   return (
     <div
+      data-announcement-banner
       className={cn(
         'relative z-60 flex w-full shrink-0 flex-col',
         props.className
       )}
     >
-      {props.promo ? (
-        <div role='status' className={cn(ROW_CLASS, 'bg-red-600 text-white')}>
-          <Sparkles className='size-3.5 shrink-0 opacity-90' aria-hidden />
-          <AnnouncementBannerText
-            items={[props.promo]}
-            className='font-semibold'
-          />
+      {props.promos.map((promo) => (
+        <div
+          key={promo.key}
+          role='status'
+          className={cn(ROW_CLASS, 'bg-red-600 text-white')}
+        >
+          <Sparkles className='mt-0.5 size-3.5 shrink-0 opacity-90' aria-hidden />
+          <AnnouncementBannerText items={[promo]} className='font-semibold' />
         </div>
-      ) : null}
+      ))}
       {props.announcements.length > 0 ? (
         <div
           role='status'

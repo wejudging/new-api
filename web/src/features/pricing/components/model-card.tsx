@@ -76,7 +76,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const isUnconfiguredTaskUsage = isUnconfiguredTaskUsageModel(props.model)
   const billingTime = useBillingTime(props.model.billing_expr)
   const currency = useSystemConfigStore((state) => state.config.currency)
-  const { promo, getDiscount } = usePromoPricing()
+  const { getPromo, getDiscount } = usePromoPricing()
+  const promo = getPromo(props.model.model_name)
   const discount = getDiscount(props.model.model_name) ?? 1
   const hasPromo = discount !== 1
   const dynamicPriceOptions = useMemo(

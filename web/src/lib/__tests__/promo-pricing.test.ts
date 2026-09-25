@@ -44,32 +44,39 @@ function makePromo(overrides: Partial<PromoPricing> = {}): PromoPricing {
 
 describe('parsePromoPricing', () => {
   test('returns null when the option is empty or malformed', () => {
-    expect(parsePromoPricing(null)).toBeNull()
-    expect(parsePromoPricing(undefined)).toBeNull()
-    expect(parsePromoPricing('')).toBeNull()
-    expect(parsePromoPricing('   ')).toBeNull()
-    expect(parsePromoPricing('{not json')).toBeNull()
-    expect(parsePromoPricing('[]')).toBeNull()
-    expect(parsePromoPricing('42')).toBeNull()
-    expect(parsePromoPricing(42)).toBeNull()
+    expect(parsePromoPricing(null)).toEqual([])
+    expect(parsePromoPricing(undefined)).toEqual([])
+    expect(parsePromoPricing('')).toEqual([])
+    expect(parsePromoPricing('   ')).toEqual([])
+    expect(parsePromoPricing('{not json')).toEqual([])
+    expect(parsePromoPricing('[]')).toEqual([])
+    expect(parsePromoPricing('42')).toEqual([])
+    expect(parsePromoPricing(42)).toEqual([])
   })
 
   test('parses the JSON string stored in the option', () => {
-    expect(parsePromoPricing(JSON.stringify(makePromo()))).toEqual(makePromo())
+    expect(parsePromoPricing(JSON.stringify(makePromo()))).toEqual([
+      { ...makePromo(), id: 'campaign-1' },
+    ])
   })
 
   test('parses an already-decoded object', () => {
-    expect(parsePromoPricing(makePromo())).toEqual(makePromo())
+    expect(parsePromoPricing(makePromo())).toEqual([
+      { ...makePromo(), id: 'campaign-1' },
+    ])
   })
 
   test('fills defaults for missing fields', () => {
-    expect(parsePromoPricing('{}')).toEqual({
-      enabled: false,
-      title: '',
-      expiresAt: '',
-      discount: DEFAULT_PROMO_DISCOUNT,
-      models: [],
-    })
+    expect(parsePromoPricing('{}')).toEqual([
+      {
+        id: 'campaign-1',
+        enabled: false,
+        title: '',
+        expiresAt: '',
+        discount: DEFAULT_PROMO_DISCOUNT,
+        models: [],
+      },
+    ])
   })
 
   test('accepts string flags and numbers', () => {
@@ -89,19 +96,17 @@ describe('parsePromoPricing', () => {
   })
 
   test('rejects discounts outside (0, 1]', () => {
-    expect(parsePromoPricing({ discount: 0 })?.discount).toBe(
+    expect(parsePromoPricing({ discount: 0 })[0]?.discount).toBe(0)
+    expect(parsePromoPricing({ discount: 1.5 })[0]?.discount).toBe(
       DEFAULT_PROMO_DISCOUNT
     )
-    expect(parsePromoPricing({ discount: 1.5 })?.discount).toBe(
+    expect(parsePromoPricing({ discount: -0.5 })[0]?.discount).toBe(
       DEFAULT_PROMO_DISCOUNT
     )
-    expect(parsePromoPricing({ discount: -0.5 })?.discount).toBe(
+    expect(parsePromoPricing({ discount: 'abc' })[0]?.discount).toBe(
       DEFAULT_PROMO_DISCOUNT
     )
-    expect(parsePromoPricing({ discount: 'abc' })?.discount).toBe(
-      DEFAULT_PROMO_DISCOUNT
-    )
-    expect(parsePromoPricing({ discount: 1 })?.discount).toBe(1)
+    expect(parsePromoPricing({ discount: 1 })[0]?.discount).toBe(1)
   })
 })
 
@@ -123,6 +128,7 @@ describe('isPromoPricingActive', () => {
     expect(isPromoPricingActive(makePromo({ enabled: false }))).toBe(false)
     expect(isPromoPricingActive(makePromo({ models: [] }))).toBe(false)
     expect(isPromoPricingActive(makePromo())).toBe(true)
+    expect(isPromoPricingActive(makePromo({ discount: 0 }))).toBe(true)
   })
 
   test('treats a campaign without a deadline as active', () => {

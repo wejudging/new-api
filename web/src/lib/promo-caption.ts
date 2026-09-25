@@ -30,6 +30,7 @@ export const PROMO_EXPIRY_FORMAT = 'YYYY-MM-DD HH:mm'
 
 /** `50% off` label for a limited-time campaign. */
 export function promoOffLabel(promo: PromoPricing, t: TFunction): string {
+  if (promo.discount === 0) return t('Limited-time free')
   return t('{{percent}}% off', { percent: getPromoOffPercent(promo.discount) })
 }
 

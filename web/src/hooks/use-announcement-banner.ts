@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { promoOffLabel } from '@/lib/promo-caption'
@@ -43,18 +43,18 @@ function collapseWhitespace(input: string): string {
   return input.replaceAll(/\s+/g, ' ').trim()
 }
 
-function buildPromoItem(
-  promo: PromoPricing | null,
+function buildPromoItems(
+  promos: PromoPricing[],
   t: TFunction
-): AnnouncementBannerItem | null {
-  if (!promo) return null
-
-  const title = collapseWhitespace(promo.title) || t('Limited-time offer')
-  return {
-    key: 'promo',
-    content: `${title} · ${promoOffLabel(promo, t)}`,
-    campaign: promo,
-  }
+): AnnouncementBannerItem[] {
+  return promos.map((promo, index) => {
+    const title = collapseWhitespace(promo.title) || t('Limited-time offer')
+    return {
+      key: `promo:${promo.id || index}`,
+      content: `${title} · ${promoOffLabel(promo, t)}`,
+      campaign: promo,
+    }
+  })
 }
 
 function buildAnnouncementItems(
@@ -77,29 +77,47 @@ function buildAnnouncementItems(
 }
 
 /**
- * Feeds the two top rows of the app shell: the active limited-time campaign,
- * then the newest platform announcements. Each row keeps its own height and is
+ * Feeds the top rows of the app shell: each active limited-time campaign gets
+ * its own row, then the newest platform announcements. The measured height is
  * dropped entirely while it has nothing to show.
  */
 export function useAnnouncementBanner() {
   const { t } = useTranslation()
   const { announcements } = useNotifications()
-  const { promo } = usePromoPricing()
+  const { promos } = usePromoPricing()
 
-  const promoItem = useMemo(() => buildPromoItem(promo, t), [promo, t])
+  const promoItems = useMemo(() => buildPromoItems(promos, t), [promos, t])
   const announcementItems = useMemo(
     () => buildAnnouncementItems(announcements),
     [announcements]
   )
-  const rowCount = (promoItem ? 1 : 0) + (announcementItems.length > 0 ? 1 : 0)
+  const rowCount = promoItems.length + (announcementItems.length > 0 ? 1 : 0)
+  const [height, setHeight] = useState(
+    rowCount === 0 ? '0px' : `calc(${rowCount} * ${ANNOUNCEMENT_BANNER_HEIGHT})`
+  )
+
+  useEffect(() => {
+    const element = document.querySelector<HTMLElement>(
+      '[data-announcement-banner]'
+    )
+    if (!element || typeof ResizeObserver === 'undefined') {
+      setHeight(rowCount === 0 ? '0px' : `calc(${rowCount} * ${ANNOUNCEMENT_BANNER_HEIGHT})`)
+      return
+    }
+
+    const updateHeight = () => {
+      setHeight(`${Math.ceil(element.getBoundingClientRect().height)}px`)
+    }
+    updateHeight()
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [rowCount, promoItems, announcementItems])
 
   return {
-    promo: promoItem,
+    promos: promoItems,
     announcements: announcementItems,
     visible: rowCount > 0,
-    height:
-      rowCount === 0
-        ? '0px'
-        : `calc(${rowCount} * ${ANNOUNCEMENT_BANNER_HEIGHT})`,
+    height,
   }
 }
