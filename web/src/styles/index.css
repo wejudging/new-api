@@ -1057,3 +1057,30 @@ For commercial licensing, please contact support@quantumnous.com
  * dialog is portalled to <body>, so if its z-index is lower than the panel it
  * renders behind the panel and the field looks like it refuses input.
  */
+
+/* ── Top banner ticker: only long rows move, short rows stay centred ── */
+@keyframes banner-ticker {
+  0%,
+  10% {
+    transform: translateX(0);
+  }
+  50%,
+  60% {
+    transform: translateX(var(--banner-shift, 0px));
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.banner-ticker {
+  animation: banner-ticker var(--banner-duration, 20s) ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-ticker {
+    animation: none;
+    transform: translateX(0);
+  }
+}

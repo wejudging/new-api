@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
 import type { PromoColor } from '@/lib/promo-pricing'
 import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
 
 import { PromoCountdown } from './promo-countdown'
 
@@ -52,10 +53,48 @@ function AnnouncementBannerText(props: {
   items: AnnouncementBannerItem[]
   className?: string
 }) {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const trackRef = useRef<HTMLDivElement | null>(null)
+  const [shift, setShift] = useState(0)
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const track = trackRef.current
+    if (!viewport || !track) return
+
+    const measure = () => {
+      const overflow = track.scrollWidth - viewport.clientWidth
+      // Only rows that are actually too wide start moving.
+      setShift(overflow > 4 ? overflow : 0)
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(track)
+    return () => observer.disconnect()
+  }, [props.items])
+
   return (
-    <div className='min-w-0 flex-1 [scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden'>
+    <div ref={viewportRef} className='min-w-0 flex-1 overflow-hidden'>
       <div
-        className={cn('mx-auto flex w-max items-center gap-3', props.className)}
+        ref={trackRef}
+        className={cn(
+          'mx-auto flex w-max items-center gap-3',
+          shift > 0 && 'banner-ticker',
+          props.className
+        )}
+        style={
+          shift > 0
+            ? ({
+                '--banner-shift': `-${shift}px`,
+                '--banner-duration': `${Math.max(14, Math.round(shift / 30))}s`,
+              } as React.CSSProperties)
+            : undefined
+        }
       >
         {props.items.map((item, index) => (
           <div key={item.key} className='flex shrink-0 items-center gap-3'>
