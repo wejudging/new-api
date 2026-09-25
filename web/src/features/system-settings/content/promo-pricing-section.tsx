@@ -59,6 +59,7 @@ function toForm(promo: PromoPricing, index: number): PromoPricingForm {
     models: promo.models,
     modelsText: promo.models.join(', '),
     expiresAt: promo.expiresAt,
+    color: promo.color ?? 'red',
   }
 }
 
@@ -105,6 +106,7 @@ function toOptionValue(campaigns: PromoPricingForm[]): string {
       expiresAt: campaign.expiresAt,
       discount: Number((normalizedDiscountPercent / 100).toFixed(4)),
       models,
+      color: campaign.color ?? 'red',
     }
   })
   return JSON.stringify(value)
