@@ -41,7 +41,7 @@ type PromoPricingSectionProps = {
   data: string
 }
 
-type PromoPricingForm = PromoPricing & {
+type PromoPricingForm = Omit<PromoPricing, 'discount'> & {
   /** Discount multiplier entered as a price percentage: 0 = free, 50 = half. */
   discountPercent: string
   modelsText: string
@@ -65,7 +65,6 @@ function createCampaign(index: number): PromoPricingForm {
     enabled: true,
     title: '',
     discountPercent: String(Math.round(DEFAULT_PROMO_DISCOUNT * 100)),
-    discount: DEFAULT_PROMO_DISCOUNT,
     models: [],
     modelsText: '',
     expiresAt: '',

@@ -87,7 +87,7 @@ describe('parsePromoPricing', () => {
       models: [' deepseek-chat ', 'deepseek-chat', 7, ''],
     })
 
-    expect(parsed).toMatchObject({
+    expect(parsed[0]).toMatchObject({
       enabled: true,
       discount: 0.25,
       title: 'Half price',

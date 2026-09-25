@@ -66,14 +66,15 @@ describe('top banner rows', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('centres the row content with auto margins so short text sits mid-row', () => {
+  it('centres the row content and lets long text wrap instead of scrolling', () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[]} />)
 
     const row = screen.getByRole('status')
     const content = row.querySelector('.mx-auto')
     expect(content).not.toBeNull()
     expect(content).toHaveTextContent(promo.content)
-    expect(content).toHaveClass('w-max')
+    expect(content).toHaveClass('w-full')
+    expect(content).toHaveClass('flex-wrap')
   })
 
   it('offers no dismiss control on either row', () => {
