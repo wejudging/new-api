@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { act, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
@@ -35,17 +34,13 @@ const announcement: AnnouncementBannerItem = {
 }
 
 describe('top banner rows', () => {
-  it('rotates campaigns and announcements through one bar', async () => {
+  it('renders the campaign and the announcement as two separate rows', () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
     const rows = screen.getAllByRole('status')
-    expect(rows).toHaveLength(1)
+    expect(rows).toHaveLength(2)
     expect(rows[0]).toHaveTextContent(promo.content)
-    expect(rows[0]).toHaveTextContent('1/2')
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByRole('status')).toHaveTextContent(announcement.content)
-    expect(screen.getByRole('status')).toHaveTextContent('2/2')
+    expect(rows[1]).toHaveTextContent(announcement.content)
   })
 
   it('keeps the campaign row alone while there is no announcement', () => {
@@ -71,22 +66,21 @@ describe('top banner rows', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('centres the row content and lets long text wrap instead of scrolling', () => {
+  it('centres short text and keeps long text on one scrollable line', () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[]} />)
 
     const row = screen.getByRole('status')
     const content = row.querySelector('.mx-auto')
     expect(content).not.toBeNull()
     expect(content).toHaveTextContent(promo.content)
-    expect(content).toHaveClass('w-full')
-    expect(content).toHaveClass('flex-wrap')
+    expect(content).toHaveClass('w-max')
   })
 
-  it('exposes rotation controls instead of a dismiss button', () => {
+  it('shows no icon and no dismiss control on the rows', () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(document.querySelector('svg')).toBeNull()
   })
 
   it('joins several announcements in the single announcement row', () => {
