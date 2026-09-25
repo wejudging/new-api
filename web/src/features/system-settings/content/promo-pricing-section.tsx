@@ -28,10 +28,13 @@ import { Label } from '@/components/ui/label'
 import { handleServerError } from '@/lib/handle-server-error'
 import {
   DEFAULT_PROMO_DISCOUNT,
+  PROMO_COLORS,
   parsePromoPricing,
+  type PromoColor,
   type PromoPricingConfig,
   type PromoPricing,
 } from '@/lib/promo-pricing'
+import { cn } from '@/lib/utils'
 
 import { SettingsSwitchField } from '../components/settings-form-layout'
 import { SettingsSection } from '../components/settings-section'
@@ -69,6 +72,16 @@ function createCampaign(index: number): PromoPricingForm {
     modelsText: '',
     expiresAt: '',
   }
+}
+
+/** Swatch backgrounds; literal strings so Tailwind keeps them. */
+const PROMO_SWATCH: Record<PromoColor, string> = {
+  red: 'bg-red-600',
+  amber: 'bg-amber-500',
+  emerald: 'bg-emerald-600',
+  sky: 'bg-sky-600',
+  violet: 'bg-violet-600',
+  slate: 'bg-slate-700',
 }
 
 function toOptionValue(campaigns: PromoPricingForm[]): string {
@@ -235,6 +248,31 @@ export function PromoPricingSection(props: PromoPricingSectionProps) {
                 </span>{' '}
                 · {discount === 0 ? t('Limited-time free') : t('Price at {{percent}}%', { percent: discountPercent })}
               </p>
+
+              <div className='space-y-2'>
+                <Label>{t('Banner colour')}</Label>
+                <div className='flex flex-wrap items-center gap-2'>
+                  {PROMO_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type='button'
+                      aria-label={color}
+                      title={color}
+                      onClick={() => update(index, 'color', color)}
+                      className={cn(
+                        'size-6 rounded-full ring-2 ring-offset-1 ring-offset-background transition',
+                        PROMO_SWATCH[color],
+                        (campaign.color ?? 'red') === color
+                          ? 'ring-foreground'
+                          : 'ring-transparent'
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className='text-muted-foreground text-xs'>
+                  {t('Each campaign keeps its own banner colour.')}
+                </p>
+              </div>
             </div>
           )
         })}

@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Megaphone, Sparkles } from 'lucide-react'
 
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
+import type { PromoColor } from '@/lib/promo-pricing'
 import { cn } from '@/lib/utils'
 
 import { PromoCountdown } from './promo-countdown'
@@ -33,6 +34,16 @@ type AnnouncementBannerProps = {
 
 const ROW_CLASS =
   'flex min-h-9 w-full shrink-0 items-start gap-2 px-3 py-2 text-xs'
+
+/** Literal class strings so Tailwind keeps every preset in the bundle. */
+const PROMO_ROW_COLORS: Record<PromoColor, string> = {
+  red: 'bg-red-600 text-white',
+  amber: 'bg-amber-500 text-amber-950',
+  emerald: 'bg-emerald-600 text-white',
+  sky: 'bg-sky-600 text-white',
+  violet: 'bg-violet-600 text-white',
+  slate: 'bg-slate-700 text-white',
+}
 
 /**
  * Centered row body. Text wraps on narrow screens instead of being clipped or
@@ -90,7 +101,10 @@ export function AnnouncementBanner(props: AnnouncementBannerProps) {
         <div
           key={promo.key}
           role='status'
-          className={cn(ROW_CLASS, 'bg-red-600 text-white')}
+          className={cn(
+            ROW_CLASS,
+            PROMO_ROW_COLORS[promo.color ?? 'red'] ?? PROMO_ROW_COLORS.red
+          )}
         >
           <Sparkles className='mt-0.5 size-3.5 shrink-0 opacity-90' aria-hidden />
           <AnnouncementBannerText items={[promo]} className='font-semibold' />

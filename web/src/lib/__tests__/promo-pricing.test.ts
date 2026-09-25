@@ -56,13 +56,13 @@ describe('parsePromoPricing', () => {
 
   test('parses the JSON string stored in the option', () => {
     expect(parsePromoPricing(JSON.stringify(makePromo()))).toEqual([
-      { ...makePromo(), id: 'campaign-1' },
+      { ...makePromo(), id: 'campaign-1', color: 'red' },
     ])
   })
 
   test('parses an already-decoded object', () => {
     expect(parsePromoPricing(makePromo())).toEqual([
-      { ...makePromo(), id: 'campaign-1' },
+      { ...makePromo(), id: 'campaign-1', color: 'red' },
     ])
   })
 
@@ -75,6 +75,7 @@ describe('parsePromoPricing', () => {
         expiresAt: '',
         discount: DEFAULT_PROMO_DISCOUNT,
         models: [],
+        color: 'red',
       },
     ])
   })

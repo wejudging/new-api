@@ -49,6 +49,27 @@ export type PromoPricing = {
   discount: number
   /** Model names or `*` patterns matched case-insensitively. */
   models: string[]
+  /** Banner colour key; defaults to `red` for values saved before this field. */
+  color?: PromoColor
+}
+
+/** Banner palette keys. Tailwind class strings live with the consumers. */
+export const PROMO_COLORS = [
+  'red',
+  'amber',
+  'emerald',
+  'sky',
+  'violet',
+  'slate',
+] as const
+
+export type PromoColor = (typeof PROMO_COLORS)[number]
+
+function normalizeColor(value: unknown): PromoColor {
+  const key = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  return (PROMO_COLORS as readonly string[]).includes(key)
+    ? (key as PromoColor)
+    : 'red'
 }
 
 export type PromoPricingConfig = PromoPricing[]
@@ -115,6 +136,7 @@ export function parsePromoPricing(raw: unknown): PromoPricingConfig {
         discount:
           normalizeDiscount(record.discount) ?? DEFAULT_PROMO_DISCOUNT,
         models: normalizeModels(record.models),
+        color: normalizeColor(record.color),
       },
     ]
   })

@@ -1878,6 +1878,8 @@
     "Price discount (%)": "价格比例（%）",
     "Price at {{percent}}%": "按原价 {{percent}}% 收费",
     "Limited-time free": "限时免费",
+    "Banner colour": "横幅颜色",
+    "Each campaign keeps its own banner colour.": "每个活动使用各自的横幅颜色。",
     "0% means limited-time free; 50% means half price; 100% means regular price.": "0% 表示限时免费；50% 表示半价；100% 表示原价。",
     "Only matching models receive this campaign price. A 100% discount is limited-time free.": "只有匹配的模型享受本活动价格；价格比例为 0% 时表示限时免费。",
     "No campaigns configured. Click Add campaign to get started.": "暂无活动，点击“添加活动”开始配置。",

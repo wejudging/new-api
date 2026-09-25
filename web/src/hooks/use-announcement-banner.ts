@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { promoOffLabel } from '@/lib/promo-caption'
 import type { PromoPricing } from '@/lib/promo-pricing'
+import type { PromoColor } from '@/lib/promo-pricing'
 
 import { useNotifications } from './use-notifications'
 import { usePromoPricing } from './use-promo-pricing'
@@ -37,6 +38,8 @@ export type AnnouncementBannerItem = {
   content: string
   /** Campaign the row counts down to, when it is a limited-time offer. */
   campaign?: PromoPricing
+  /** Per-campaign banner colour. */
+  color?: PromoColor
 }
 
 function collapseWhitespace(input: string): string {
@@ -53,6 +56,7 @@ function buildPromoItems(
       key: `promo:${promo.id || index}`,
       content: `${title} · ${promoOffLabel(promo, t)}`,
       campaign: promo,
+      color: promo.color,
     }
   })
 }
