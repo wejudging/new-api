@@ -47,7 +47,7 @@ function AnnouncementBannerText(props: {
     <div className='min-w-0 flex-1'>
       <div
         className={cn(
-          'mx-auto flex w-full flex-wrap items-center gap-x-3 gap-y-1 break-words whitespace-normal',
+          'mx-auto flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center break-words whitespace-normal',
           props.className
         )}
       >
