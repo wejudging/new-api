@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AnnouncementBannerItem } from '@/hooks/use-announcement-banner'
@@ -34,13 +35,17 @@ const announcement: AnnouncementBannerItem = {
 }
 
 describe('top banner rows', () => {
-  it('renders the campaign and the announcement as two separate rows', () => {
+  it('rotates campaigns and announcements through one bar', async () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
     const rows = screen.getAllByRole('status')
-    expect(rows).toHaveLength(2)
+    expect(rows).toHaveLength(1)
     expect(rows[0]).toHaveTextContent(promo.content)
-    expect(rows[1]).toHaveTextContent(announcement.content)
+    expect(rows[0]).toHaveTextContent('1/2')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByRole('status')).toHaveTextContent(announcement.content)
+    expect(screen.getByRole('status')).toHaveTextContent('2/2')
   })
 
   it('keeps the campaign row alone while there is no announcement', () => {
@@ -77,10 +82,11 @@ describe('top banner rows', () => {
     expect(content).toHaveClass('flex-wrap')
   })
 
-  it('offers no dismiss control on either row', () => {
+  it('exposes rotation controls instead of a dismiss button', () => {
     render(<AnnouncementBanner promos={[promo]} announcements={[announcement]} />)
 
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
   })
 
   it('joins several announcements in the single announcement row', () => {
