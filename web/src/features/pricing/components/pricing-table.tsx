@@ -32,6 +32,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { DEFAULT_PRICING_PAGE_SIZE, DEFAULT_TOKEN_UNIT } from '../constants'
 import type { PricingModel, TokenUnit } from '../types'
 import { usePricingColumns } from './pricing-columns'
+import { cn } from '@/lib/utils'
 export interface PricingTableProps {
   models: PricingModel[]
   isLoading?: boolean
@@ -107,9 +108,24 @@ export function PricingTable(props: PricingTableProps) {
           emptyDescription={t('No models match your current filters.')}
           skeletonKeyPrefix='pricing-skeleton'
           applyHeaderSize
-          getColumnClassName={(_columnId, kind) =>
-            kind === 'header' ? 'text-muted-foreground font-medium' : undefined
-          }
+          getColumnClassName={(columnId, kind) => {
+            const header = kind === 'header' ? 'text-muted-foreground font-medium' : ''
+            // 数字列按内容收紧（w-px = 最小宽度），成功率列独占剩余宽度，
+            // 这样窗口变宽时是成功率条变长，而不是数字之间被拉开。
+            if (
+              columnId === 'input_price' ||
+              columnId === 'output_price' ||
+              columnId === 'cached_price' ||
+              columnId === 'tps' ||
+              columnId === 'ttft'
+            ) {
+              return cn(header, 'w-px whitespace-nowrap text-right tabular-nums')
+            }
+            if (columnId === 'success_rate') {
+              return cn(header, 'w-full')
+            }
+            return header || undefined
+          }}
           renderRow={(row: Row<PricingModel>) => (
             <DataTableRow
               key={row.id}

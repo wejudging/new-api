@@ -83,7 +83,7 @@ export function usePricingColumns(
           </div>
         )
       },
-      size: 150,
+      size: 136,
       enableSorting: false,
     },
 
@@ -97,11 +97,11 @@ export function usePricingColumns(
           {row.original.model_name}
         </span>
       ),
-      minSize: 150,
+      minSize: 180,
       enableSorting: false,
     },
 
-    // 输入
+    // 输入（数字列按内容收紧，多余宽度留给成功率）
     {
       id: 'input_price',
       meta: { label: t('Input') },
@@ -113,7 +113,7 @@ export function usePricingColumns(
           options={options}
         />
       ),
-      size: 120,
+      size: 92,
       enableSorting: false,
     },
 
@@ -129,7 +129,7 @@ export function usePricingColumns(
           options={options}
         />
       ),
-      size: 120,
+      size: 92,
       enableSorting: false,
     },
 
@@ -141,7 +141,7 @@ export function usePricingColumns(
       cell: ({ row }) => (
         <CachedPriceCell model={row.original} options={options} />
       ),
-      size: 120,
+      size: 92,
       enableSorting: false,
     },
 
@@ -156,7 +156,7 @@ export function usePricingColumns(
           perCall={row.original.quota_type === 1}
         />
       ),
-      size: 100,
+      size: 76,
       enableSorting: false,
     },
 
@@ -171,7 +171,7 @@ export function usePricingColumns(
           perCall={row.original.quota_type === 1}
         />
       ),
-      size: 100,
+      size: 88,
       enableSorting: false,
     },
 
@@ -202,7 +202,7 @@ export function usePricingColumns(
           </button>
         </div>
       ),
-      size: 200,
+      size: 260,
       enableSorting: false,
     },
   ]
