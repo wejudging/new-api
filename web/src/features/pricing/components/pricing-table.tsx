@@ -112,6 +112,7 @@ export function PricingTable(props: PricingTableProps) {
             const header = kind === 'header' ? 'text-muted-foreground font-medium' : ''
             // 数字列按内容收紧（w-px = 最小宽度），成功率列独占剩余宽度，
             // 这样窗口变宽时是成功率条变长，而不是数字之间被拉开。
+            // 表头与单元格一律左对齐，保证标题和数值在同一基线上。
             if (
               columnId === 'input_price' ||
               columnId === 'output_price' ||
@@ -119,7 +120,7 @@ export function PricingTable(props: PricingTableProps) {
               columnId === 'tps' ||
               columnId === 'ttft'
             ) {
-              return cn(header, 'w-px whitespace-nowrap text-right tabular-nums')
+              return cn(header, 'w-px whitespace-nowrap text-left tabular-nums')
             }
             if (columnId === 'success_rate') {
               return cn(header, 'w-full')
