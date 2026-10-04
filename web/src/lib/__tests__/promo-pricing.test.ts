@@ -29,7 +29,9 @@ import {
   type PromoPricing,
 } from '@/lib/promo-pricing'
 
-const EXPIRES_AT = '2026-10-01T23:59:00+08:00'
+// Far-future fixture: a fixed date in the past would silently turn these
+// campaigns into "expired" once the wall clock passes it.
+const EXPIRES_AT = '2099-10-01T23:59:00+08:00'
 
 function makePromo(overrides: Partial<PromoPricing> = {}): PromoPricing {
   return {
