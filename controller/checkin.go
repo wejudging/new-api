@@ -2,7 +2,6 @@ package controller
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -40,7 +39,7 @@ func checkinTopUpGate(c *gin.Context) (required bool, satisfied bool, err error)
 func GetCheckinStatus(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
-		common.ApiErrorMsg(c, "签到功能未启用")
+		common.ApiErrorT(c, "Check-in feature is not enabled")
 		return
 	}
 	userId := c.GetInt("id")
@@ -54,10 +53,7 @@ func GetCheckinStatus(c *gin.Context) {
 
 	stats, err := model.GetUserCheckinStats(userId, month)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
+		common.ApiError(c, err)
 		return
 	}
 
@@ -82,7 +78,7 @@ func GetCheckinStatus(c *gin.Context) {
 func DoCheckin(c *gin.Context) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
-		common.ApiErrorMsg(c, "签到功能未启用")
+		common.ApiErrorT(c, "Check-in feature is not enabled")
 		return
 	}
 
@@ -98,22 +94,15 @@ func DoCheckin(c *gin.Context) {
 
 	checkin, tickets, err := model.UserCheckin(userId)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
+		common.ApiError(c, err)
 		return
 	}
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("用户签到，获得 %d 次抽奖机会", tickets))
+	model.RecordLog(userId, model.LogTypeSystem, common.NewMessage("Daily check-in, received {{tickets}} lottery tickets", map[string]any{"tickets": tickets}))
 	total, _ := model.GetUserLotteryTickets(userId)
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "签到成功",
-		"data": gin.H{
-			"quota_awarded":   checkin.QuotaAwarded,
-			"checkin_date":    checkin.CheckinDate,
-			"tickets_awarded": tickets,
-			"tickets":         total,
-		},
+	common.ApiSuccessT(c, "Check-in successful", gin.H{
+		"quota_awarded":   checkin.QuotaAwarded,
+		"checkin_date":    checkin.CheckinDate,
+		"tickets_awarded": tickets,
+		"tickets":         total,
 	})
 }

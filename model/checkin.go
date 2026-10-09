@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -57,7 +56,7 @@ func HasCheckedInToday(userId int) (bool, error) {
 func UserCheckin(userId int) (*Checkin, int, error) {
 	setting := operation_setting.GetCheckinSetting()
 	if !setting.Enabled {
-		return nil, 0, errors.New("签到功能未启用")
+		return nil, 0, common.NewMessage("Check-in feature is not enabled")
 	}
 
 	// 检查今天是否已签到
@@ -66,7 +65,7 @@ func UserCheckin(userId int) (*Checkin, int, error) {
 		return nil, 0, err
 	}
 	if hasChecked {
-		return nil, 0, errors.New("今日已签到")
+		return nil, 0, common.NewMessage("Already checked in today")
 	}
 
 	// 签到不再直接发放额度，改为发放抽奖次数，奖品由抽奖环节发放
@@ -97,14 +96,14 @@ func userCheckinWithTransaction(checkin *Checkin, userId int, tickets int) (*Che
 		// 步骤1: 创建签到记录
 		// 数据库有唯一约束 (user_id, checkin_date)，可以防止并发重复签到
 		if err := tx.Create(checkin).Error; err != nil {
-			return errors.New("签到失败，请稍后重试")
+			return common.NewMessage("Check-in failed, please try again later")
 		}
 
 		// 步骤2: 在事务中发放抽奖次数并记录流水（每日次数不可累加）
 		var err error
 		granted, err = GrantDailyLotteryTickets(tx, userId, tickets)
 		if err != nil {
-			return errors.New("签到失败：发放抽奖次数出错")
+			return common.NewMessage("Check-in failed: lottery ticket grant error")
 		}
 
 		return nil
@@ -122,7 +121,7 @@ func userCheckinWithoutTransaction(checkin *Checkin, userId int, tickets int) (*
 	// 步骤1: 创建签到记录
 	// 数据库有唯一约束 (user_id, checkin_date)，可以防止并发重复签到
 	if err := DB.Create(checkin).Error; err != nil {
-		return nil, 0, errors.New("签到失败，请稍后重试")
+		return nil, 0, common.NewMessage("Check-in failed, please try again later")
 	}
 
 	// 步骤2: 发放抽奖次数并记录流水（每日次数不可累加）
@@ -130,7 +129,7 @@ func userCheckinWithoutTransaction(checkin *Checkin, userId int, tickets int) (*
 	if err != nil {
 		// 如果发放抽奖次数失败，需要回滚签到记录
 		DB.Delete(checkin)
-		return nil, 0, errors.New("签到失败：发放抽奖次数出错")
+		return nil, 0, common.NewMessage("Check-in failed: lottery ticket grant error")
 	}
 
 	return checkin, granted, nil

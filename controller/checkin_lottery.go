@@ -145,9 +145,9 @@ func DoCheckinLotteryDraw(c *gin.Context) {
 	// 没有可用次数时，先尝试领取当日次数（今日已签到会返回错误）
 	if tickets < 1 {
 		if _, claimed, err := model.UserCheckin(userId); err == nil {
-			message := "用户签到"
+			message := common.NewMessage("Daily check-in")
 			if claimed > 0 {
-				message = fmt.Sprintf("用户签到，获得 %d 次抽奖机会", claimed)
+				message = common.NewMessage("Daily check-in, received {{tickets}} lottery tickets", map[string]any{"tickets": claimed})
 			}
 			model.RecordLog(userId, model.LogTypeSystem, message)
 			tickets, _ = model.GetUserLotteryTickets(userId)
@@ -176,7 +176,10 @@ func DoCheckinLotteryDraw(c *gin.Context) {
 	}
 
 	model.RecordLog(userId, model.LogTypeSystem,
-		fmt.Sprintf("签到抽奖获得 %s，发放额度 %s", formatLotteryAmount(draw.Amount), logger.LogQuota(draw.Quota)))
+		common.NewMessage("Lottery draw won {{amount}}, credited {{quota}}", map[string]any{
+			"amount": formatLotteryAmount(draw.Amount),
+			"quota":  logger.LogQuota(draw.Quota),
+		}))
 
 	remaining, _ := model.GetUserLotteryTickets(userId)
 	checkedInToday, _ := model.HasCheckedInToday(userId)
